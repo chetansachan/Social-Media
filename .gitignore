@@ -1,0 +1,43 @@
+# AI Context
+/ai-context/
+ai-context/
+/.agents
+
+# Temporary and Air build directories
+tmp/
+*/tmp/
+*.log
+build-errors.log
+
+# Compiled binaries and executables (Windows & Unix)
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+
+# Service binaries (when built directly without .exe on Unix/macOS)
+/api-gateway/api-gateway
+/api-gateway/api-gateway.exe
+/user-service/server
+/user-service/server.exe
+/user-service/user-service
+/user-service/user-service.exe
+/follow-service/follow-service
+/follow-service/follow-service.exe
+/post-service/post-service
+/post-service/post-service.exe
+
+# Output / Distribution directories
+bin/
+dist/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
