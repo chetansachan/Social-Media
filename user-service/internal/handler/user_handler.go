@@ -54,3 +54,69 @@ func (h *UserHandler) Register(ctx context.Context, req *userpb.RegisterUserRequ
 		},
 	}, nil
 }
+
+func (h *UserHandler) GetUserById(ctx context.Context, req *userpb.GetUserByIdRequest) (*userpb.GetUserByIdResponse, error) {
+	user, err := h.userService.GetById(ctx, req.Id)
+	if err != nil {
+		if errors.Is(err, models.ErrUserNotFound) {
+			return nil, models.ErrUserNotFound
+		}
+		return nil, status.Errorf(codes.Internal, "failed to find user %v", err)
+	}
+
+	return &userpb.GetUserByIdResponse{
+		User: &userpb.User{
+			Id:        user.ID.String(),
+			Username:  user.Username,
+			Name:      user.Name,
+			Email:     user.Email,
+			IsPublic:  user.IsPublic,
+			CreatedAt: user.CreatedAt.Format(time.RFC3339),
+			UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
+		},
+	}, nil
+}
+
+func (h *UserHandler) GetUserByEmail(ctx context.Context, req *userpb.GetUserByEmailRequest) (*userpb.GetUserByEmailResponse, error) {
+	user, err := h.userService.GetByEmail(ctx, req.Email)
+	if err != nil {
+		if errors.Is(err, models.ErrUserNotFound) {
+			return nil, models.ErrUserNotFound
+		}
+		return nil, status.Errorf(codes.Internal, "failed to find user %v", err)
+	}
+
+	return &userpb.GetUserByEmailResponse{
+		User: &userpb.User{
+			Id:        user.ID.String(),
+			Username:  user.Username,
+			Name:      user.Name,
+			Email:     user.Email,
+			IsPublic:  user.IsPublic,
+			CreatedAt: user.CreatedAt.Format(time.RFC3339),
+			UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
+		},
+	}, nil
+}
+
+func (h *UserHandler) GetUserByUsername(ctx context.Context, req *userpb.GetUserByUsernameRequest) (*userpb.GetUserByUsernameResponse, error) {
+	user, err := h.userService.GetByUsername(ctx, req.Username)
+	if err != nil {
+		if errors.Is(err, models.ErrUserNotFound) {
+			return nil, models.ErrUserNotFound
+		}
+		return nil, status.Errorf(codes.Internal, "failed to find user %v", err)
+	}
+
+	return &userpb.GetUserByUsernameResponse{
+		User: &userpb.User{
+			Id:        user.ID.String(),
+			Username:  user.Username,
+			Name:      user.Name,
+			Email:     user.Email,
+			IsPublic:  user.IsPublic,
+			CreatedAt: user.CreatedAt.Format(time.RFC3339),
+			UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
+		},
+	}, nil
+}

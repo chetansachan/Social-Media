@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/chetansachan/socialflow/user-service/internal/models"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -15,6 +16,7 @@ type UserRepository interface {
 	Create(ctx context.Context, user *models.User) (*models.User, error)
 	GetByEmail(ctx context.Context, email string) (*models.User, error)
 	GetByUsername(ctx context.Context, username string) (*models.User, error)
+	GetById(ctx context.Context, id uuid.UUID) (*models.User, error)
 }
 
 type userRepository struct {
@@ -65,7 +67,7 @@ func (r *userRepository) Create(ctx context.Context, user *models.User) (*models
 
 func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.User, error) {
 	query := `
-		SELECT id, username, name, email, password, is_public, created_at, updated_at
+		SELECT id, username, name, email, is_public, created_at, updated_at
 		FROM users
 		WHERE email = $1
 	`
@@ -76,7 +78,6 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.
 		&user.Username,
 		&user.Name,
 		&user.Email,
-		&user.Password,
 		&user.IsPublic,
 		&user.CreatedAt,
 		&user.UpdatedAt,
@@ -93,7 +94,7 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.
 
 func (r *userRepository) GetByUsername(ctx context.Context, username string) (*models.User, error) {
 	query := `
-		SELECT id, username, name, email, password, is_public, created_at, updated_at
+		SELECT id, username, name, email, is_public, created_at, updated_at
 		FROM users
 		WHERE username = $1
 	`
@@ -104,7 +105,6 @@ func (r *userRepository) GetByUsername(ctx context.Context, username string) (*m
 		&user.Username,
 		&user.Name,
 		&user.Email,
-		&user.Password,
 		&user.IsPublic,
 		&user.CreatedAt,
 		&user.UpdatedAt,
@@ -116,5 +116,31 @@ func (r *userRepository) GetByUsername(ctx context.Context, username string) (*m
 
 		return nil, fmt.Errorf("failed to get user by username: %w", err)
 	}
+	return user, nil
+}
+
+func (r *userRepository) GetById(ctx context.Context, id uuid.UUID) (*models.User, error) {
+	query := `
+		SELECT id, username, name, email, is_public, created_at, updated_at 
+		FROM users 
+		WHERE id = $1
+	`
+
+	user := &models.User{}
+	if err := r.db.QueryRow(ctx, query, id).Scan(
+		&user.ID,
+		&user.Username,
+		&user.Name,
+		&user.Email,
+		&user.IsPublic,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	); err != nil {
+		if errors.Is(err, pgx.ErrNoRows){
+			return nil, models.ErrUserNotFound
+		}
+		return nil, fmt.Errorf("failed to get user by id: %w", err)
+	}
+
 	return user, nil
 }
