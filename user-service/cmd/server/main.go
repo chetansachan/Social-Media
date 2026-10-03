@@ -15,12 +15,16 @@ import (
 )
 
 func main() {
-	listener, err := net.Listen("tcp", ":50051")
+	cfg := config.Load()
+	port := cfg.Port
+	if port == "" {
+		port = "50051"
+	}
+
+	listener, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-
-	cfg := config.Load()
 
 	dbPool, err := database.Connect(cfg.DatabaseUrl)
 	if err != nil {
@@ -35,7 +39,7 @@ func main() {
 	grpcServer := grpc.NewServer()
 	userpb.RegisterUserServiceServer(grpcServer, userHandler)
 
-	log.Println("User Service running on :50051")
+	log.Printf("User Service running on : %s\n", port)
 
 	if err := grpcServer.Serve(listener); err != nil {
 		log.Fatalf("failed to serve: %v", err)
