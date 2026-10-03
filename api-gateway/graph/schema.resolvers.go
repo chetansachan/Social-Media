@@ -7,7 +7,6 @@ package graph
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/chetansachan/socialflow/api-gateway/graph/model"
 	userpb "github.com/chetansachan/socialflow/proto"
@@ -38,9 +37,67 @@ func (r *mutationResolver) Register(ctx context.Context, input model.RegisterUse
 	}, nil
 }
 
-// User is the resolver for the user field.
-func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error) {
-	panic(fmt.Errorf("not implemented: User - user"))
+// GetUserByID is the resolver for the GetUserById field.
+func (r *queryResolver) GetUserByID(ctx context.Context, id string) (*model.User, error) {
+	res, err := r.UserClient.GetUserById(ctx, &userpb.GetUserByIdRequest{
+		Id: id,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	u := res.GetUser()
+	return &model.User{
+		ID:        u.GetId(),
+		Username:  u.GetUsername(),
+		Name:      u.GetName(),
+		Email:     u.GetEmail(),
+		IsPublic:  u.GetIsPublic(),
+		CreatedAt: u.GetCreatedAt(),
+		UpdatedAt: u.GetUpdatedAt(),
+	}, nil
+}
+
+// GetUserByEmail is the resolver for the GetUserByEmail field.
+func (r *queryResolver) GetUserByEmail(ctx context.Context, email string) (*model.User, error) {
+	res, err := r.UserClient.GetUserByEmail(ctx, &userpb.GetUserByEmailRequest{
+		Email: email,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	u := res.GetUser()
+	return &model.User{
+		ID:        u.GetId(),
+		Username:  u.GetUsername(),
+		Name:      u.GetName(),
+		Email:     u.GetEmail(),
+		IsPublic:  u.GetIsPublic(),
+		CreatedAt: u.GetCreatedAt(),
+		UpdatedAt: u.GetUpdatedAt(),
+	}, nil
+}
+
+// GetUserByUsername is the resolver for the GetUserByUsername field.
+func (r *queryResolver) GetUserByUsername(ctx context.Context, username string) (*model.User, error) {
+	res, err := r.UserClient.GetUserByUsername(ctx, &userpb.GetUserByUsernameRequest{
+		Username: username,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	u := res.GetUser()
+	return &model.User{
+		ID:        u.GetId(),
+		Username:  u.GetUsername(),
+		Name:      u.GetName(),
+		Email:     u.GetEmail(),
+		IsPublic:  u.GetIsPublic(),
+		CreatedAt: u.GetCreatedAt(),
+		UpdatedAt: u.GetUpdatedAt(),
+	}, nil
 }
 
 // Mutation returns MutationResolver implementation.

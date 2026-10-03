@@ -9,7 +9,9 @@ type User {
 }
 
 type Query {
-    user(id: ID!): User
+    getUserById(id: ID!): User
+    getUserByEmail(email: String!): User
+    getUserByUsername(username: String!): User
 }
 
 type Mutation {
