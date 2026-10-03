@@ -4,6 +4,8 @@ type User {
     name: String!
     email: String!
     isPublic: Boolean!
+    createdAt: String!
+    updatedAt: String!
 }
 
 type Query {
@@ -19,4 +21,5 @@ input RegisterUserInput {
     name: String!
     email: String!
     password: String!
+    isPublic: Boolean
 }

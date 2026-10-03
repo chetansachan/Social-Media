@@ -20,17 +20,21 @@ func (r *mutationResolver) Register(ctx context.Context, input model.RegisterUse
 		Name:     input.Name,
 		Email:    input.Email,
 		Password: input.Password,
+		IsPublic: input.IsPublic,
 	})
 	if err != nil {
 		return nil, err
 	}
 
+	u := res.GetUser()
 	return &model.User{
-		ID:       res.GetId(),
-		Username: res.GetUsername(),
-		Name:     res.GetName(),
-		Email:    res.GetEmail(),
-		IsPublic: res.GetIsPublic(),
+		ID:        u.GetId(),
+		Username:  u.GetUsername(),
+		Name:      u.GetName(),
+		Email:     u.GetEmail(),
+		IsPublic:  u.GetIsPublic(),
+		CreatedAt: u.GetCreatedAt(),
+		UpdatedAt: u.GetUpdatedAt(),
 	}, nil
 }
 

@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"errors"
+	"time"
 
 	userpb "github.com/chetansachan/socialflow/proto"
 	"github.com/chetansachan/socialflow/user-service/internal/models"
@@ -26,6 +27,7 @@ func (h *UserHandler) Register(ctx context.Context, req *userpb.RegisterUserRequ
 		Name:     req.GetName(),
 		Email:    req.GetEmail(),
 		Password: req.GetPassword(),
+		IsPublic: req.IsPublic,
 	}
 
 	user, err := h.userService.Register(ctx, input)
@@ -41,10 +43,14 @@ func (h *UserHandler) Register(ctx context.Context, req *userpb.RegisterUserRequ
 	}
 
 	return &userpb.RegisterUserResponse{
-		Id:       user.ID.String(),
-		Username: user.Username,
-		Name:     user.Name,
-		Email:    user.Email,
-		IsPublic: user.IsPublic,
+		User: &userpb.User{
+			Id:        user.ID.String(),
+			Username:  user.Username,
+			Name:      user.Name,
+			Email:     user.Email,
+			IsPublic:  user.IsPublic,
+			CreatedAt: user.CreatedAt.Format(time.RFC3339),
+			UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
+		},
 	}, nil
 }

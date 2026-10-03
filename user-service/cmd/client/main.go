@@ -32,6 +32,8 @@ func main() {
 		log.Fatalf("failed to get user: %v", err)
 	}
 
-	log.Printf("User ID: %s", response.GetId())
-	log.Printf("User Name: %s", response.GetName())
+	if response.GetUser() != nil {
+		log.Printf("User ID: %s", response.GetUser().GetId())
+		log.Printf("User Name: %s", response.GetUser().GetName())
+	}
 }

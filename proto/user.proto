@@ -8,17 +8,25 @@ service UserService {
     rpc Register(RegisterUserRequest) returns (RegisterUserResponse);
 }
 
-message RegisterUserRequest {
-    string username = 1;
-	string name = 2;
-	string email = 3;
-	string password = 4;
-}
-
-message RegisterUserResponse {
+message User {
     string id = 1;
     string username = 2;
     string name = 3;
     string email = 4;
     bool is_public = 5;
+    string created_at = 6;
+    string updated_at = 7;
 }
+
+message RegisterUserRequest {
+    string username = 1;
+    string name = 2;
+    string email = 3;
+    string password = 4;
+    optional bool is_public = 5;
+}
+
+message RegisterUserResponse {
+    User user = 1;
+}
+
