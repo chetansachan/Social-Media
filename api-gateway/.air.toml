@@ -1,0 +1,39 @@
+#:schema https://json.schemastore.org/any.json
+
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  args_bin = []
+  bin = "./tmp/main"
+  cmd = "go build -o ./tmp/main ."
+  delay = 1000
+  entrypoint = ["./tmp/main"]
+  exclude_dir = ["assets", "tmp", "vendor", "testdata"]
+  exclude_file = []
+  exclude_regex = ["_test.go"]
+  exclude_unchanged = false
+  include_dir = []
+  include_ext = ["go", "graphql", "graphqls", "json", "env"]
+  include_file = []
+  kill_delay = "0s"
+  log = "build-errors.log"
+  poll = false
+  rerun = false
+  stop_on_error = true
+
+  [build.windows]
+    args_bin = []
+    bin = "tmp\\main.exe"
+    cmd = "go build -o ./tmp/main.exe ."
+    entrypoint = ["tmp\\main.exe"]
+
+[color]
+  build = "yellow"
+  main = "magenta"
+  runner = "green"
+  watcher = "cyan"
+
+[screen]
+  clear_on_rebuild = false
+  keep_scroll = true

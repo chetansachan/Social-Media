@@ -1,0 +1,22 @@
+type User {
+    id: ID!
+    username: String!
+    name: String!
+    email: String!
+    isPublic: Boolean!
+}
+
+type Query {
+    user(id: ID!): User
+}
+
+type Mutation {
+    register(input: RegisterUserInput!): User!
+}
+
+input RegisterUserInput {
+    username: String!
+    name: String!
+    email: String!
+    password: String!
+}
