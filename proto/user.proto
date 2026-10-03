@@ -7,6 +7,8 @@ option go_package = "github.com/chetansachan/socialflow/proto";
 service UserService {
     rpc Register(RegisterUserRequest) returns (RegisterUserResponse);
     rpc GetUserById(GetUserByIdRequest) returns (GetUserByIdResponse);
+    rpc GetUserByEmail(GetUserByEmailRequest) returns (GetUserByEmailResponse);
+    rpc GetUserByUsername(GetUserByUsernameRequest) returns (GetUserByUsernameResponse);
 }
 
 message User {
@@ -37,5 +39,21 @@ message GetUserByIdRequest {
 }
 
 message GetUserByIdResponse {
+    User user = 1;
+}
+
+message GetUserByEmailRequest {
+    string email = 1;
+}
+
+message GetUserByEmailResponse {
+    User user = 1;
+}
+
+message GetUserByUsernameRequest {
+    string username = 1;
+}
+
+message GetUserByUsernameResponse {
     User user = 1;
 }
