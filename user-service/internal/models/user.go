@@ -3,6 +3,7 @@ package models
 import (
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
 
@@ -31,9 +32,9 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	AccessTkn    string `json:"access_tkn"`
+	AccessTkn  string `json:"access_tkn"`
 	RefreshTkn string `json:"refresh_tkn"`
-	Message string `json:"message"`
+	Message    string `json:"message"`
 }
 
 type UpdateUserInput struct {
@@ -42,4 +43,10 @@ type UpdateUserInput struct {
 	Email    *string `json:"email,omitempty"`
 	Password *string `json:"password,omitempty"`
 	IsPublic *bool   `json:"is_public,omitempty"`
+}
+
+type MyCustomClaims struct {
+	UserId string `json:"user_id"`
+	Email  string `json:"email"`
+	jwt.RegisteredClaims
 }

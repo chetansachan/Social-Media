@@ -134,26 +134,20 @@ func (s *userService) Login(ctx context.Context, input models.LoginRequest) (*mo
 	cfg := config.Load()
 	mySecretKey := cfg.SecretKey
 
-	type MyCustomClaims struct {
-		UserId string `json:"user_id"`
-		Email  string `json:"email"`
-		jwt.RegisteredClaims
-	}
-
-	access := jwt.NewWithClaims(jwt.SigningMethodHS256, MyCustomClaims{
-		user.ID.String(),
-		user.Email,
-		jwt.RegisteredClaims{
+	access := jwt.NewWithClaims(jwt.SigningMethodHS256, models.MyCustomClaims{
+		UserId: user.ID.String(),
+		Email: user.Email,
+		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			Issuer:    "admin",
 			Subject:   "user",
 		},
 	})
-	refresh := jwt.NewWithClaims(jwt.SigningMethodHS256, MyCustomClaims{
-		user.ID.String(),
-		user.Email,
-		jwt.RegisteredClaims{
+	refresh := jwt.NewWithClaims(jwt.SigningMethodHS256, models.MyCustomClaims{
+		UserId: user.ID.String(),
+		Email: user.Email,
+		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * 7 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			Issuer:    "admin",
