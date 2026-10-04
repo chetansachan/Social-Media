@@ -63,7 +63,6 @@ func (h *UserHandler) Login(ctx context.Context, req *userpb.LoginRequest) (*use
 
 	response, err := h.userService.Login(ctx, input)
 	if err != nil {
-		if err != nil {
 			switch {
 			case errors.Is(err, models.ErrInvalidInput):
 				return nil, status.Errorf(codes.InvalidArgument, "%v", err)
@@ -72,7 +71,6 @@ func (h *UserHandler) Login(ctx context.Context, req *userpb.LoginRequest) (*use
 			default:
 				return nil, status.Errorf(codes.Internal, "failed to register user: %v", err)
 			}
-		}
 	}
 
 	return &userpb.LoginResponse{
