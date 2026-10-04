@@ -67,7 +67,7 @@ func (r *userRepository) Create(ctx context.Context, user *models.User) (*models
 
 func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.User, error) {
 	query := `
-		SELECT id, username, name, email, is_public, created_at, updated_at
+		SELECT id, username, name, email, password, is_public, created_at, updated_at
 		FROM users
 		WHERE email = $1
 	`
@@ -78,6 +78,7 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.
 		&user.Username,
 		&user.Name,
 		&user.Email,
+		&user.Password,
 		&user.IsPublic,
 		&user.CreatedAt,
 		&user.UpdatedAt,
@@ -94,7 +95,7 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.
 
 func (r *userRepository) GetByUsername(ctx context.Context, username string) (*models.User, error) {
 	query := `
-		SELECT id, username, name, email, is_public, created_at, updated_at
+		SELECT id, username, name, email, password, is_public, created_at, updated_at
 		FROM users
 		WHERE username = $1
 	`
@@ -105,6 +106,7 @@ func (r *userRepository) GetByUsername(ctx context.Context, username string) (*m
 		&user.Username,
 		&user.Name,
 		&user.Email,
+		&user.Password,
 		&user.IsPublic,
 		&user.CreatedAt,
 		&user.UpdatedAt,
@@ -121,7 +123,7 @@ func (r *userRepository) GetByUsername(ctx context.Context, username string) (*m
 
 func (r *userRepository) GetById(ctx context.Context, id uuid.UUID) (*models.User, error) {
 	query := `
-		SELECT id, username, name, email, is_public, created_at, updated_at 
+		SELECT id, username, name, email, password, is_public, created_at, updated_at 
 		FROM users 
 		WHERE id = $1
 	`
@@ -132,6 +134,7 @@ func (r *userRepository) GetById(ctx context.Context, id uuid.UUID) (*models.Use
 		&user.Username,
 		&user.Name,
 		&user.Email,
+		&user.Password,
 		&user.IsPublic,
 		&user.CreatedAt,
 		&user.UpdatedAt,
