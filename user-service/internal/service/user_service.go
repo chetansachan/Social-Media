@@ -6,15 +6,19 @@ import (
 	"fmt"
 	"net/mail"
 	"strings"
+	"time"
 
+	"github.com/chetansachan/socialflow/user-service/internal/config"
 	"github.com/chetansachan/socialflow/user-service/internal/models"
 	"github.com/chetansachan/socialflow/user-service/internal/repository"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type UserService interface {
 	Register(ctx context.Context, input models.CreateUserInput) (*models.User, error)
+	Login(ctx context.Context, input models.LoginRequest) (*models.LoginResponse, error)
 	GetById(ctx context.Context, id string) (*models.User, error)
 	GetByEmail(ctx context.Context, email string) (*models.User, error)
 	GetByUsername(ctx context.Context, username string) (*models.User, error)
@@ -98,6 +102,78 @@ func (s *userService) Register(ctx context.Context, input models.CreateUserInput
 	createdUser.Password = ""
 
 	return createdUser, nil
+}
+
+func (s *userService) Login(ctx context.Context, input models.LoginRequest) (*models.LoginResponse, error) {
+	email := strings.TrimSpace(strings.ToLower(input.Email))
+	password := input.Password
+
+	if email == "" {
+		return nil, fmt.Errorf("%w: email is required", models.ErrInvalidInput)
+	}
+	if _, err := mail.ParseAddress(email); err != nil {
+		return nil, fmt.Errorf("%w: invalid email address format", models.ErrInvalidInput)
+	}
+
+	if password == "" {
+		return nil, fmt.Errorf("%w: password is required", models.ErrInvalidInput)
+	}
+
+	user, err := s.userRepo.GetByEmail(ctx, email)
+	if err != nil {
+		if errors.Is(err, models.ErrUserNotFound) {
+			return nil, fmt.Errorf("User not found %w", err)
+		}
+		return nil, fmt.Errorf("Internal Server error %w", err)
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+		return nil, fmt.Errorf("Invalid Password %w", err)
+	}
+
+	cfg := config.Load()
+	mySecretKey := cfg.SecretKey
+
+	type MyCustomClaims struct {
+		UserId string `json:"user_id"`
+		Email  string `json:"email"`
+		jwt.RegisteredClaims
+	}
+
+	access := jwt.NewWithClaims(jwt.SigningMethodHS256, MyCustomClaims{
+		user.ID.String(),
+		user.Email,
+		jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			Issuer:    "admin",
+			Subject:   "user",
+		},
+	})
+	refresh := jwt.NewWithClaims(jwt.SigningMethodHS256, MyCustomClaims{
+		user.ID.String(),
+		user.Email,
+		jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * 7 * time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			Issuer:    "admin",
+			Subject:   "user",
+		},
+	})
+	accessToken, err := access.SignedString([]byte(mySecretKey))
+	if err != nil {
+		return nil, fmt.Errorf("Error gernating tkn %w", err)
+	}
+	refreshToken, err := refresh.SignedString([]byte(mySecretKey))
+	if err != nil {
+		return nil, fmt.Errorf("Error gernating tkn %w", err)
+	}
+
+	return &models.LoginResponse{
+		AccessTkn:  accessToken,
+		RefreshTkn: refreshToken,
+		Message:    "Login Successfully",
+	}, nil
 }
 
 func (s *userService) GetById(ctx context.Context, id string) (*models.User, error) {

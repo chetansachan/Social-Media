@@ -25,6 +25,17 @@ type CreateUserInput struct {
 	IsPublic *bool  `json:"is_public,omitempty"`
 }
 
+type LoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type LoginResponse struct {
+	AccessTkn    string `json:"access_tkn"`
+	RefreshTkn string `json:"refresh_tkn"`
+	Message string `json:"message"`
+}
+
 type UpdateUserInput struct {
 	Username *string `json:"username,omitempty"`
 	Name     *string `json:"name,omitempty"`

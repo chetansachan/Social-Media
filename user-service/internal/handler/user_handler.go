@@ -55,6 +55,33 @@ func (h *UserHandler) Register(ctx context.Context, req *userpb.RegisterUserRequ
 	}, nil
 }
 
+func (h *UserHandler) Login(ctx context.Context, req *userpb.LoginRequest) (*userpb.LoginResponse, error) {
+	input := models.LoginRequest{
+		Email:    req.GetEmail(),
+		Password: req.GetPassword(),
+	}
+
+	response, err := h.userService.Login(ctx, input)
+	if err != nil {
+		if err != nil {
+			switch {
+			case errors.Is(err, models.ErrInvalidInput):
+				return nil, status.Errorf(codes.InvalidArgument, "%v", err)
+			case errors.Is(err, models.ErrUserNotFound):
+				return nil, status.Errorf(codes.NotFound, "%v", err)
+			default:
+				return nil, status.Errorf(codes.Internal, "failed to register user: %v", err)
+			}
+		}
+	}
+
+	return &userpb.LoginResponse{
+		AccessTkn:  response.AccessTkn,
+		RefreshTkn: response.RefreshTkn,
+		Message:    response.Message,
+	}, nil
+}
+
 func (h *UserHandler) GetUserById(ctx context.Context, req *userpb.GetUserByIdRequest) (*userpb.GetUserByIdResponse, error) {
 	user, err := h.userService.GetById(ctx, req.Id)
 	if err != nil {
