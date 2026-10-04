@@ -37,6 +37,23 @@ func (r *mutationResolver) Register(ctx context.Context, input model.RegisterUse
 	}, nil
 }
 
+// Login is the resolver for the Login field.
+func (r *mutationResolver) Login(ctx context.Context, input *model.LoginInput) (*model.LoginResponse, error) {
+	res, err := r.UserClient.Login(ctx, &userpb.LoginRequest{
+		Email:    input.Email,
+		Password: input.Password,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.LoginResponse{
+		AccessToken:  res.AccessTkn,
+		RefressToken: res.RefreshTkn,
+		Message:      res.Message,
+	}, nil
+}
+
 // GetUserByID is the resolver for the GetUserById field.
 func (r *queryResolver) GetUserByID(ctx context.Context, id string) (*model.User, error) {
 	res, err := r.UserClient.GetUserById(ctx, &userpb.GetUserByIdRequest{

@@ -16,6 +16,7 @@ type Query {
 
 type Mutation {
     register(input: RegisterUserInput!): User!
+    Login(input: LoginInput): LoginResponse!
 }
 
 input RegisterUserInput {
@@ -24,4 +25,14 @@ input RegisterUserInput {
     email: String!
     password: String!
     isPublic: Boolean
+}
+
+type LoginResponse {
+    accessToken: String!
+    refressToken: String!
+    message: String!
+}
+input LoginInput {
+    email: String!
+    password: String!
 }
