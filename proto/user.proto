@@ -9,6 +9,7 @@ service UserService {
     rpc GetUserById(GetUserByIdRequest) returns (GetUserByIdResponse);
     rpc GetUserByEmail(GetUserByEmailRequest) returns (GetUserByEmailResponse);
     rpc GetUserByUsername(GetUserByUsernameRequest) returns (GetUserByUsernameResponse);
+    rpc Login(LoginRequest) returns (LoginResponse);
 }
 
 message User {
@@ -56,4 +57,15 @@ message GetUserByUsernameRequest {
 
 message GetUserByUsernameResponse {
     User user = 1;
+}
+
+message LoginRequest {
+    string email = 3;
+    string password = 4;
+}
+
+message LoginResponse {
+    string access_tkn = 1;
+    string refresh_tkn = 2;
+    string message = 3;
 }
