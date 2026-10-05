@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/mail"
@@ -22,6 +24,7 @@ type UserService interface {
 	GetById(ctx context.Context, id string) (*models.User, error)
 	GetByEmail(ctx context.Context, email string) (*models.User, error)
 	GetByUsername(ctx context.Context, username string) (*models.User, error)
+	Refresh(ctx context.Context, tkn string) (*models.RotationResponse, error)
 }
 
 type userService struct {
@@ -135,23 +138,19 @@ func (s *userService) Login(ctx context.Context, input models.LoginRequest) (*mo
 	mySecretKey := cfg.SecretKey
 
 	access := jwt.NewWithClaims(jwt.SigningMethodHS256, models.MyCustomClaims{
-		UserId: user.ID.String(),
-		Email: user.Email,
+		UserId: user.ID,
+		Email:  user.Email,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			Issuer:    "admin",
-			Subject:   "user",
 		},
 	})
 	refresh := jwt.NewWithClaims(jwt.SigningMethodHS256, models.MyCustomClaims{
-		UserId: user.ID.String(),
-		Email: user.Email,
+		UserId: user.ID,
+		Email:  user.Email,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * 7 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			Issuer:    "admin",
-			Subject:   "user",
 		},
 	})
 	accessToken, err := access.SignedString([]byte(mySecretKey))
@@ -163,6 +162,18 @@ func (s *userService) Login(ctx context.Context, input models.LoginRequest) (*mo
 		return nil, fmt.Errorf("Error gernating tkn %w", err)
 	}
 
+	hash := sha256.Sum256([]byte(refreshToken))
+	refreshtkn := hex.EncodeToString(hash[:])
+
+	data := &models.RefreshTkn{
+		UserId:    user.ID,
+		Token:     refreshtkn,
+		ExpiresAt: time.Now().Add(24 * 7 * time.Hour),
+	}
+
+	if err := s.userRepo.SaveToken(ctx, data); err != nil {
+		return nil, fmt.Errorf("Error saving token %w", err)
+	}
 	return &models.LoginResponse{
 		AccessTkn:  accessToken,
 		RefreshTkn: refreshToken,
@@ -230,4 +241,82 @@ func (s *userService) GetByUsername(ctx context.Context, username string) (*mode
 	user.Password = ""
 
 	return user, nil
+}
+
+func (s *userService) Refresh(ctx context.Context, tkn string) (*models.RotationResponse, error) {
+	hash := sha256.Sum256([]byte(tkn))
+	oldhashtkn := hex.EncodeToString(hash[:])
+
+	data, err := s.userRepo.GetRefreshTk(ctx, string(oldhashtkn))
+	if err != nil {
+		return nil, fmt.Errorf("token not found: %w", err)
+	}
+
+	if data.IsRevoked || time.Now().After(data.ExpiresAt) {
+		return nil, errors.New("unauthorized: token is revoked or expired")
+	}
+
+	cfg := config.Load()
+
+	token, err := jwt.ParseWithClaims(tkn, &models.MyCustomClaims{}, func(token *jwt.Token) (any, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(cfg.SecretKey), nil
+	})
+	if err != nil || !token.Valid {
+		return nil, fmt.Errorf("invalid token: %w", err)
+	}
+
+	claims, ok := token.Claims.(*models.MyCustomClaims)
+	if !ok {
+		return nil, errors.New("unknown claims type, cannot proceed")
+	}
+
+	access := jwt.NewWithClaims(jwt.SigningMethodHS256, models.MyCustomClaims{
+		UserId: claims.UserId,
+		Email:  claims.Email,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	})
+
+	refresh := jwt.NewWithClaims(jwt.SigningMethodHS256, models.MyCustomClaims{
+		UserId: claims.UserId,
+		Email:  claims.Email,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * 7 * time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	})
+
+	accessToken, err := access.SignedString([]byte(cfg.SecretKey))
+	if err != nil {
+		return nil, fmt.Errorf("Error gernating tkn %w", err)
+	}
+	refreshToken, err := refresh.SignedString([]byte(cfg.SecretKey))
+	if err != nil {
+		return nil, fmt.Errorf("Error gernating tkn %w", err)
+	}
+
+	newHash := sha256.Sum256([]byte(refreshToken))
+	refreshtkn := hex.EncodeToString(newHash[:])
+	now := time.Now()
+
+	newData := &models.RefreshTkn{
+		UserId:    claims.UserId,
+		Token:     refreshtkn,
+		ExpiresAt: time.Now().Add(24 * 7 * time.Hour),
+		UpdatedAt: &now,
+	}
+
+	if err := s.userRepo.RotateToken(ctx, oldhashtkn, refreshtkn, newData); err != nil {
+		return nil, fmt.Errorf("failed to save token: %w", err)
+	}
+
+	return &models.RotationResponse{
+		AccessTkn:  accessToken,
+		RefreshTkn: refreshToken,
+	}, nil
 }

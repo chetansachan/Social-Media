@@ -15,7 +15,7 @@ type User struct {
 	Password  string    `json:"-"`
 	IsPublic  bool      `json:"is_public"`
 	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	UpdatedAt *time.Time `json:"updated_at"`
 }
 
 type CreateUserInput struct {
@@ -46,7 +46,22 @@ type UpdateUserInput struct {
 }
 
 type MyCustomClaims struct {
-	UserId string `json:"user_id"`
+	UserId uuid.UUID `json:"user_id"`
 	Email  string `json:"email"`
 	jwt.RegisteredClaims
+}
+
+type RefreshTkn struct {
+	Id        uuid.UUID `json:"id"`
+	UserId    uuid.UUID    `json:"userid"`
+	Token     string    `json:"token"`
+	IsRevoked bool     `json:"is_revoked,omitempty"`
+	ExpiresAt time.Time `json:"expires_at"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt *time.Time `json:"updated_at"`
+}
+
+type RotationResponse struct {
+	AccessTkn  string `json:"access_tkn"`
+	RefreshTkn string `json:"refresh_tkn"`
 }

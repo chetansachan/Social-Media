@@ -21,6 +21,13 @@ func NewUserHandler(userService service.UserService) *UserHandler {
 	return &UserHandler{userService: userService}
 }
 
+func formatTimestamp(t *time.Time) string {
+	if t == nil {
+		return ""
+	}
+	return t.Format(time.RFC3339)
+}
+
 func (h *UserHandler) Register(ctx context.Context, req *userpb.RegisterUserRequest) (*userpb.RegisterUserResponse, error) {
 	input := models.CreateUserInput{
 		Username: req.GetUsername(),
@@ -50,7 +57,7 @@ func (h *UserHandler) Register(ctx context.Context, req *userpb.RegisterUserRequ
 			Email:     user.Email,
 			IsPublic:  user.IsPublic,
 			CreatedAt: user.CreatedAt.Format(time.RFC3339),
-			UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
+			UpdatedAt: formatTimestamp(user.UpdatedAt),
 		},
 	}, nil
 }
@@ -63,14 +70,14 @@ func (h *UserHandler) Login(ctx context.Context, req *userpb.LoginRequest) (*use
 
 	response, err := h.userService.Login(ctx, input)
 	if err != nil {
-			switch {
-			case errors.Is(err, models.ErrInvalidInput):
-				return nil, status.Errorf(codes.InvalidArgument, "%v", err)
-			case errors.Is(err, models.ErrUserNotFound):
-				return nil, status.Errorf(codes.NotFound, "%v", err)
-			default:
-				return nil, status.Errorf(codes.Internal, "failed to register user: %v", err)
-			}
+		switch {
+		case errors.Is(err, models.ErrInvalidInput):
+			return nil, status.Errorf(codes.InvalidArgument, "%v", err)
+		case errors.Is(err, models.ErrUserNotFound):
+			return nil, status.Errorf(codes.NotFound, "%v", err)
+		default:
+			return nil, status.Errorf(codes.Internal, "failed to register user: %v", err)
+		}
 	}
 
 	return &userpb.LoginResponse{
@@ -97,7 +104,7 @@ func (h *UserHandler) GetUserById(ctx context.Context, req *userpb.GetUserByIdRe
 			Email:     user.Email,
 			IsPublic:  user.IsPublic,
 			CreatedAt: user.CreatedAt.Format(time.RFC3339),
-			UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
+			UpdatedAt: formatTimestamp(user.UpdatedAt),
 		},
 	}, nil
 }
@@ -119,7 +126,7 @@ func (h *UserHandler) GetUserByEmail(ctx context.Context, req *userpb.GetUserByE
 			Email:     user.Email,
 			IsPublic:  user.IsPublic,
 			CreatedAt: user.CreatedAt.Format(time.RFC3339),
-			UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
+			UpdatedAt: formatTimestamp(user.UpdatedAt),
 		},
 	}, nil
 }
@@ -141,7 +148,19 @@ func (h *UserHandler) GetUserByUsername(ctx context.Context, req *userpb.GetUser
 			Email:     user.Email,
 			IsPublic:  user.IsPublic,
 			CreatedAt: user.CreatedAt.Format(time.RFC3339),
-			UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
+			UpdatedAt: formatTimestamp(user.UpdatedAt),
 		},
+	}, nil
+}
+
+func (h *UserHandler) Refresh(ctx context.Context, req *userpb.RefreshTknRequest) (*userpb.RefreshTknResponse, error) {
+	res, err := h.userService.Refresh(ctx, req.Refreshtkn)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Unauthorized %v", err)
+	}
+
+	return &userpb.RefreshTknResponse{
+		NewAccessTkn:  res.AccessTkn,
+		NewRefreshTkn: res.RefreshTkn,
 	}, nil
 }
