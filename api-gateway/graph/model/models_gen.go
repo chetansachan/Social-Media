@@ -36,3 +36,8 @@ type User struct {
 	CreatedAt string `json:"createdAt"`
 	UpdatedAt string `json:"updatedAt"`
 }
+
+type NewTokens struct {
+	AccessToken  string `json:"accessToken"`
+	RefressToken string `json:"refressToken"`
+}

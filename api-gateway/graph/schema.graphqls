@@ -12,6 +12,8 @@ type Query {
     getUserById(id: ID!): User
     getUserByEmail(email: String!): User
     getUserByUsername(username: String!): User
+    tokenGenration(refressToken: String!): newTokens
+
 }
 
 type Mutation {
@@ -35,4 +37,8 @@ type LoginResponse {
 input LoginInput {
     email: String!
     password: String!
+}
+type newTokens {
+    accessToken: String!
+    refressToken: String!
 }

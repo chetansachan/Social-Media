@@ -117,6 +117,21 @@ func (r *queryResolver) GetUserByUsername(ctx context.Context, username string) 
 	}, nil
 }
 
+// TokenGenration is the resolver for the tokenGenration field.
+func (r *queryResolver) TokenGenration(ctx context.Context, refressToken string) (*model.NewTokens, error) {
+	res, err := r.UserClient.Refresh(ctx, &userpb.RefreshTknRequest{
+		Refreshtkn: refressToken,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.NewTokens{
+		AccessToken:  res.GetNewAccessTkn(),
+		RefressToken: res.GetNewRefreshTkn(),
+	}, nil
+}
+
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 
