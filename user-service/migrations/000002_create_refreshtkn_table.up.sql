@@ -1,0 +1,14 @@
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+CREATE TABLE IF NOT EXISTS refreshtkn (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    userid UUID,
+    token VARCHAR NOT NULL UNIQUE,
+    is_revoked BOOLEAN NOT NULL DEFAULT FALSE,
+    expired_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ,
+    FOREIGN KEY (userid) REFERENCES users(id)
+        ON DELETE CASCADE 
+        ON UPDATE CASCADE
+);
