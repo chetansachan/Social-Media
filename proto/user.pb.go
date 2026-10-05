@@ -609,6 +609,194 @@ func (x *LoginResponse) GetMessage() string {
 	return ""
 }
 
+type RefreshTkn struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	UserId        string                 `protobuf:"bytes,2,opt,name=userId,proto3" json:"userId,omitempty"`
+	Token         string                 `protobuf:"bytes,3,opt,name=token,proto3" json:"token,omitempty"`
+	IsRevoked     bool                   `protobuf:"varint,4,opt,name=is_revoked,json=isRevoked,proto3" json:"is_revoked,omitempty"`
+	ExpiresAt     string                 `protobuf:"bytes,5,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	CreatedAt     string                 `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt     string                 `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RefreshTkn) Reset() {
+	*x = RefreshTkn{}
+	mi := &file_proto_user_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RefreshTkn) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefreshTkn) ProtoMessage() {}
+
+func (x *RefreshTkn) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RefreshTkn.ProtoReflect.Descriptor instead.
+func (*RefreshTkn) Descriptor() ([]byte, []int) {
+	return file_proto_user_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *RefreshTkn) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *RefreshTkn) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *RefreshTkn) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+func (x *RefreshTkn) GetIsRevoked() bool {
+	if x != nil {
+		return x.IsRevoked
+	}
+	return false
+}
+
+func (x *RefreshTkn) GetExpiresAt() string {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return ""
+}
+
+func (x *RefreshTkn) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *RefreshTkn) GetUpdatedAt() string {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return ""
+}
+
+type RefreshTknRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Refreshtkn    string                 `protobuf:"bytes,1,opt,name=refreshtkn,proto3" json:"refreshtkn,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RefreshTknRequest) Reset() {
+	*x = RefreshTknRequest{}
+	mi := &file_proto_user_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RefreshTknRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefreshTknRequest) ProtoMessage() {}
+
+func (x *RefreshTknRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RefreshTknRequest.ProtoReflect.Descriptor instead.
+func (*RefreshTknRequest) Descriptor() ([]byte, []int) {
+	return file_proto_user_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *RefreshTknRequest) GetRefreshtkn() string {
+	if x != nil {
+		return x.Refreshtkn
+	}
+	return ""
+}
+
+type RefreshTknResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	NewAccessTkn  string                 `protobuf:"bytes,1,opt,name=new_access_tkn,json=newAccessTkn,proto3" json:"new_access_tkn,omitempty"`
+	NewRefreshTkn string                 `protobuf:"bytes,2,opt,name=new_refresh_tkn,json=newRefreshTkn,proto3" json:"new_refresh_tkn,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RefreshTknResponse) Reset() {
+	*x = RefreshTknResponse{}
+	mi := &file_proto_user_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RefreshTknResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefreshTknResponse) ProtoMessage() {}
+
+func (x *RefreshTknResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RefreshTknResponse.ProtoReflect.Descriptor instead.
+func (*RefreshTknResponse) Descriptor() ([]byte, []int) {
+	return file_proto_user_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *RefreshTknResponse) GetNewAccessTkn() string {
+	if x != nil {
+		return x.NewAccessTkn
+	}
+	return ""
+}
+
+func (x *RefreshTknResponse) GetNewRefreshTkn() string {
+	if x != nil {
+		return x.NewRefreshTkn
+	}
+	return ""
+}
+
 var File_proto_user_proto protoreflect.FileDescriptor
 
 const file_proto_user_proto_rawDesc = "" +
@@ -658,13 +846,34 @@ const file_proto_user_proto_rawDesc = "" +
 	"access_tkn\x18\x01 \x01(\tR\taccessTkn\x12\x1f\n" +
 	"\vrefresh_tkn\x18\x02 \x01(\tR\n" +
 	"refreshTkn\x12\x18\n" +
-	"\amessage\x18\x03 \x01(\tR\amessage2\xe9\x02\n" +
+	"\amessage\x18\x03 \x01(\tR\amessage\"\xc6\x01\n" +
+	"\n" +
+	"RefreshTkn\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
+	"\x06userId\x18\x02 \x01(\tR\x06userId\x12\x14\n" +
+	"\x05token\x18\x03 \x01(\tR\x05token\x12\x1d\n" +
+	"\n" +
+	"is_revoked\x18\x04 \x01(\bR\tisRevoked\x12\x1d\n" +
+	"\n" +
+	"expires_at\x18\x05 \x01(\tR\texpiresAt\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x06 \x01(\tR\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\a \x01(\tR\tupdatedAt\"3\n" +
+	"\x11RefreshTknRequest\x12\x1e\n" +
+	"\n" +
+	"refreshtkn\x18\x01 \x01(\tR\n" +
+	"refreshtkn\"b\n" +
+	"\x12RefreshTknResponse\x12$\n" +
+	"\x0enew_access_tkn\x18\x01 \x01(\tR\fnewAccessTkn\x12&\n" +
+	"\x0fnew_refresh_tkn\x18\x02 \x01(\tR\rnewRefreshTkn2\xa7\x03\n" +
 	"\vUserService\x12A\n" +
 	"\bRegister\x12\x19.user.RegisterUserRequest\x1a\x1a.user.RegisterUserResponse\x12B\n" +
 	"\vGetUserById\x12\x18.user.GetUserByIdRequest\x1a\x19.user.GetUserByIdResponse\x12K\n" +
 	"\x0eGetUserByEmail\x12\x1b.user.GetUserByEmailRequest\x1a\x1c.user.GetUserByEmailResponse\x12T\n" +
 	"\x11GetUserByUsername\x12\x1e.user.GetUserByUsernameRequest\x1a\x1f.user.GetUserByUsernameResponse\x120\n" +
-	"\x05Login\x12\x12.user.LoginRequest\x1a\x13.user.LoginResponseB*Z(github.com/chetansachan/socialflow/protob\x06proto3"
+	"\x05Login\x12\x12.user.LoginRequest\x1a\x13.user.LoginResponse\x12<\n" +
+	"\aRefresh\x12\x17.user.RefreshTknRequest\x1a\x18.user.RefreshTknResponseB*Z(github.com/chetansachan/socialflow/protob\x06proto3"
 
 var (
 	file_proto_user_proto_rawDescOnce sync.Once
@@ -678,7 +887,7 @@ func file_proto_user_proto_rawDescGZIP() []byte {
 	return file_proto_user_proto_rawDescData
 }
 
-var file_proto_user_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_proto_user_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_proto_user_proto_goTypes = []any{
 	(*User)(nil),                      // 0: user.User
 	(*RegisterUserRequest)(nil),       // 1: user.RegisterUserRequest
@@ -691,6 +900,9 @@ var file_proto_user_proto_goTypes = []any{
 	(*GetUserByUsernameResponse)(nil), // 8: user.GetUserByUsernameResponse
 	(*LoginRequest)(nil),              // 9: user.LoginRequest
 	(*LoginResponse)(nil),             // 10: user.LoginResponse
+	(*RefreshTkn)(nil),                // 11: user.RefreshTkn
+	(*RefreshTknRequest)(nil),         // 12: user.RefreshTknRequest
+	(*RefreshTknResponse)(nil),        // 13: user.RefreshTknResponse
 }
 var file_proto_user_proto_depIdxs = []int32{
 	0,  // 0: user.RegisterUserResponse.user:type_name -> user.User
@@ -702,13 +914,15 @@ var file_proto_user_proto_depIdxs = []int32{
 	5,  // 6: user.UserService.GetUserByEmail:input_type -> user.GetUserByEmailRequest
 	7,  // 7: user.UserService.GetUserByUsername:input_type -> user.GetUserByUsernameRequest
 	9,  // 8: user.UserService.Login:input_type -> user.LoginRequest
-	2,  // 9: user.UserService.Register:output_type -> user.RegisterUserResponse
-	4,  // 10: user.UserService.GetUserById:output_type -> user.GetUserByIdResponse
-	6,  // 11: user.UserService.GetUserByEmail:output_type -> user.GetUserByEmailResponse
-	8,  // 12: user.UserService.GetUserByUsername:output_type -> user.GetUserByUsernameResponse
-	10, // 13: user.UserService.Login:output_type -> user.LoginResponse
-	9,  // [9:14] is the sub-list for method output_type
-	4,  // [4:9] is the sub-list for method input_type
+	12, // 9: user.UserService.Refresh:input_type -> user.RefreshTknRequest
+	2,  // 10: user.UserService.Register:output_type -> user.RegisterUserResponse
+	4,  // 11: user.UserService.GetUserById:output_type -> user.GetUserByIdResponse
+	6,  // 12: user.UserService.GetUserByEmail:output_type -> user.GetUserByEmailResponse
+	8,  // 13: user.UserService.GetUserByUsername:output_type -> user.GetUserByUsernameResponse
+	10, // 14: user.UserService.Login:output_type -> user.LoginResponse
+	13, // 15: user.UserService.Refresh:output_type -> user.RefreshTknResponse
+	10, // [10:16] is the sub-list for method output_type
+	4,  // [4:10] is the sub-list for method input_type
 	4,  // [4:4] is the sub-list for extension type_name
 	4,  // [4:4] is the sub-list for extension extendee
 	0,  // [0:4] is the sub-list for field type_name
@@ -726,7 +940,7 @@ func file_proto_user_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_user_proto_rawDesc), len(file_proto_user_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

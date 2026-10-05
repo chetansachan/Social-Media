@@ -10,6 +10,7 @@ service UserService {
     rpc GetUserByEmail(GetUserByEmailRequest) returns (GetUserByEmailResponse);
     rpc GetUserByUsername(GetUserByUsernameRequest) returns (GetUserByUsernameResponse);
     rpc Login(LoginRequest) returns (LoginResponse);
+    rpc Refresh(RefreshTknRequest) returns (RefreshTknResponse);
 }
 
 message User {
@@ -68,4 +69,23 @@ message LoginResponse {
     string access_tkn = 1;
     string refresh_tkn = 2;
     string message = 3;
+}
+
+message RefreshTkn {
+	string  id    = 1;
+	string  userId  = 2;
+	string  token    = 3;
+	bool    is_revoked = 4;
+	string  expires_at = 5;
+	string  created_at = 6;
+	string  updated_at = 7;
+}
+
+message RefreshTknRequest {
+    string refreshtkn = 1;
+}
+
+message RefreshTknResponse {
+    string new_access_tkn = 1;
+    string new_refresh_tkn = 2;
 }
