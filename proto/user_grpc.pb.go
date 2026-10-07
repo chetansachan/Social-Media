@@ -25,6 +25,7 @@ const (
 	UserService_GetUserByUsername_FullMethodName = "/user.UserService/GetUserByUsername"
 	UserService_Login_FullMethodName             = "/user.UserService/Login"
 	UserService_Refresh_FullMethodName           = "/user.UserService/Refresh"
+	UserService_UpdateUser_FullMethodName        = "/user.UserService/UpdateUser"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -37,6 +38,7 @@ type UserServiceClient interface {
 	GetUserByUsername(ctx context.Context, in *GetUserByUsernameRequest, opts ...grpc.CallOption) (*GetUserByUsernameResponse, error)
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
 	Refresh(ctx context.Context, in *RefreshTknRequest, opts ...grpc.CallOption) (*RefreshTknResponse, error)
+	UpdateUser(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*UpdateUserResponse, error)
 }
 
 type userServiceClient struct {
@@ -107,6 +109,16 @@ func (c *userServiceClient) Refresh(ctx context.Context, in *RefreshTknRequest, 
 	return out, nil
 }
 
+func (c *userServiceClient) UpdateUser(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*UpdateUserResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateUserResponse)
+	err := c.cc.Invoke(ctx, UserService_UpdateUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserServiceServer is the server API for UserService service.
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility.
@@ -117,6 +129,7 @@ type UserServiceServer interface {
 	GetUserByUsername(context.Context, *GetUserByUsernameRequest) (*GetUserByUsernameResponse, error)
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 	Refresh(context.Context, *RefreshTknRequest) (*RefreshTknResponse, error)
+	UpdateUser(context.Context, *UpdateUserRequest) (*UpdateUserResponse, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -144,6 +157,9 @@ func (UnimplementedUserServiceServer) Login(context.Context, *LoginRequest) (*Lo
 }
 func (UnimplementedUserServiceServer) Refresh(context.Context, *RefreshTknRequest) (*RefreshTknResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Refresh not implemented")
+}
+func (UnimplementedUserServiceServer) UpdateUser(context.Context, *UpdateUserRequest) (*UpdateUserResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateUser not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 func (UnimplementedUserServiceServer) testEmbeddedByValue()                     {}
@@ -274,6 +290,24 @@ func _UserService_Refresh_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_UpdateUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).UpdateUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_UpdateUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).UpdateUser(ctx, req.(*UpdateUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -304,6 +338,10 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Refresh",
 			Handler:    _UserService_Refresh_Handler,
+		},
+		{
+			MethodName: "UpdateUser",
+			Handler:    _UserService_UpdateUser_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

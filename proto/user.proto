@@ -11,6 +11,7 @@ service UserService {
     rpc GetUserByUsername(GetUserByUsernameRequest) returns (GetUserByUsernameResponse);
     rpc Login(LoginRequest) returns (LoginResponse);
     rpc Refresh(RefreshTknRequest) returns (RefreshTknResponse);
+    rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse);
 }
 
 message User {
@@ -61,8 +62,8 @@ message GetUserByUsernameResponse {
 }
 
 message LoginRequest {
-    string email = 3;
-    string password = 4;
+    string email = 1;
+    string password = 2;
 }
 
 message LoginResponse {
@@ -88,4 +89,17 @@ message RefreshTknRequest {
 message RefreshTknResponse {
     string new_access_tkn = 1;
     string new_refresh_tkn = 2;
+}
+
+message UpdateUserResponse {
+    User user = 1;
+}
+
+message UpdateUserRequest {
+    string id = 1;
+    optional string username = 2;
+    optional string name = 3;
+    optional string email = 4;
+    optional string password = 5;
+    optional bool is_public = 6;
 }
