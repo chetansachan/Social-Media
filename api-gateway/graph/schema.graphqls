@@ -18,7 +18,8 @@ type Query {
 
 type Mutation {
     register(input: RegisterUserInput!): User!
-    Login(input: LoginInput): LoginResponse!
+    Login(input: LoginInput!): LoginResponse!
+    UpdateUser(input: UpdateUserInput!): User!
 }
 
 input RegisterUserInput {
@@ -41,4 +42,13 @@ input LoginInput {
 type newTokens {
     accessToken: String!
     refressToken: String!
+}
+
+input UpdateUserInput {
+    id: String!
+    username: String
+    name: String
+    email: String
+    password: String
+    isPublic: Boolean
 }

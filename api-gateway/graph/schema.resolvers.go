@@ -38,7 +38,7 @@ func (r *mutationResolver) Register(ctx context.Context, input model.RegisterUse
 }
 
 // Login is the resolver for the Login field.
-func (r *mutationResolver) Login(ctx context.Context, input *model.LoginInput) (*model.LoginResponse, error) {
+func (r *mutationResolver) Login(ctx context.Context, input model.LoginInput) (*model.LoginResponse, error) {
 	res, err := r.UserClient.Login(ctx, &userpb.LoginRequest{
 		Email:    input.Email,
 		Password: input.Password,
@@ -51,6 +51,32 @@ func (r *mutationResolver) Login(ctx context.Context, input *model.LoginInput) (
 		AccessToken:  res.AccessTkn,
 		RefressToken: res.RefreshTkn,
 		Message:      res.Message,
+	}, nil
+}
+
+// UpdateUser is the resolver for the UpdateUser field.
+func (r *mutationResolver) UpdateUser(ctx context.Context, input model.UpdateUserInput) (*model.User, error) {
+	res, err := r.UserClient.UpdateUser(ctx, &userpb.UpdateUserRequest{
+		Id:       input.ID,
+		Username: input.Username,
+		Name:     input.Name,
+		Email:    input.Email,
+		Password: input.Password,
+		IsPublic: input.IsPublic,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	u := res.GetUser()
+	return &model.User{
+		ID:        u.GetId(),
+		Username:  u.GetUsername(),
+		Name:      u.GetName(),
+		Email:     u.GetEmail(),
+		IsPublic:  u.GetIsPublic(),
+		CreatedAt: u.GetCreatedAt(),
+		UpdatedAt: u.GetUpdatedAt(),
 	}, nil
 }
 
