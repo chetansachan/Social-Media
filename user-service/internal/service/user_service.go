@@ -25,6 +25,7 @@ type UserService interface {
 	GetByEmail(ctx context.Context, email string) (*models.User, error)
 	GetByUsername(ctx context.Context, username string) (*models.User, error)
 	Refresh(ctx context.Context, tkn string) (*models.RotationResponse, error)
+	UpdateUser(ctx context.Context, input models.UpdateUserInput, id string) (*models.User, error)
 }
 
 type userService struct {
@@ -319,4 +320,88 @@ func (s *userService) Refresh(ctx context.Context, tkn string) (*models.Rotation
 		AccessTkn:  accessToken,
 		RefreshTkn: refreshToken,
 	}, nil
+}
+
+func (s *userService) UpdateUser(ctx context.Context, input models.UpdateUserInput, id string) (*models.User, error) {
+	userid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("%w: invalid user id format: %v", models.ErrInvalidInput, err)
+	}
+	user, err := s.userRepo.GetById(ctx, userid)
+	if err != nil {
+		if errors.Is(err, models.ErrUserNotFound) {
+			return nil, models.ErrUserNotFound
+		}
+		return nil, fmt.Errorf("internal server error: %w", err)
+	}
+
+	username := user.Username
+	if input.Username != nil {
+		trimmed := strings.TrimSpace(*input.Username)
+		if trimmed == "" || len(trimmed) < 3 || len(trimmed) > 50 {
+			return nil, fmt.Errorf("%w: username must be between 3 and 50 characters", models.ErrInvalidInput)
+		}
+		username = trimmed
+	}
+
+	name := user.Name
+	if input.Name != nil {
+		trimmed := strings.TrimSpace(*input.Name)
+		if trimmed == "" {
+			return nil, fmt.Errorf("%w: name cannot be empty", models.ErrInvalidInput)
+		}
+		if len(trimmed) > 100 {
+			return nil, fmt.Errorf("%w: name must be at most 100 characters", models.ErrInvalidInput)
+		}
+		name = trimmed
+	}
+
+	email := user.Email
+	if input.Email != nil {
+		trimmed := strings.TrimSpace(strings.ToLower(*input.Email))
+		if trimmed == "" {
+			return nil, fmt.Errorf("%w: email cannot be empty", models.ErrInvalidInput)
+		}
+		if _, err := mail.ParseAddress(trimmed); err != nil {
+			return nil, fmt.Errorf("%w: invalid email address format", models.ErrInvalidInput)
+		}
+		email = trimmed
+	}
+
+	password := user.Password
+	if input.Password != nil && *input.Password != "" {
+		if len(*input.Password) < 6 {
+			return nil, fmt.Errorf("%w: password must be at least 6 characters long", models.ErrInvalidInput)
+		}
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*input.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return nil, fmt.Errorf("failed to hash password: %w", err)
+		}
+		password = string(hashedPassword)
+	}
+
+	isPublic := user.IsPublic
+	if input.IsPublic != nil {
+		isPublic = *input.IsPublic
+	}
+
+	updatedUserCreds := models.UpdateUserInput{
+		Username: &username,
+		Name:     &name,
+		Email:    &email,
+		Password: &password,
+		IsPublic: &isPublic,
+	}
+
+	updatedUser, err := s.userRepo.UpdateUser(ctx, &updatedUserCreds, userid)
+	if err != nil {
+		if errors.Is(err, models.ErrUserNotFound) || errors.Is(err, models.ErrUserAlreadyExists) {
+			return nil, err
+		}
+		return nil, fmt.Errorf("failed to update user: %w", err)
+	}
+
+	updatedUser.Password = ""
+
+	return updatedUser, nil
 }

@@ -20,6 +20,7 @@ type UserRepository interface {
 	SaveToken(ctx context.Context, data *models.RefreshTkn) error
 	GetRefreshTk(ctx context.Context, tkn string) (*models.RefreshTkn, error)
 	RotateToken(ctx context.Context, oldtkn string, newtkn string, data *models.RefreshTkn) error
+	UpdateUser(ctx context.Context, input *models.UpdateUserInput, id uuid.UUID) (*models.User, error)
 }
 
 type userRepository struct {
@@ -210,3 +211,35 @@ func (r *userRepository) RotateToken(ctx context.Context, oldtkn string, newtkn 
 	return nil
 }
 
+func (r *userRepository) UpdateUser(ctx context.Context, input *models.UpdateUserInput, id uuid.UUID) (*models.User, error) {
+	query := `
+		UPDATE users
+		SET username = $1, name = $2, email = $3, password = $4, is_public = $5, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $6
+		RETURNING id, username, name, email, password, is_public, created_at, updated_at
+	`
+
+	user := &models.User{}
+	err := r.db.QueryRow(ctx, query, input.Username, input.Name, input.Email, input.Password, input.IsPublic, id).Scan(
+		&user.ID,
+		&user.Username,
+		&user.Name,
+		&user.Email,
+		&user.Password,
+		&user.IsPublic,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, models.ErrUserNotFound
+		}
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return nil, models.ErrUserAlreadyExists
+		}
+		return nil, fmt.Errorf("failed to update user: %w", err)
+	}
+
+	return user, nil
+}

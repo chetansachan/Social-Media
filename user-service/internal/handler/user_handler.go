@@ -164,3 +164,38 @@ func (h *UserHandler) Refresh(ctx context.Context, req *userpb.RefreshTknRequest
 		NewRefreshTkn: res.RefreshTkn,
 	}, nil
 }
+
+func (h *UserHandler) UpdateUser(ctx context.Context, req *userpb.UpdateUserRequest) (*userpb.UpdateUserResponse, error) {
+	input := models.UpdateUserInput{
+		Username: req.Username,
+		Name:     req.Name,
+		Email:    req.Email,
+		Password: req.Password,
+		IsPublic: req.IsPublic,
+	}
+	res, err := h.userService.UpdateUser(ctx, input, req.Id)
+	if err != nil {
+		switch {
+		case errors.Is(err, models.ErrInvalidInput):
+			return nil, status.Errorf(codes.InvalidArgument, "%v", err)
+		case errors.Is(err, models.ErrUserNotFound):
+			return nil, status.Errorf(codes.NotFound, "%v", err)
+		case errors.Is(err, models.ErrUserAlreadyExists):
+			return nil, status.Errorf(codes.AlreadyExists, "%v", err)
+		default:
+			return nil, status.Errorf(codes.Internal, "failed to update user: %v", err)
+		}
+	}
+
+	return &userpb.UpdateUserResponse{
+		User: &userpb.User{
+			Id: res.ID.String(),
+			Username: res.Username,
+			Name: res.Name,
+			Email: res.Email,
+			IsPublic: res.IsPublic,
+			CreatedAt: res.CreatedAt.Format(time.RFC3339),
+			UpdatedAt: formatTimestamp(res.UpdatedAt),
+		},
+	}, nil
+}
