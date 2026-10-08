@@ -8,6 +8,7 @@ service PostService{
     rpc CreatePost(CreatePostRequest) returns (CreatePostResponse);
     rpc GetPostById(PostByIdRequest) returns (PostByIdResponse);
     rpc DeletePost(DeletePostRequest) returns (DeletePostResponse);
+    rpc UpdatePost(UpdatePostRequest) returns (UpdatePostResponse);
 }
 
 message Post {
@@ -46,5 +47,16 @@ message CreatePostRequest {
 }
 
 message CreatePostResponse {
+    Post post = 1;
+}
+
+message UpdatePostRequest {
+    string post_id = 1;
+    string author_id = 2;
+    optional string content = 3;
+    optional string is_public = 4;
+}
+
+message UpdatePostResponse {
     Post post = 1;
 }

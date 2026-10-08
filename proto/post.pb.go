@@ -417,6 +417,118 @@ func (x *CreatePostResponse) GetPost() *Post {
 	return nil
 }
 
+type UpdatePostRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PostId        string                 `protobuf:"bytes,1,opt,name=post_id,json=postId,proto3" json:"post_id,omitempty"`
+	AuthorId      string                 `protobuf:"bytes,2,opt,name=author_id,json=authorId,proto3" json:"author_id,omitempty"`
+	Content       *string                `protobuf:"bytes,3,opt,name=content,proto3,oneof" json:"content,omitempty"`
+	IsPublic      *string                `protobuf:"bytes,4,opt,name=is_public,json=isPublic,proto3,oneof" json:"is_public,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdatePostRequest) Reset() {
+	*x = UpdatePostRequest{}
+	mi := &file_proto_post_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdatePostRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdatePostRequest) ProtoMessage() {}
+
+func (x *UpdatePostRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_post_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdatePostRequest.ProtoReflect.Descriptor instead.
+func (*UpdatePostRequest) Descriptor() ([]byte, []int) {
+	return file_proto_post_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *UpdatePostRequest) GetPostId() string {
+	if x != nil {
+		return x.PostId
+	}
+	return ""
+}
+
+func (x *UpdatePostRequest) GetAuthorId() string {
+	if x != nil {
+		return x.AuthorId
+	}
+	return ""
+}
+
+func (x *UpdatePostRequest) GetContent() string {
+	if x != nil && x.Content != nil {
+		return *x.Content
+	}
+	return ""
+}
+
+func (x *UpdatePostRequest) GetIsPublic() string {
+	if x != nil && x.IsPublic != nil {
+		return *x.IsPublic
+	}
+	return ""
+}
+
+type UpdatePostResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Post          *Post                  `protobuf:"bytes,1,opt,name=post,proto3" json:"post,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdatePostResponse) Reset() {
+	*x = UpdatePostResponse{}
+	mi := &file_proto_post_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdatePostResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdatePostResponse) ProtoMessage() {}
+
+func (x *UpdatePostResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_post_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdatePostResponse.ProtoReflect.Descriptor instead.
+func (*UpdatePostResponse) Descriptor() ([]byte, []int) {
+	return file_proto_post_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *UpdatePostResponse) GetPost() *Post {
+	if x != nil {
+		return x.Post
+	}
+	return nil
+}
+
 var File_proto_post_proto protoreflect.FileDescriptor
 
 const file_proto_post_proto_rawDesc = "" +
@@ -453,13 +565,27 @@ const file_proto_post_proto_rawDesc = "" +
 	"_is_public\"4\n" +
 	"\x12CreatePostResponse\x12\x1e\n" +
 	"\x04post\x18\x01 \x01(\v2\n" +
-	".post.PostR\x04post2\xcd\x01\n" +
+	".post.PostR\x04post\"\xa4\x01\n" +
+	"\x11UpdatePostRequest\x12\x17\n" +
+	"\apost_id\x18\x01 \x01(\tR\x06postId\x12\x1b\n" +
+	"\tauthor_id\x18\x02 \x01(\tR\bauthorId\x12\x1d\n" +
+	"\acontent\x18\x03 \x01(\tH\x00R\acontent\x88\x01\x01\x12 \n" +
+	"\tis_public\x18\x04 \x01(\tH\x01R\bisPublic\x88\x01\x01B\n" +
+	"\n" +
+	"\b_contentB\f\n" +
+	"\n" +
+	"_is_public\"4\n" +
+	"\x12UpdatePostResponse\x12\x1e\n" +
+	"\x04post\x18\x01 \x01(\v2\n" +
+	".post.PostR\x04post2\x8e\x02\n" +
 	"\vPostService\x12?\n" +
 	"\n" +
 	"CreatePost\x12\x17.post.CreatePostRequest\x1a\x18.post.CreatePostResponse\x12<\n" +
 	"\vGetPostById\x12\x15.post.PostByIdRequest\x1a\x16.post.PostByIdResponse\x12?\n" +
 	"\n" +
-	"DeletePost\x12\x17.post.DeletePostRequest\x1a\x18.post.DeletePostResponseB*Z(github.com/chetansachan/socialflow/protob\x06proto3"
+	"DeletePost\x12\x17.post.DeletePostRequest\x1a\x18.post.DeletePostResponse\x12?\n" +
+	"\n" +
+	"UpdatePost\x12\x17.post.UpdatePostRequest\x1a\x18.post.UpdatePostResponseB*Z(github.com/chetansachan/socialflow/protob\x06proto3"
 
 var (
 	file_proto_post_proto_rawDescOnce sync.Once
@@ -473,7 +599,7 @@ func file_proto_post_proto_rawDescGZIP() []byte {
 	return file_proto_post_proto_rawDescData
 }
 
-var file_proto_post_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_proto_post_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_proto_post_proto_goTypes = []any{
 	(*Post)(nil),               // 0: post.Post
 	(*PostByIdRequest)(nil),    // 1: post.PostByIdRequest
@@ -482,21 +608,26 @@ var file_proto_post_proto_goTypes = []any{
 	(*DeletePostResponse)(nil), // 4: post.DeletePostResponse
 	(*CreatePostRequest)(nil),  // 5: post.CreatePostRequest
 	(*CreatePostResponse)(nil), // 6: post.CreatePostResponse
+	(*UpdatePostRequest)(nil),  // 7: post.UpdatePostRequest
+	(*UpdatePostResponse)(nil), // 8: post.UpdatePostResponse
 }
 var file_proto_post_proto_depIdxs = []int32{
 	0, // 0: post.PostByIdResponse.post:type_name -> post.Post
 	0, // 1: post.CreatePostResponse.post:type_name -> post.Post
-	5, // 2: post.PostService.CreatePost:input_type -> post.CreatePostRequest
-	1, // 3: post.PostService.GetPostById:input_type -> post.PostByIdRequest
-	3, // 4: post.PostService.DeletePost:input_type -> post.DeletePostRequest
-	6, // 5: post.PostService.CreatePost:output_type -> post.CreatePostResponse
-	2, // 6: post.PostService.GetPostById:output_type -> post.PostByIdResponse
-	4, // 7: post.PostService.DeletePost:output_type -> post.DeletePostResponse
-	5, // [5:8] is the sub-list for method output_type
-	2, // [2:5] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	0, // 2: post.UpdatePostResponse.post:type_name -> post.Post
+	5, // 3: post.PostService.CreatePost:input_type -> post.CreatePostRequest
+	1, // 4: post.PostService.GetPostById:input_type -> post.PostByIdRequest
+	3, // 5: post.PostService.DeletePost:input_type -> post.DeletePostRequest
+	7, // 6: post.PostService.UpdatePost:input_type -> post.UpdatePostRequest
+	6, // 7: post.PostService.CreatePost:output_type -> post.CreatePostResponse
+	2, // 8: post.PostService.GetPostById:output_type -> post.PostByIdResponse
+	4, // 9: post.PostService.DeletePost:output_type -> post.DeletePostResponse
+	8, // 10: post.PostService.UpdatePost:output_type -> post.UpdatePostResponse
+	7, // [7:11] is the sub-list for method output_type
+	3, // [3:7] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_proto_post_proto_init() }
@@ -505,13 +636,14 @@ func file_proto_post_proto_init() {
 		return
 	}
 	file_proto_post_proto_msgTypes[5].OneofWrappers = []any{}
+	file_proto_post_proto_msgTypes[7].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_post_proto_rawDesc), len(file_proto_post_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
