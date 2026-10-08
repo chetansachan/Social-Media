@@ -11,7 +11,7 @@ import (
 )
 
 type PostRepostiory interface {
-	CreatePost(ctx context.Context, input *models.Post) (*models.Post, error)
+	CreatePost(ctx context.Context, input *models.CreatePostInput) (*models.Post, error)
 	GetPostById(ctx context.Context, id string) (*models.Post, error)
 }
 
@@ -49,9 +49,9 @@ func (r *postRepostiory) GetPostById(ctx context.Context, id string) (*models.Po
 	return Post, nil
 }
 
-func (r *postRepostiory) CreatePost(ctx context.Context, input *models.Post) (*models.Post, error) {
+func (r *postRepostiory) CreatePost(ctx context.Context, input *models.CreatePostInput) (*models.Post, error) {
 	query := `
-		INSERT INTO id, author_id, content, media_url, is_public, like_count, created_at, updated_at, deleted_at
+		INSERT INTO author_id, content, media_url, is_public
 		VALUES ($1, $2, $3, $4)
 		RETURNING id, author_id, content, media_url, is_public, like_count, created_at, updated_at
 	`

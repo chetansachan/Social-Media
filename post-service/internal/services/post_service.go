@@ -58,11 +58,11 @@ func (s *postService) CreatePost(ctx context.Context, input models.CreatePostInp
 		isPublic = *input.IsPublic
 	}
 
-	postinput := &models.Post{
+	postinput := &models.CreatePostInput{
 		AuthorID: input.AuthorID,
 		Content:  input.Content,
 		MediaURL: input.MediaURL,
-		IsPublic: isPublic,
+		IsPublic: &isPublic,
 	}
 	post, err := s.postRepo.CreatePost(ctx, postinput)
 	if err != nil {
