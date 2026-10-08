@@ -2,6 +2,13 @@
 
 package model
 
+type CreatePostInput struct {
+	AuthorID string `json:"authorId"`
+	Content  string `json:"content"`
+	MediaURL string `json:"mediaUrl"`
+	IsPublic *bool  `json:"isPublic,omitempty"`
+}
+
 type DeleteUserResponse struct {
 	Message string `json:"message"`
 }

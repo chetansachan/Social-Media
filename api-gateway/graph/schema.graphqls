@@ -33,6 +33,7 @@ type Mutation {
     register(input: RegisterUserInput!): User!
     Login(input: LoginInput!): LoginResponse!
     UpdateUser(input: UpdateUserInput!): User!
+    CreatePost(input: CreatePostInput!): Post!
 }
 
 input RegisterUserInput {
@@ -48,10 +49,12 @@ type LoginResponse {
     refressToken: String!
     message: String!
 }
+
 input LoginInput {
     email: String!
     password: String!
 }
+
 type newTokens {
     accessToken: String!
     refressToken: String!
@@ -68,4 +71,11 @@ input UpdateUserInput {
 
 type DeleteUserResponse {
     message: String!
+}
+
+input CreatePostInput {
+    authorId: String!
+    content: String!
+    mediaUrl: String!
+    isPublic: Boolean
 }
