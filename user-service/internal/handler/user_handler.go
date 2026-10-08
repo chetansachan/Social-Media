@@ -199,3 +199,14 @@ func (h *UserHandler) UpdateUser(ctx context.Context, req *userpb.UpdateUserRequ
 		},
 	}, nil
 }
+
+func (h *UserHandler) DeleteUser(ctx context.Context, req *userpb.DeleteUserRequest) (*userpb.DeleteUserResponse, error) {
+	_, err := h.userService.DeleteUser(ctx, req.Id)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to delete user: %v", err)
+	}
+
+	return &userpb.DeleteUserResponse{
+		Message: "User Deleted Successfully",
+	}, nil
+}

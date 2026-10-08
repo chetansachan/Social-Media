@@ -21,6 +21,7 @@ type UserRepository interface {
 	GetRefreshTk(ctx context.Context, tkn string) (*models.RefreshTkn, error)
 	RotateToken(ctx context.Context, oldtkn string, newtkn string, data *models.RefreshTkn) error
 	UpdateUser(ctx context.Context, input *models.UpdateUserInput, id uuid.UUID) (*models.User, error)
+	DeleteUser(ctx context.Context, id uuid.UUID) error
 }
 
 type userRepository struct {
@@ -242,4 +243,18 @@ func (r *userRepository) UpdateUser(ctx context.Context, input *models.UpdateUse
 	}
 
 	return user, nil
+}
+
+func (r *userRepository) DeleteUser(ctx context.Context, id uuid.UUID) error {
+	query :=  `
+		DELETE FROM users
+		WHERE id = $1
+	`
+
+	_, err := r.db.Exec(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("Error deleting User: %v", err)
+	}
+
+	return nil
 }

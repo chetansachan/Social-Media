@@ -65,3 +65,7 @@ type RotationResponse struct {
 	AccessTkn  string `json:"access_tkn"`
 	RefreshTkn string `json:"refresh_tkn"`
 }
+
+type DeleteUserRespose struct {
+	Message string `json:"message"`
+}

@@ -26,6 +26,7 @@ type UserService interface {
 	GetByUsername(ctx context.Context, username string) (*models.User, error)
 	Refresh(ctx context.Context, tkn string) (*models.RotationResponse, error)
 	UpdateUser(ctx context.Context, input models.UpdateUserInput, id string) (*models.User, error)
+	DeleteUser(ctx context.Context, id string) (*models.DeleteUserRespose, error)
 }
 
 type userService struct {
@@ -404,4 +405,19 @@ func (s *userService) UpdateUser(ctx context.Context, input models.UpdateUserInp
 	updatedUser.Password = ""
 
 	return updatedUser, nil
+}
+
+func (s *userService) DeleteUser(ctx context.Context, id string) (*models.DeleteUserRespose, error) {
+	userId, err := uuid.Parse(id)
+	if err != nil {
+		return &models.DeleteUserRespose{}, fmt.Errorf("Unable to parse the id: %v", err)
+	}
+
+	if err := s.userRepo.DeleteUser(ctx, userId); err != nil {
+		return &models.DeleteUserRespose{}, fmt.Errorf("Error Deleting User: %v", err)
+	}
+
+	return &models.DeleteUserRespose{
+		Message: "User Deleted Successfuly",
+	}, nil
 }
