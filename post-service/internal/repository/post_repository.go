@@ -11,6 +11,7 @@ import (
 )
 
 type PostRepostiory interface {
+	CreatePost(ctx context.Context, input *models.Post) (*models.Post, error)
 	GetPostById(ctx context.Context, id string) (*models.Post, error)
 }
 
@@ -46,4 +47,34 @@ func (r *postRepostiory) GetPostById(ctx context.Context, id string) (*models.Po
 	}
 
 	return Post, nil
+}
+
+func (r *postRepostiory) CreatePost(ctx context.Context, input *models.Post) (*models.Post, error) {
+	query := `
+		INSERT INTO id, author_id, content, media_url, is_public, like_count, created_at, updated_at, deleted_at
+		VALUES ($1, $2, $3, $4)
+		RETURNING id, author_id, content, media_url, is_public, like_count, created_at, updated_at
+	`
+
+	post := &models.Post{}
+	if err := r.db.QueryRow(ctx, query,
+		input.AuthorID,
+		input.Content,
+		input.MediaURL,
+		input.IsPublic,
+	).Scan(
+		&post.ID,
+		&post.AuthorID,
+		&post.Content,
+		&post.MediaURL,
+		&post.IsPublic,
+		&post.LikeCount,
+		&post.CreatedAt,
+		&post.UpdatedAt,
+		&post.DeletedAt,
+	); err != nil {
+		return nil, fmt.Errorf("failed to insert post: %w", err)
+	}
+
+	return post, nil
 }

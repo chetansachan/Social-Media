@@ -18,3 +18,9 @@ type Post struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 }
 
+type CreatePostInput struct {
+	AuthorID uuid.UUID `json:"author_id"`
+	Content  string    `json:"content"`
+	MediaURL string    `json:"media_url"`
+	IsPublic bool      `json:"is_public"`
+}
