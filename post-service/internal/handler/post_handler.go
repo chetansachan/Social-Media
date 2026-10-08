@@ -98,3 +98,32 @@ func (h *postHandler) DeletePostHandler(ctx context.Context, input *postpb.Delet
 		Message: "Post Deleted Successfully",
 	}, nil
 }
+
+func (h *postHandler) UpdatePostHandler(ctx context.Context, req *postpb.UpdatePostRequest) (*postpb.UpdatePostResponse, error) {
+	input := models.UpdatePostInput{
+		Content:  req.Content,
+		IsPublic: req.IsPublic,
+	}
+
+	post, err := h.postService.UpdatePost(ctx, input, req.PostId, req.AuthorId)
+	if err != nil {
+		if errors.Is(err, models.ErrPostNotFound) {
+			return nil, models.ErrPostNotFound
+		}
+
+		return nil, status.Errorf(codes.Internal, "faield to update post: %v", err)
+	}
+
+	return &postpb.UpdatePostResponse{
+		Post: &postpb.Post{
+			Id:        post.ID.String(),
+			AuthorId:  post.AuthorID.String(),
+			Content:   post.Content,
+			MediaUrl:  post.MediaURL,
+			IsPublic:  post.IsPublic,
+			LikeCount: int32(post.LikeCount),
+			CreatedAt: post.CreatedAt.Format(time.RFC3339),
+			UpdatedAt: formatTimestamp(post.UpdatedAt),
+		},
+	}, nil
+}
