@@ -49,6 +49,13 @@ type RegisterUserInput struct {
 	IsPublic *bool  `json:"isPublic,omitempty"`
 }
 
+type UpdatePostInput struct {
+	ID       string  `json:"id"`
+	AuthorID string  `json:"authorId"`
+	Content  *string `json:"content,omitempty"`
+	IsPublic *bool   `json:"isPublic,omitempty"`
+}
+
 type UpdateUserInput struct {
 	ID       string  `json:"id"`
 	Username *string `json:"username,omitempty"`

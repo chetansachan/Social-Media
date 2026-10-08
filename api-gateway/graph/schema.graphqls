@@ -34,6 +34,7 @@ type Mutation {
     Login(input: LoginInput!): LoginResponse!
     UpdateUser(input: UpdateUserInput!): User!
     CreatePost(input: CreatePostInput!): Post!
+    UpdatePost(input: UpdatePostInput!): Post!
 }
 
 input RegisterUserInput {
@@ -77,5 +78,12 @@ input CreatePostInput {
     authorId: String!
     content: String!
     mediaUrl: String!
+    isPublic: Boolean
+}
+
+input UpdatePostInput {
+    id: String!
+    authorId: String!
+    content: String
     isPublic: Boolean
 }

@@ -105,6 +105,31 @@ func (r *mutationResolver) CreatePost(ctx context.Context, input model.CreatePos
 	}, nil
 }
 
+// UpdatePost is the resolver for the UpdatePost field.
+func (r *mutationResolver) UpdatePost(ctx context.Context, input model.UpdatePostInput) (*model.Post, error) {
+	res, err := r.PostClient.UpdatePost(ctx, &userpb.UpdatePostRequest{
+		PostId:   input.ID,
+		AuthorId: input.AuthorID,
+		Content:  input.Content,
+		IsPublic: input.IsPublic,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	p := res.GetPost()
+	return &model.Post{
+		ID:        p.Id,
+		AuthorID:  p.AuthorId,
+		Content:   p.Content,
+		MediaURL:  p.MediaUrl,
+		IsPublic:  p.IsPublic,
+		LikeCount: p.LikeCount,
+		CreatedAt: p.Content,
+		UpdatedAt: p.UpdatedAt,
+	}, nil
+}
+
 // GetUserByID is the resolver for the GetUserById field.
 func (r *queryResolver) GetUserByID(ctx context.Context, id string) (*model.User, error) {
 	res, err := r.UserClient.GetUserById(ctx, &userpb.GetUserByIdRequest{
