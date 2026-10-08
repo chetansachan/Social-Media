@@ -8,8 +8,20 @@ type User {
     updatedAt: String!
 }
 
+type Post {
+    id: ID!
+    authorId: String!
+    content: String!
+    mediaUrl: String!
+    isPublic: Boolean!
+    likeCount: Int!
+    createdAt: String!
+    updatedAt: String!
+}
+
 type Query {
     getUserById(id: ID!): User
+    getPostById(id: ID!): Post
     getUserByEmail(email: String!): User
     getUserByUsername(username: String!): User
     tokenGenration(refressToken: String!): newTokens

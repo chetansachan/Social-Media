@@ -20,6 +20,17 @@ type LoginResponse struct {
 type Mutation struct {
 }
 
+type Post struct {
+	ID        string `json:"id"`
+	AuthorID  string `json:"authorId"`
+	Content   string `json:"content"`
+	MediaURL  string `json:"mediaUrl"`
+	IsPublic  bool   `json:"isPublic"`
+	LikeCount int32  `json:"likeCount"`
+	CreatedAt string `json:"createdAt"`
+	UpdatedAt string `json:"updatedAt"`
+}
+
 type Query struct {
 }
 

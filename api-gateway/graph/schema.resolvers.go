@@ -101,6 +101,28 @@ func (r *queryResolver) GetUserByID(ctx context.Context, id string) (*model.User
 	}, nil
 }
 
+// GetPostByID is the resolver for the getPostById field.
+func (r *queryResolver) GetPostByID(ctx context.Context, id string) (*model.Post, error) {
+	res, err := r.PostClient.GetPostById(ctx, &userpb.PostByIdRequest{
+		Id: id,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	p := res.GetPost()
+	return &model.Post{
+		ID:        p.Id,
+		AuthorID:  p.AuthorId,
+		Content:   p.Content,
+		MediaURL:  p.MediaUrl,
+		IsPublic:  p.IsPublic,
+		LikeCount: p.LikeCount,
+		CreatedAt: p.Content,
+		UpdatedAt: p.UpdatedAt,
+	}, nil
+}
+
 // GetUserByEmail is the resolver for the GetUserByEmail field.
 func (r *queryResolver) GetUserByEmail(ctx context.Context, email string) (*model.User, error) {
 	res, err := r.UserClient.GetUserByEmail(ctx, &userpb.GetUserByEmailRequest{
