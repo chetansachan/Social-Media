@@ -130,6 +130,21 @@ func (r *mutationResolver) UpdatePost(ctx context.Context, input model.UpdatePos
 	}, nil
 }
 
+// DeletePost is the resolver for the deletePost field.
+func (r *mutationResolver) DeletePost(ctx context.Context, input *model.DeletePostInput) (*model.DeletePostResponse, error) {
+	_, err := r.PostClient.DeletePost(ctx, &userpb.DeletePostRequest{
+		PostId:   input.ID,
+		AuthorId: input.AuthorID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.DeletePostResponse{
+		Message: "Post Deleted Successfully",
+	}, nil
+}
+
 // GetUserByID is the resolver for the GetUserById field.
 func (r *queryResolver) GetUserByID(ctx context.Context, id string) (*model.User, error) {
 	res, err := r.UserClient.GetUserById(ctx, &userpb.GetUserByIdRequest{

@@ -35,6 +35,7 @@ type Mutation {
     UpdateUser(input: UpdateUserInput!): User!
     CreatePost(input: CreatePostInput!): Post!
     UpdatePost(input: UpdatePostInput!): Post!
+    deletePost(input: DeletePostInput): DeletePostResponse!
 }
 
 input RegisterUserInput {
@@ -86,4 +87,13 @@ input UpdatePostInput {
     authorId: String!
     content: String
     isPublic: Boolean
+}
+
+input DeletePostInput {
+    id: String!
+    authorId: String!
+}
+
+type DeletePostResponse {
+    message: String!
 }

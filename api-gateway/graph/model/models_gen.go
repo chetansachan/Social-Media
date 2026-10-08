@@ -9,6 +9,15 @@ type CreatePostInput struct {
 	IsPublic *bool  `json:"isPublic,omitempty"`
 }
 
+type DeletePostInput struct {
+	ID       string `json:"id"`
+	AuthorID string `json:"authorId"`
+}
+
+type DeletePostResponse struct {
+	Message string `json:"message"`
+}
+
 type DeleteUserResponse struct {
 	Message string `json:"message"`
 }
