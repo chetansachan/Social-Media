@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package post;
+
+option go_package = "github.com/chetansachan/socialflow/proto";
+
+service PostService{
+    rpc GetPostById(PostByIdRequest) returns (PostByIdResponse);
+}
+
+message Post {
+    string id = 1;
+    string author_id = 2;
+    string content = 3;
+    string media_url = 4;
+    bool is_public = 5;
+    int32 like_count = 6;
+    string created_at = 7;
+    string updated_at = 8;
+}
+
+message PostByIdRequest {
+    string id = 1;
+}
+
+message PostByIdResponse {
+    Post post = 1;
+}
