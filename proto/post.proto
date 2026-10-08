@@ -6,6 +6,7 @@ option go_package = "github.com/chetansachan/socialflow/proto";
 
 service PostService{
     rpc GetPostById(PostByIdRequest) returns (PostByIdResponse);
+    rpc DeletePost(DeletePostRequest) returns (DeletePostResponse);
 }
 
 message Post {
@@ -25,4 +26,13 @@ message PostByIdRequest {
 
 message PostByIdResponse {
     Post post = 1;
+}
+
+message DeletePostRequest {
+    string post_id = 1;
+    string author_id = 2;
+}
+
+message DeletePostResponse {
+    string message = 1;
 }
