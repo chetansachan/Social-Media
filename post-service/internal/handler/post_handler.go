@@ -52,13 +52,13 @@ func (h *postHandler) GetPostByIdHandler(ctx context.Context, input *postpb.Post
 }
 
 
-// func (h *postHandler) DeletePostHandler(ctx context.Context, input *postpb.DeletePostRequest) (*postpb.DeletePostResponse, error) {
-// 	_, err := h.postService.DeletePost(ctx, input.PostId, input.AuthorId)
-// 	if err != nil {
-// 		return &postpb.DeletePostResponse{}, status.Errorf(codes.Internal, "Error Deleting Post: %v", err)
-// 	}
+func (h *postHandler) DeletePostHandler(ctx context.Context, input *postpb.DeletePostRequest) (*postpb.DeletePostResponse, error) {
+	_, err := h.postService.DeletePost(ctx, input.PostId, input.AuthorId)
+	if err != nil {
+		return &postpb.DeletePostResponse{}, status.Errorf(codes.Internal, "Error Deleting Post: %v", err)
+	}
 
-// 	return &postpb.DeletePostResponse{
-// 		Message: "Post Deleted Successfully",
-// 	}, nil
-// }
+	return &postpb.DeletePostResponse{
+		Message: "Post Deleted Successfully",
+	}, nil
+}
