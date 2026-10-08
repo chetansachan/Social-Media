@@ -13,6 +13,7 @@ import (
 type PostService interface {
 	GetPostById(ctx context.Context, id string) (*models.Post, error)
 	CreatePost(ctx context.Context, input models.CreatePostInput) (*models.Post, error)
+	UpdatePost(ctx context.Context, input models.UpdatePostInput, postId string, authorId string) (*models.Post, error)
 }
 
 type postService struct {
@@ -29,7 +30,7 @@ func (s *postService) GetPostById(ctx context.Context, id string) (*models.Post,
 		return &models.Post{}, fmt.Errorf("Unable to parse the id: %v", err)
 	}
 
-	post, err := s.postRepo.GetPostById(ctx, postId.String())
+	post, err := s.postRepo.GetPostById(ctx, postId)
 	if err != nil {
 		if errors.Is(err, models.ErrPostNotFound) {
 			return &models.Post{}, fmt.Errorf("Post Not Found: %v", err)
@@ -70,4 +71,49 @@ func (s *postService) CreatePost(ctx context.Context, input models.CreatePostInp
 	}
 
 	return post, nil
+}
+
+func (s *postService) UpdatePost(ctx context.Context, input models.UpdatePostInput, postid string, authorid string) (*models.Post, error) {
+	postId, err := uuid.Parse(postid)
+	if err != nil {
+		return &models.Post{}, fmt.Errorf("Unable to parse the id: %v", err)
+	}
+
+	authorId, err := uuid.Parse(authorid)
+	if err != nil {
+		return &models.Post{}, fmt.Errorf("Unable to parse the id: %v", err)
+	}
+
+	post, err := s.postRepo.GetPostById(ctx, postId)
+	if err != nil {
+		if errors.Is(err, models.ErrPostNotFound) {
+			return &models.Post{}, fmt.Errorf("Post Not Found: %v", err)
+		}
+		return &models.Post{}, fmt.Errorf("Internal Server Error: %v", err)
+	}
+
+	content := post.Content
+	if input.Content != nil {
+		content = *input.Content
+	}
+
+	isPublic := post.IsPublic
+	if input.IsPublic != nil {
+		isPublic = *input.IsPublic
+	}
+
+	updateinput := models.UpdatePostInput{
+		Content: &content,
+		IsPublic: &isPublic,
+	}
+
+	updatedPost, err := s.postRepo.UpdatePost(ctx, &updateinput, postId, authorId)
+	if err != nil {
+		if errors.Is(err, models.ErrPostNotFound) {
+			return &models.Post{}, models.ErrPostNotFound
+		}
+		return &models.Post{}, fmt.Errorf("Internal Server Error: %v", err)
+	}
+
+	return updatedPost, nil
 }

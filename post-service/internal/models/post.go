@@ -24,3 +24,8 @@ type CreatePostInput struct {
 	MediaURL string    `json:"media_url"`
 	IsPublic *bool      `json:"is_public,omitempty"`
 }
+
+type UpdatePostInput struct {
+	Content  *string    `json:"content,omitempty"`
+	IsPublic *bool      `json:"is_public,omitempty"`
+}
