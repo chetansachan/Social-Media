@@ -158,6 +158,20 @@ func (r *queryResolver) TokenGenration(ctx context.Context, refressToken string)
 	}, nil
 }
 
+// DeleteUser is the resolver for the deleteUser field.
+func (r *queryResolver) DeleteUser(ctx context.Context, id string) (*model.DeleteUserResponse, error) {
+	_, err := r.UserClient.DeleteUser(ctx, &userpb.DeleteUserRequest{
+		Id: id,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.DeleteUserResponse{
+		Message: "User Deleted Successfully",
+	}, nil
+}
+
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 

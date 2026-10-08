@@ -2,6 +2,10 @@
 
 package model
 
+type DeleteUserResponse struct {
+	Message string `json:"message"`
+}
+
 type LoginInput struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`

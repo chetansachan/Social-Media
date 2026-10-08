@@ -13,6 +13,7 @@ type Query {
     getUserByEmail(email: String!): User
     getUserByUsername(username: String!): User
     tokenGenration(refressToken: String!): newTokens
+    deleteUser(id: ID!): DeleteUserResponse
 
 }
 
@@ -51,4 +52,8 @@ input UpdateUserInput {
     email: String
     password: String
     isPublic: Boolean
+}
+
+type DeleteUserResponse {
+    message: String!
 }
