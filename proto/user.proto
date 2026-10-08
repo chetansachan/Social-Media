@@ -12,6 +12,7 @@ service UserService {
     rpc Login(LoginRequest) returns (LoginResponse);
     rpc Refresh(RefreshTknRequest) returns (RefreshTknResponse);
     rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse);
+    rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse);
 }
 
 message User {
@@ -102,4 +103,12 @@ message UpdateUserRequest {
     optional string email = 4;
     optional string password = 5;
     optional bool is_public = 6;
+}
+
+message DeleteUserRequest {
+    string id = 1;
+}
+
+message DeleteUserResponse {
+    string message = 1;
 }
