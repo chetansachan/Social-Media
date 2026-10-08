@@ -422,7 +422,7 @@ type UpdatePostRequest struct {
 	PostId        string                 `protobuf:"bytes,1,opt,name=post_id,json=postId,proto3" json:"post_id,omitempty"`
 	AuthorId      string                 `protobuf:"bytes,2,opt,name=author_id,json=authorId,proto3" json:"author_id,omitempty"`
 	Content       *string                `protobuf:"bytes,3,opt,name=content,proto3,oneof" json:"content,omitempty"`
-	IsPublic      *string                `protobuf:"bytes,4,opt,name=is_public,json=isPublic,proto3,oneof" json:"is_public,omitempty"`
+	IsPublic      *bool                  `protobuf:"varint,4,opt,name=is_public,json=isPublic,proto3,oneof" json:"is_public,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -478,11 +478,11 @@ func (x *UpdatePostRequest) GetContent() string {
 	return ""
 }
 
-func (x *UpdatePostRequest) GetIsPublic() string {
+func (x *UpdatePostRequest) GetIsPublic() bool {
 	if x != nil && x.IsPublic != nil {
 		return *x.IsPublic
 	}
-	return ""
+	return false
 }
 
 type UpdatePostResponse struct {
@@ -570,7 +570,7 @@ const file_proto_post_proto_rawDesc = "" +
 	"\apost_id\x18\x01 \x01(\tR\x06postId\x12\x1b\n" +
 	"\tauthor_id\x18\x02 \x01(\tR\bauthorId\x12\x1d\n" +
 	"\acontent\x18\x03 \x01(\tH\x00R\acontent\x88\x01\x01\x12 \n" +
-	"\tis_public\x18\x04 \x01(\tH\x01R\bisPublic\x88\x01\x01B\n" +
+	"\tis_public\x18\x04 \x01(\bH\x01R\bisPublic\x88\x01\x01B\n" +
 	"\n" +
 	"\b_contentB\f\n" +
 	"\n" +
