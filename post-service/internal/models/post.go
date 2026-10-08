@@ -22,5 +22,5 @@ type CreatePostInput struct {
 	AuthorID uuid.UUID `json:"author_id"`
 	Content  string    `json:"content"`
 	MediaURL string    `json:"media_url"`
-	IsPublic bool      `json:"is_public"`
+	IsPublic *bool      `json:"is_public,omitempty"`
 }

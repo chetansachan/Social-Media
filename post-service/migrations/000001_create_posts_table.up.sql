@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS posts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     author_id UUID NOT NULL,
     content TEXT NOT NULL,
-    media_url VARCHAR(500) DEFAULT '',
+    media_url VARCHAR(500) NOT NUll,
     is_public BOOLEAN NOT NULL DEFAULT TRUE,
     like_count INT NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,

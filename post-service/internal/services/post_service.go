@@ -31,7 +31,7 @@ func (s *postService) GetPostById(ctx context.Context, id string) (*models.Post,
 
 	post, err := s.postRepo.GetPostById(ctx, postId.String())
 	if err != nil {
-		if errors.Is(err, models.ErrPostNotFound){
+		if errors.Is(err, models.ErrPostNotFound) {
 			return &models.Post{}, fmt.Errorf("Post Not Found: %v", err)
 		}
 		return &models.Post{}, fmt.Errorf("Internal Server Error: %v", err)
@@ -41,11 +41,28 @@ func (s *postService) GetPostById(ctx context.Context, id string) (*models.Post,
 }
 
 func (s *postService) CreatePost(ctx context.Context, input models.CreatePostInput) (*models.Post, error) {
+	if input.AuthorID == uuid.Nil {
+		return &models.Post{}, models.ErrInvalidInput
+	}
+
+	if input.Content == "" {
+		return &models.Post{}, models.ErrInvalidInput
+	}
+
+	if input.MediaURL == "" {
+		return &models.Post{}, models.ErrInvalidInput
+	}
+
+	isPublic := true
+	if input.IsPublic != nil {
+		isPublic = *input.IsPublic
+	}
+
 	postinput := &models.Post{
 		AuthorID: input.AuthorID,
-		Content: input.Content,
+		Content:  input.Content,
 		MediaURL: input.MediaURL,
-		IsPublic: input.IsPublic,
+		IsPublic: isPublic,
 	}
 	post, err := s.postRepo.CreatePost(ctx, postinput)
 	if err != nil {
