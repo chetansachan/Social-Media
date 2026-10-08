@@ -15,6 +15,7 @@ type PostRepostiory interface {
 	CreatePost(ctx context.Context, input *models.CreatePostInput) (*models.Post, error)
 	GetPostById(ctx context.Context, id uuid.UUID) (*models.Post, error)
 	UpdatePost(ctx context.Context, input *models.UpdatePostInput, postId uuid.UUID, authorId uuid.UUID) (*models.Post, error)
+	DeletePost(ctx context.Context, postId uuid.UUID, authorId uuid.UUID) error
 }
 
 type postRepostiory struct {
@@ -111,4 +112,18 @@ func (r *postRepostiory) UpdatePost(ctx context.Context, input *models.UpdatePos
 	}
 
 	return post, nil
+}
+
+func (r *postRepostiory) DeletePost(ctx context.Context, postId uuid.UUID, authorId uuid.UUID) error {
+	query :=  `
+		DELETE FROM posts
+		WHERE id = $1 AND author_id = $2
+	`
+
+	_, err := r.db.Exec(ctx, query, postId, authorId)
+	if err != nil {
+		return fmt.Errorf("Error deliting Post: %v", err)
+	}
+
+	return nil
 }

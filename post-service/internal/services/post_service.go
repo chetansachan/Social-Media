@@ -14,6 +14,7 @@ type PostService interface {
 	GetPostById(ctx context.Context, id string) (*models.Post, error)
 	CreatePost(ctx context.Context, input models.CreatePostInput) (*models.Post, error)
 	UpdatePost(ctx context.Context, input models.UpdatePostInput, postId string, authorId string) (*models.Post, error)
+	DeletePost(ctx context.Context, postid string, authorid string) error
 }
 
 type postService struct {
@@ -103,7 +104,7 @@ func (s *postService) UpdatePost(ctx context.Context, input models.UpdatePostInp
 	}
 
 	updateinput := models.UpdatePostInput{
-		Content: &content,
+		Content:  &content,
 		IsPublic: &isPublic,
 	}
 
@@ -116,4 +117,22 @@ func (s *postService) UpdatePost(ctx context.Context, input models.UpdatePostInp
 	}
 
 	return updatedPost, nil
+}
+
+func (s *postService) DeletePost(ctx context.Context, postid string, authorid string) error {
+	postId, err := uuid.Parse(postid)
+	if err != nil {
+		return fmt.Errorf("Unable to parse the id: %v", err)
+	}
+
+	authorId, err := uuid.Parse(authorid)
+	if err != nil {
+		return fmt.Errorf("Unable to parse the id: %v", err)
+	}
+
+	if err := s.postRepo.DeletePost(ctx, postId, authorId); err != nil {
+		return fmt.Errorf("Error Deleting Post: %v", err)
+	}
+
+	return nil
 }
