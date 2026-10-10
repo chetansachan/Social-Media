@@ -17,7 +17,11 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-const defaultPort = "8080"
+const (
+	defaultPort            = "8080"
+	defaultUserServiceAddr = "localhost:50051"
+	defaultPostServiceAddr = "localhost:50052"
+)
 
 func main() {
 	port := os.Getenv("PORT")
@@ -25,22 +29,44 @@ func main() {
 		port = defaultPort
 	}
 
-	conn, err := grpc.NewClient(
-		"localhost:50051",
+	userServiceAddr := os.Getenv("USER_SERVICE_ADDR")
+	if userServiceAddr == "" {
+		userServiceAddr = defaultUserServiceAddr
+	}
+
+	userConn, err := grpc.NewClient(
+		userServiceAddr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
 		log.Fatalf("failed to connect to user service: %v", err)
 	}
-	defer conn.Close()
+	defer userConn.Close()
 
-	userClient := userpb.NewUserServiceClient(conn)
+	userClient := userpb.NewUserServiceClient(userConn)
+
+	postServiceAddr := os.Getenv("POST_SERVICE_ADDR")
+	if postServiceAddr == "" {
+		postServiceAddr = defaultPostServiceAddr
+	}
+
+	postConn, err := grpc.NewClient(
+		postServiceAddr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		log.Fatalf("failed to connect to post service: %v", err)
+	}
+	defer postConn.Close()
+
+	postClient := userpb.NewPostServiceClient(postConn)
 
 	srv := handler.New(
 		graph.NewExecutableSchema(
 			graph.Config{
 				Resolvers: &graph.Resolver{
 					UserClient: userClient,
+					PostClient: postClient,
 				},
 			},
 		),
