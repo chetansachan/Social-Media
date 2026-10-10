@@ -21,7 +21,7 @@ type postService struct {
 	postRepo repository.PostRepostiory
 }
 
-func NewPostRepository(postRepo repository.PostRepostiory) PostService {
+func NewPostService(postRepo repository.PostRepostiory) PostService {
 	return &postService{postRepo: postRepo}
 }
 
@@ -34,7 +34,7 @@ func (s *postService) GetPostById(ctx context.Context, id string) (*models.Post,
 	post, err := s.postRepo.GetPostById(ctx, postId)
 	if err != nil {
 		if errors.Is(err, models.ErrPostNotFound) {
-			return &models.Post{}, fmt.Errorf("Post Not Found: %v", err)
+			return &models.Post{}, models.ErrPostNotFound
 		}
 		return &models.Post{}, fmt.Errorf("Internal Server Error: %v", err)
 	}

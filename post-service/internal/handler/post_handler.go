@@ -13,13 +13,13 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type postHandler struct {
+type PostHandler struct {
 	postpb.UnimplementedPostServiceServer
 	postService services.PostService
 }
 
-func NewPostHandler(postService services.PostService) postHandler {
-	return postHandler{postService: postService}
+func NewPostHandler(postService services.PostService) *PostHandler {
+	return &PostHandler{postService: postService}
 }
 
 func formatTimestamp(t *time.Time) string {
@@ -29,7 +29,7 @@ func formatTimestamp(t *time.Time) string {
 	return t.Format(time.RFC3339)
 }
 
-func (h *postHandler) CreatePostHandler(ctx context.Context, req *postpb.CreatePostRequest) (*postpb.CreatePostResponse, error) {
+func (h *PostHandler) CreatePost(ctx context.Context, req *postpb.CreatePostRequest) (*postpb.CreatePostResponse, error) {
 	authorId, err := uuid.Parse(req.AuthorId)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "invalid author ID format: %v", err)
@@ -65,7 +65,7 @@ func (h *postHandler) CreatePostHandler(ctx context.Context, req *postpb.CreateP
 	}, nil
 }
 
-func (h *postHandler) GetPostByIdHandler(ctx context.Context, input *postpb.PostByIdRequest) (*postpb.PostByIdResponse, error) {
+func (h *PostHandler) GetPostById(ctx context.Context, input *postpb.PostByIdRequest) (*postpb.PostByIdResponse, error) {
 	res, err := h.postService.GetPostById(ctx, input.Id)
 	if err != nil {
 		if errors.Is(err, models.ErrPostNotFound) {
@@ -88,7 +88,7 @@ func (h *postHandler) GetPostByIdHandler(ctx context.Context, input *postpb.Post
 	}, nil
 }
 
-func (h *postHandler) DeletePostHandler(ctx context.Context, input *postpb.DeletePostRequest) (*postpb.DeletePostResponse, error) {
+func (h *PostHandler) DeletePost(ctx context.Context, input *postpb.DeletePostRequest) (*postpb.DeletePostResponse, error) {
 	_, err := h.postService.DeletePost(ctx, input.PostId, input.AuthorId)
 	if err != nil {
 		return &postpb.DeletePostResponse{}, status.Errorf(codes.Internal, "Error Deleting Post: %v", err)
@@ -99,7 +99,7 @@ func (h *postHandler) DeletePostHandler(ctx context.Context, input *postpb.Delet
 	}, nil
 }
 
-func (h *postHandler) UpdatePostHandler(ctx context.Context, req *postpb.UpdatePostRequest) (*postpb.UpdatePostResponse, error) {
+func (h *PostHandler) UpdatePost(ctx context.Context, req *postpb.UpdatePostRequest) (*postpb.UpdatePostResponse, error) {
 	input := models.UpdatePostInput{
 		Content:  req.Content,
 		IsPublic: req.IsPublic,

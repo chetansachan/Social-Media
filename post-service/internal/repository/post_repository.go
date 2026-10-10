@@ -28,7 +28,7 @@ func NewPostRepository(db *pgxpool.Pool) PostRepostiory {
 
 func (r *postRepostiory) GetPostById(ctx context.Context, id uuid.UUID) (*models.Post, error) {
 	query := `
-		SELECT id, author_id, content, media_url, is_public, like_count, created_at, updated_at
+		SELECT id, author_id, content, media_url, is_public, like_count, created_at, updated_at, deleted_at
 		FROM posts
 		WHERE id = $1
 	`
@@ -42,11 +42,12 @@ func (r *postRepostiory) GetPostById(ctx context.Context, id uuid.UUID) (*models
 		&Post.LikeCount,
 		&Post.CreatedAt,
 		&Post.UpdatedAt,
+		&Post.DeletedAt,
 	); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, models.ErrPostNotFound
 		}
-		return nil, fmt.Errorf("failed to get user by id: %w", err)
+		return nil, fmt.Errorf("failed to get post by id: %w", err)
 	}
 
 	return Post, nil
@@ -56,7 +57,7 @@ func (r *postRepostiory) CreatePost(ctx context.Context, input *models.CreatePos
 	query := `
 		INSERT INTO posts(author_id, content, media_url, is_public)
 		VALUES ($1, $2, $3, $4)
-		RETURNING id, author_id, content, media_url, is_public, like_count, created_at, updated_at
+		RETURNING id, author_id, content, media_url, is_public, like_count, created_at, updated_at, deleted_at
 	`
 
 	post := &models.Post{}
@@ -87,13 +88,15 @@ func (r *postRepostiory) UpdatePost(ctx context.Context, input *models.UpdatePos
 		UPDATE posts
 		SET content = $1, is_public = $2, updated_at = CURRENT_TIMESTAMP
 		WHERE id = $3 AND author_id = $4
-		RETURNING id, author_id, content, media_url, is_public, like_count, created_at, updated_at
+		RETURNING id, author_id, content, media_url, is_public, like_count, created_at, updated_at, deleted_at
 	`
 
 	post := &models.Post{}
 	if err := r.db.QueryRow(ctx, query,
 		input.Content,
 		input.IsPublic,
+		postId,
+		authorId,
 	).Scan(
 		&post.ID,
 		&post.AuthorID,
@@ -108,7 +111,7 @@ func (r *postRepostiory) UpdatePost(ctx context.Context, input *models.UpdatePos
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, models.ErrPostNotFound
 		}
-		return nil, fmt.Errorf("failed to insert post: %w", err)
+		return nil, fmt.Errorf("failed to update post: %w", err)
 	}
 
 	return post, nil
@@ -122,7 +125,7 @@ func (r *postRepostiory) DeletePost(ctx context.Context, postId uuid.UUID, autho
 
 	_, err := r.db.Exec(ctx, query, postId, authorId)
 	if err != nil {
-		return fmt.Errorf("Error deliting Post: %v", err)
+		return fmt.Errorf("Error deleting Post: %v", err)
 	}
 
 	return nil

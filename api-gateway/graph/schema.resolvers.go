@@ -100,7 +100,7 @@ func (r *mutationResolver) CreatePost(ctx context.Context, input model.CreatePos
 		MediaURL:  p.MediaUrl,
 		IsPublic:  p.IsPublic,
 		LikeCount: p.LikeCount,
-		CreatedAt: p.Content,
+		CreatedAt: p.CreatedAt,
 		UpdatedAt: p.UpdatedAt,
 	}, nil
 }
@@ -125,7 +125,7 @@ func (r *mutationResolver) UpdatePost(ctx context.Context, input model.UpdatePos
 		MediaURL:  p.MediaUrl,
 		IsPublic:  p.IsPublic,
 		LikeCount: p.LikeCount,
-		CreatedAt: p.Content,
+		CreatedAt: p.CreatedAt,
 		UpdatedAt: p.UpdatedAt,
 	}, nil
 }
@@ -183,7 +183,7 @@ func (r *queryResolver) GetPostByID(ctx context.Context, id string) (*model.Post
 		MediaURL:  p.MediaUrl,
 		IsPublic:  p.IsPublic,
 		LikeCount: p.LikeCount,
-		CreatedAt: p.Content,
+		CreatedAt: p.CreatedAt,
 		UpdatedAt: p.UpdatedAt,
 	}, nil
 }
