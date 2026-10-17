@@ -43,7 +43,6 @@ type PostServiceClient interface {
 	GetAllPosts(ctx context.Context, in *AllPostRequest, opts ...grpc.CallOption) (*AllPostResponse, error)
 }
 
-
 type postServiceClient struct {
 	cc grpc.ClientConnInterface
 }

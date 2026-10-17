@@ -118,7 +118,7 @@ func (h *PostHandler) GetAllPosts(ctx context.Context, input *postpb.AllPostRequ
 }
 
 func (h *PostHandler) DeletePost(ctx context.Context, input *postpb.DeletePostRequest) (*postpb.DeletePostResponse, error) {
-	_, err := h.postService.DeletePost(ctx, input.PostId, input.AuthorId)
+	_, err := h.postService.DeletePost(ctx, input.PostId)
 	if err != nil {
 		if errors.Is(err, models.ErrPostNotFound) {
 			return nil, status.Error(codes.NotFound, "Post Not Found")
@@ -214,7 +214,7 @@ func (h *PostHandler) GetArchivedPostById(ctx context.Context, input *postpb.Arc
 }
 
 func (h *PostHandler) MovePostToArchived(ctx context.Context, input *postpb.MovePostToArchivedRequest) (*postpb.MovePostToArchivedResponse, error) {
-	_, err := h.postService.MovePostToArchive(ctx, input.PostId, input.AuthorId)
+	_, err := h.postService.MovePostToArchive(ctx, input.PostId)
 	if err != nil {
 		if errors.Is(err, models.ErrPostNotFound) {
 			return nil, status.Error(codes.NotFound, "Post Not Found")

@@ -15,8 +15,8 @@ type PostService interface {
 	GetAllPost(ctx context.Context, authorId string) ([]models.Post, error)
 	CreatePost(ctx context.Context, input models.CreatePostInput) (*models.Post, error)
 	UpdatePost(ctx context.Context, input models.UpdatePostInput, postId string, authorId string) (*models.Post, error)
-	DeletePost(ctx context.Context, postid string, authorid string) (*models.Response, error)
-	MovePostToArchive(ctx context.Context, postid string, authorid string) (*models.Response, error)
+	DeletePost(ctx context.Context, postid string) (*models.Response, error)
+	MovePostToArchive(ctx context.Context, postid string) (*models.Response, error)
 	GetAllArchivedPost(ctx context.Context, authorId string) ([]models.Post, error)
 	GetArchivedPostById(ctx context.Context, id string) (*models.Post, error)
 }
@@ -140,18 +140,13 @@ func (s *postService) UpdatePost(ctx context.Context, input models.UpdatePostInp
 	return updatedPost, nil
 }
 
-func (s *postService) DeletePost(ctx context.Context, postid string, authorid string) (*models.Response, error) {
+func (s *postService) DeletePost(ctx context.Context, postid string) (*models.Response, error) {
 	postId, err := uuid.Parse(postid)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to parse the id: %v", err)
 	}
 
-	authorId, err := uuid.Parse(authorid)
-	if err != nil {
-		return nil, fmt.Errorf("Unable to parse the id: %v", err)
-	}
-
-	if err := s.postRepo.DeletePost(ctx, postId, authorId); err != nil {
+	if err := s.postRepo.DeletePost(ctx, postId); err != nil {
 		return nil, fmt.Errorf("Error Deleting Post: %v", err)
 	}
 
@@ -160,18 +155,13 @@ func (s *postService) DeletePost(ctx context.Context, postid string, authorid st
 	}, nil
 }
 
-func (s *postService) MovePostToArchive(ctx context.Context, postid string, authorid string) (*models.Response, error) {
+func (s *postService) MovePostToArchive(ctx context.Context, postid string) (*models.Response, error) {
 	postId, err := uuid.Parse(postid)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to parse the id: %v", err)
 	}
 
-	authorId, err := uuid.Parse(authorid)
-	if err != nil {
-		return nil, fmt.Errorf("Unable to parse the id: %v", err)
-	}
-
-	if err := s.postRepo.MovePostToArchive(ctx, postId, authorId); err != nil {
+	if err := s.postRepo.MovePostToArchive(ctx, postId); err != nil {
 		return nil, fmt.Errorf("Error Moving Post to archive: %v", err)
 	}
 

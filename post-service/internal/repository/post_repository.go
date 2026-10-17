@@ -15,10 +15,10 @@ type PostRepository interface {
 	CreatePost(ctx context.Context, input *models.CreatePostInput) (*models.Post, error)
 	GetPostById(ctx context.Context, id uuid.UUID) (*models.Post, error)
 	UpdatePost(ctx context.Context, input *models.UpdatePostInput, postId uuid.UUID, authorId uuid.UUID) (*models.Post, error)
-	DeletePost(ctx context.Context, postId uuid.UUID, authorId uuid.UUID) error
+	DeletePost(ctx context.Context, postId uuid.UUID) error
 	GetAllArchivedPost(ctx context.Context, authorId uuid.UUID) ([]models.Post, error)
 	GetArchivedPostById(ctx context.Context, id uuid.UUID) (*models.Post, error)
-	MovePostToArchive(ctx context.Context, postId uuid.UUID, authorId uuid.UUID) error
+	MovePostToArchive(ctx context.Context, postId uuid.UUID) error
 	GetAllPost(ctx context.Context, authorId uuid.UUID) ([]models.Post, error)
 }
 
@@ -164,13 +164,13 @@ func (r *postRepository) UpdatePost(ctx context.Context, input *models.UpdatePos
 	return post, nil
 }
 
-func (r *postRepository) DeletePost(ctx context.Context, postId uuid.UUID, authorId uuid.UUID) error {
+func (r *postRepository) DeletePost(ctx context.Context, postId uuid.UUID) error {
 	query := `
 		DELETE FROM posts
 		WHERE id = $1 AND author_id = $2
 	`
 
-	tag, err := r.db.Exec(ctx, query, postId, authorId)
+	tag, err := r.db.Exec(ctx, query, postId)
 	if err != nil {
 		return fmt.Errorf("Error deleting Post: %v", err)
 	}
@@ -181,14 +181,14 @@ func (r *postRepository) DeletePost(ctx context.Context, postId uuid.UUID, autho
 	return nil
 }
 
-func (r *postRepository) MovePostToArchive(ctx context.Context, postId uuid.UUID, authorId uuid.UUID) error {
+func (r *postRepository) MovePostToArchive(ctx context.Context, postId uuid.UUID) error {
 	query := `
 		UPDATE posts
 		SET deleted_at = CURRENT_TIMESTAMP
 		WHERE id = $1 AND author_id = $2 AND deleted_at IS NULL
 	`
 
-	tag, err := r.db.Exec(ctx, query, postId, authorId)
+	tag, err := r.db.Exec(ctx, query, postId)
 	if err != nil {
 		return fmt.Errorf("Error deleting Post: %v", err)
 	}

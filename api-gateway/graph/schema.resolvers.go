@@ -130,36 +130,6 @@ func (r *mutationResolver) UpdatePost(ctx context.Context, input model.UpdatePos
 	}, nil
 }
 
-// DeletePost is the resolver for the deletePost field.
-func (r *mutationResolver) DeletePost(ctx context.Context, input model.DeletePostInput) (*model.DeletePostResponse, error) {
-	_, err := r.PostClient.DeletePost(ctx, &userpb.DeletePostRequest{
-		PostId:   input.ID,
-		AuthorId: input.AuthorID,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return &model.DeletePostResponse{
-		Message: "Post Deleted Successfully",
-	}, nil
-}
-
-// MoveToArchive is the resolver for the moveToArchive field.
-func (r *mutationResolver) MoveToArchive(ctx context.Context, input model.MovePostToArchivedInput) (*model.MovePostToArchivedResponse, error) {
-	_, err := r.PostClient.MovePostToArchived(ctx, &userpb.MovePostToArchivedRequest{
-		PostId:   input.ID,
-		AuthorId: input.AuthorID,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return &model.MovePostToArchivedResponse{
-		Message: "Post Moved to Archive Successfully",
-	}, nil
-}
-
 // GetUserByID is the resolver for the GetUserById field.
 func (r *queryResolver) GetUserByID(ctx context.Context, id string) (*model.User, error) {
 	res, err := r.UserClient.GetUserById(ctx, &userpb.GetUserByIdRequest{
@@ -346,6 +316,34 @@ func (r *queryResolver) GetAllArchivedPost(ctx context.Context, authorID string)
 	}
 
 	return posts, nil
+}
+
+// DeletePost is the resolver for the deletePost field.
+func (r *queryResolver) DeletePost(ctx context.Context, id string) (*model.DeletePostResponse, error) {
+	_, err := r.PostClient.DeletePost(ctx, &userpb.DeletePostRequest{
+		PostId: id,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.DeletePostResponse{
+		Message: "Post Deleted Successfully",
+	}, nil
+}
+
+// MoveToArchive is the resolver for the moveToArchive field.
+func (r *queryResolver) MoveToArchive(ctx context.Context, id string) (*model.MovePostToArchivedResponse, error) {
+	_, err := r.PostClient.MovePostToArchived(ctx, &userpb.MovePostToArchivedRequest{
+		PostId: id,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.MovePostToArchivedResponse{
+		Message: "Post Moved to Archive Successfully",
+	}, nil
 }
 
 // Mutation returns MutationResolver implementation.

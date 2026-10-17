@@ -9,11 +9,6 @@ type CreatePostInput struct {
 	IsPublic *bool  `json:"isPublic,omitempty"`
 }
 
-type DeletePostInput struct {
-	ID       string `json:"id"`
-	AuthorID string `json:"authorId"`
-}
-
 type DeletePostResponse struct {
 	Message string `json:"message"`
 }
@@ -31,11 +26,6 @@ type LoginResponse struct {
 	AccessToken  string `json:"accessToken"`
 	RefressToken string `json:"refressToken"`
 	Message      string `json:"message"`
-}
-
-type MovePostToArchivedInput struct {
-	ID       string `json:"id"`
-	AuthorID string `json:"authorId"`
 }
 
 type MovePostToArchivedResponse struct {

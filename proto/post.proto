@@ -36,7 +36,6 @@ message PostByIdResponse {
 
 message DeletePostRequest {
     string post_id = 1;
-    string author_id = 2;
 }
 
 message DeletePostResponse {
@@ -75,7 +74,6 @@ message ArchivedPostByIdResponse {
 
 message MovePostToArchivedRequest {
     string post_id = 1;
-    string author_id = 2;
 }
 
 message MovePostToArchivedResponse {
