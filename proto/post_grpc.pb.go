@@ -19,10 +19,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	PostService_CreatePost_FullMethodName  = "/post.PostService/CreatePost"
-	PostService_GetPostById_FullMethodName = "/post.PostService/GetPostById"
-	PostService_DeletePost_FullMethodName  = "/post.PostService/DeletePost"
-	PostService_UpdatePost_FullMethodName  = "/post.PostService/UpdatePost"
+	PostService_CreatePost_FullMethodName          = "/post.PostService/CreatePost"
+	PostService_GetPostById_FullMethodName         = "/post.PostService/GetPostById"
+	PostService_DeletePost_FullMethodName          = "/post.PostService/DeletePost"
+	PostService_UpdatePost_FullMethodName          = "/post.PostService/UpdatePost"
+	PostService_MovePostToArchived_FullMethodName  = "/post.PostService/MovePostToArchived"
+	PostService_GetArchivedPostById_FullMethodName = "/post.PostService/GetArchivedPostById"
+	PostService_GetAllArchivedPosts_FullMethodName = "/post.PostService/GetAllArchivedPosts"
+	PostService_GetAllPosts_FullMethodName         = "/post.PostService/GetAllPosts"
 )
 
 // PostServiceClient is the client API for PostService service.
@@ -33,7 +37,12 @@ type PostServiceClient interface {
 	GetPostById(ctx context.Context, in *PostByIdRequest, opts ...grpc.CallOption) (*PostByIdResponse, error)
 	DeletePost(ctx context.Context, in *DeletePostRequest, opts ...grpc.CallOption) (*DeletePostResponse, error)
 	UpdatePost(ctx context.Context, in *UpdatePostRequest, opts ...grpc.CallOption) (*UpdatePostResponse, error)
+	MovePostToArchived(ctx context.Context, in *MovePostToArchivedRequest, opts ...grpc.CallOption) (*MovePostToArchivedResponse, error)
+	GetArchivedPostById(ctx context.Context, in *ArchivedPostByIdRequest, opts ...grpc.CallOption) (*ArchivedPostByIdResponse, error)
+	GetAllArchivedPosts(ctx context.Context, in *AllArchivedPostRequest, opts ...grpc.CallOption) (*AllArchivedPostResponse, error)
+	GetAllPosts(ctx context.Context, in *AllPostRequest, opts ...grpc.CallOption) (*AllPostResponse, error)
 }
+
 
 type postServiceClient struct {
 	cc grpc.ClientConnInterface
@@ -83,6 +92,46 @@ func (c *postServiceClient) UpdatePost(ctx context.Context, in *UpdatePostReques
 	return out, nil
 }
 
+func (c *postServiceClient) MovePostToArchived(ctx context.Context, in *MovePostToArchivedRequest, opts ...grpc.CallOption) (*MovePostToArchivedResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MovePostToArchivedResponse)
+	err := c.cc.Invoke(ctx, PostService_MovePostToArchived_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *postServiceClient) GetArchivedPostById(ctx context.Context, in *ArchivedPostByIdRequest, opts ...grpc.CallOption) (*ArchivedPostByIdResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ArchivedPostByIdResponse)
+	err := c.cc.Invoke(ctx, PostService_GetArchivedPostById_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *postServiceClient) GetAllArchivedPosts(ctx context.Context, in *AllArchivedPostRequest, opts ...grpc.CallOption) (*AllArchivedPostResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AllArchivedPostResponse)
+	err := c.cc.Invoke(ctx, PostService_GetAllArchivedPosts_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *postServiceClient) GetAllPosts(ctx context.Context, in *AllPostRequest, opts ...grpc.CallOption) (*AllPostResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AllPostResponse)
+	err := c.cc.Invoke(ctx, PostService_GetAllPosts_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PostServiceServer is the server API for PostService service.
 // All implementations must embed UnimplementedPostServiceServer
 // for forward compatibility.
@@ -91,6 +140,10 @@ type PostServiceServer interface {
 	GetPostById(context.Context, *PostByIdRequest) (*PostByIdResponse, error)
 	DeletePost(context.Context, *DeletePostRequest) (*DeletePostResponse, error)
 	UpdatePost(context.Context, *UpdatePostRequest) (*UpdatePostResponse, error)
+	MovePostToArchived(context.Context, *MovePostToArchivedRequest) (*MovePostToArchivedResponse, error)
+	GetArchivedPostById(context.Context, *ArchivedPostByIdRequest) (*ArchivedPostByIdResponse, error)
+	GetAllArchivedPosts(context.Context, *AllArchivedPostRequest) (*AllArchivedPostResponse, error)
+	GetAllPosts(context.Context, *AllPostRequest) (*AllPostResponse, error)
 	mustEmbedUnimplementedPostServiceServer()
 }
 
@@ -112,6 +165,18 @@ func (UnimplementedPostServiceServer) DeletePost(context.Context, *DeletePostReq
 }
 func (UnimplementedPostServiceServer) UpdatePost(context.Context, *UpdatePostRequest) (*UpdatePostResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdatePost not implemented")
+}
+func (UnimplementedPostServiceServer) MovePostToArchived(context.Context, *MovePostToArchivedRequest) (*MovePostToArchivedResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MovePostToArchived not implemented")
+}
+func (UnimplementedPostServiceServer) GetArchivedPostById(context.Context, *ArchivedPostByIdRequest) (*ArchivedPostByIdResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetArchivedPostById not implemented")
+}
+func (UnimplementedPostServiceServer) GetAllArchivedPosts(context.Context, *AllArchivedPostRequest) (*AllArchivedPostResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAllArchivedPosts not implemented")
+}
+func (UnimplementedPostServiceServer) GetAllPosts(context.Context, *AllPostRequest) (*AllPostResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAllPosts not implemented")
 }
 func (UnimplementedPostServiceServer) mustEmbedUnimplementedPostServiceServer() {}
 func (UnimplementedPostServiceServer) testEmbeddedByValue()                     {}
@@ -206,6 +271,78 @@ func _PostService_UpdatePost_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PostService_MovePostToArchived_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MovePostToArchivedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PostServiceServer).MovePostToArchived(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PostService_MovePostToArchived_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PostServiceServer).MovePostToArchived(ctx, req.(*MovePostToArchivedRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PostService_GetArchivedPostById_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ArchivedPostByIdRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PostServiceServer).GetArchivedPostById(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PostService_GetArchivedPostById_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PostServiceServer).GetArchivedPostById(ctx, req.(*ArchivedPostByIdRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PostService_GetAllArchivedPosts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AllArchivedPostRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PostServiceServer).GetAllArchivedPosts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PostService_GetAllArchivedPosts_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PostServiceServer).GetAllArchivedPosts(ctx, req.(*AllArchivedPostRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PostService_GetAllPosts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AllPostRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PostServiceServer).GetAllPosts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PostService_GetAllPosts_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PostServiceServer).GetAllPosts(ctx, req.(*AllPostRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PostService_ServiceDesc is the grpc.ServiceDesc for PostService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -228,6 +365,22 @@ var PostService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdatePost",
 			Handler:    _PostService_UpdatePost_Handler,
+		},
+		{
+			MethodName: "MovePostToArchived",
+			Handler:    _PostService_MovePostToArchived_Handler,
+		},
+		{
+			MethodName: "GetArchivedPostById",
+			Handler:    _PostService_GetArchivedPostById_Handler,
+		},
+		{
+			MethodName: "GetAllArchivedPosts",
+			Handler:    _PostService_GetAllArchivedPosts_Handler,
+		},
+		{
+			MethodName: "GetAllPosts",
+			Handler:    _PostService_GetAllPosts_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -9,6 +9,10 @@ service PostService{
     rpc GetPostById(PostByIdRequest) returns (PostByIdResponse);
     rpc DeletePost(DeletePostRequest) returns (DeletePostResponse);
     rpc UpdatePost(UpdatePostRequest) returns (UpdatePostResponse);
+    rpc MovePostToArchived(MovePostToArchivedRequest) returns (MovePostToArchivedResponse);
+    rpc GetArchivedPostById(ArchivedPostByIdRequest) returns (ArchivedPostByIdResponse);
+    rpc GetAllArchivedPosts(AllArchivedPostRequest) returns (AllArchivedPostResponse);
+    rpc GetAllPosts(AllPostRequest) returns (AllPostResponse);
 }
 
 message Post {
@@ -59,4 +63,37 @@ message UpdatePostRequest {
 
 message UpdatePostResponse {
     Post post = 1;
+}
+
+message ArchivedPostByIdRequest {
+    string id = 1;
+}
+
+message ArchivedPostByIdResponse {
+    Post post = 1;
+}
+
+message MovePostToArchivedRequest {
+    string post_id = 1;
+    string author_id = 2;
+}
+
+message MovePostToArchivedResponse {
+    string message = 1;
+}
+
+message AllArchivedPostRequest {
+    string author_id = 1;
+}
+
+message AllArchivedPostResponse {
+    repeated Post post = 1;
+}
+
+message AllPostRequest {
+    string author_id = 1;
+}
+
+message AllPostResponse {
+    repeated Post post = 1;
 }

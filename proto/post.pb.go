@@ -529,6 +529,366 @@ func (x *UpdatePostResponse) GetPost() *Post {
 	return nil
 }
 
+type ArchivedPostByIdRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ArchivedPostByIdRequest) Reset() {
+	*x = ArchivedPostByIdRequest{}
+	mi := &file_proto_post_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ArchivedPostByIdRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ArchivedPostByIdRequest) ProtoMessage() {}
+
+func (x *ArchivedPostByIdRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_post_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ArchivedPostByIdRequest.ProtoReflect.Descriptor instead.
+func (*ArchivedPostByIdRequest) Descriptor() ([]byte, []int) {
+	return file_proto_post_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *ArchivedPostByIdRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type ArchivedPostByIdResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Post          *Post                  `protobuf:"bytes,1,opt,name=post,proto3" json:"post,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ArchivedPostByIdResponse) Reset() {
+	*x = ArchivedPostByIdResponse{}
+	mi := &file_proto_post_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ArchivedPostByIdResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ArchivedPostByIdResponse) ProtoMessage() {}
+
+func (x *ArchivedPostByIdResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_post_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ArchivedPostByIdResponse.ProtoReflect.Descriptor instead.
+func (*ArchivedPostByIdResponse) Descriptor() ([]byte, []int) {
+	return file_proto_post_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *ArchivedPostByIdResponse) GetPost() *Post {
+	if x != nil {
+		return x.Post
+	}
+	return nil
+}
+
+type MovePostToArchivedRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PostId        string                 `protobuf:"bytes,1,opt,name=post_id,json=postId,proto3" json:"post_id,omitempty"`
+	AuthorId      string                 `protobuf:"bytes,2,opt,name=author_id,json=authorId,proto3" json:"author_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MovePostToArchivedRequest) Reset() {
+	*x = MovePostToArchivedRequest{}
+	mi := &file_proto_post_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MovePostToArchivedRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MovePostToArchivedRequest) ProtoMessage() {}
+
+func (x *MovePostToArchivedRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_post_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MovePostToArchivedRequest.ProtoReflect.Descriptor instead.
+func (*MovePostToArchivedRequest) Descriptor() ([]byte, []int) {
+	return file_proto_post_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *MovePostToArchivedRequest) GetPostId() string {
+	if x != nil {
+		return x.PostId
+	}
+	return ""
+}
+
+func (x *MovePostToArchivedRequest) GetAuthorId() string {
+	if x != nil {
+		return x.AuthorId
+	}
+	return ""
+}
+
+type MovePostToArchivedResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MovePostToArchivedResponse) Reset() {
+	*x = MovePostToArchivedResponse{}
+	mi := &file_proto_post_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MovePostToArchivedResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MovePostToArchivedResponse) ProtoMessage() {}
+
+func (x *MovePostToArchivedResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_post_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MovePostToArchivedResponse.ProtoReflect.Descriptor instead.
+func (*MovePostToArchivedResponse) Descriptor() ([]byte, []int) {
+	return file_proto_post_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *MovePostToArchivedResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+type AllArchivedPostRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AuthorId      string                 `protobuf:"bytes,1,opt,name=author_id,json=authorId,proto3" json:"author_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AllArchivedPostRequest) Reset() {
+	*x = AllArchivedPostRequest{}
+	mi := &file_proto_post_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AllArchivedPostRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AllArchivedPostRequest) ProtoMessage() {}
+
+func (x *AllArchivedPostRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_post_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AllArchivedPostRequest.ProtoReflect.Descriptor instead.
+func (*AllArchivedPostRequest) Descriptor() ([]byte, []int) {
+	return file_proto_post_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *AllArchivedPostRequest) GetAuthorId() string {
+	if x != nil {
+		return x.AuthorId
+	}
+	return ""
+}
+
+type AllArchivedPostResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Post          []*Post                `protobuf:"bytes,1,rep,name=post,proto3" json:"post,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AllArchivedPostResponse) Reset() {
+	*x = AllArchivedPostResponse{}
+	mi := &file_proto_post_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AllArchivedPostResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AllArchivedPostResponse) ProtoMessage() {}
+
+func (x *AllArchivedPostResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_post_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AllArchivedPostResponse.ProtoReflect.Descriptor instead.
+func (*AllArchivedPostResponse) Descriptor() ([]byte, []int) {
+	return file_proto_post_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *AllArchivedPostResponse) GetPost() []*Post {
+	if x != nil {
+		return x.Post
+	}
+	return nil
+}
+
+type AllPostRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AuthorId      string                 `protobuf:"bytes,1,opt,name=author_id,json=authorId,proto3" json:"author_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AllPostRequest) Reset() {
+	*x = AllPostRequest{}
+	mi := &file_proto_post_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AllPostRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AllPostRequest) ProtoMessage() {}
+
+func (x *AllPostRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_post_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AllPostRequest.ProtoReflect.Descriptor instead.
+func (*AllPostRequest) Descriptor() ([]byte, []int) {
+	return file_proto_post_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *AllPostRequest) GetAuthorId() string {
+	if x != nil {
+		return x.AuthorId
+	}
+	return ""
+}
+
+type AllPostResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Post          []*Post                `protobuf:"bytes,1,rep,name=post,proto3" json:"post,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AllPostResponse) Reset() {
+	*x = AllPostResponse{}
+	mi := &file_proto_post_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AllPostResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AllPostResponse) ProtoMessage() {}
+
+func (x *AllPostResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_post_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AllPostResponse.ProtoReflect.Descriptor instead.
+func (*AllPostResponse) Descriptor() ([]byte, []int) {
+	return file_proto_post_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *AllPostResponse) GetPost() []*Post {
+	if x != nil {
+		return x.Post
+	}
+	return nil
+}
+
 var File_proto_post_proto protoreflect.FileDescriptor
 
 const file_proto_post_proto_rawDesc = "" +
@@ -577,7 +937,27 @@ const file_proto_post_proto_rawDesc = "" +
 	"_is_public\"4\n" +
 	"\x12UpdatePostResponse\x12\x1e\n" +
 	"\x04post\x18\x01 \x01(\v2\n" +
-	".post.PostR\x04post2\x8e\x02\n" +
+	".post.PostR\x04post\")\n" +
+	"\x17ArchivedPostByIdRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\":\n" +
+	"\x18ArchivedPostByIdResponse\x12\x1e\n" +
+	"\x04post\x18\x01 \x01(\v2\n" +
+	".post.PostR\x04post\"Q\n" +
+	"\x19MovePostToArchivedRequest\x12\x17\n" +
+	"\apost_id\x18\x01 \x01(\tR\x06postId\x12\x1b\n" +
+	"\tauthor_id\x18\x02 \x01(\tR\bauthorId\"6\n" +
+	"\x1aMovePostToArchivedResponse\x12\x18\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\"5\n" +
+	"\x16AllArchivedPostRequest\x12\x1b\n" +
+	"\tauthor_id\x18\x01 \x01(\tR\bauthorId\"9\n" +
+	"\x17AllArchivedPostResponse\x12\x1e\n" +
+	"\x04post\x18\x01 \x03(\v2\n" +
+	".post.PostR\x04post\"-\n" +
+	"\x0eAllPostRequest\x12\x1b\n" +
+	"\tauthor_id\x18\x01 \x01(\tR\bauthorId\"1\n" +
+	"\x0fAllPostResponse\x12\x1e\n" +
+	"\x04post\x18\x01 \x03(\v2\n" +
+	".post.PostR\x04post2\xcd\x04\n" +
 	"\vPostService\x12?\n" +
 	"\n" +
 	"CreatePost\x12\x17.post.CreatePostRequest\x1a\x18.post.CreatePostResponse\x12<\n" +
@@ -585,7 +965,11 @@ const file_proto_post_proto_rawDesc = "" +
 	"\n" +
 	"DeletePost\x12\x17.post.DeletePostRequest\x1a\x18.post.DeletePostResponse\x12?\n" +
 	"\n" +
-	"UpdatePost\x12\x17.post.UpdatePostRequest\x1a\x18.post.UpdatePostResponseB*Z(github.com/chetansachan/socialflow/protob\x06proto3"
+	"UpdatePost\x12\x17.post.UpdatePostRequest\x1a\x18.post.UpdatePostResponse\x12W\n" +
+	"\x12MovePostToArchived\x12\x1f.post.MovePostToArchivedRequest\x1a .post.MovePostToArchivedResponse\x12T\n" +
+	"\x13GetArchivedPostById\x12\x1d.post.ArchivedPostByIdRequest\x1a\x1e.post.ArchivedPostByIdResponse\x12R\n" +
+	"\x13GetAllArchivedPosts\x12\x1c.post.AllArchivedPostRequest\x1a\x1d.post.AllArchivedPostResponse\x12:\n" +
+	"\vGetAllPosts\x12\x14.post.AllPostRequest\x1a\x15.post.AllPostResponseB*Z(github.com/chetansachan/socialflow/protob\x06proto3"
 
 var (
 	file_proto_post_proto_rawDescOnce sync.Once
@@ -599,35 +983,54 @@ func file_proto_post_proto_rawDescGZIP() []byte {
 	return file_proto_post_proto_rawDescData
 }
 
-var file_proto_post_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_proto_post_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_proto_post_proto_goTypes = []any{
-	(*Post)(nil),               // 0: post.Post
-	(*PostByIdRequest)(nil),    // 1: post.PostByIdRequest
-	(*PostByIdResponse)(nil),   // 2: post.PostByIdResponse
-	(*DeletePostRequest)(nil),  // 3: post.DeletePostRequest
-	(*DeletePostResponse)(nil), // 4: post.DeletePostResponse
-	(*CreatePostRequest)(nil),  // 5: post.CreatePostRequest
-	(*CreatePostResponse)(nil), // 6: post.CreatePostResponse
-	(*UpdatePostRequest)(nil),  // 7: post.UpdatePostRequest
-	(*UpdatePostResponse)(nil), // 8: post.UpdatePostResponse
+	(*Post)(nil),                       // 0: post.Post
+	(*PostByIdRequest)(nil),            // 1: post.PostByIdRequest
+	(*PostByIdResponse)(nil),           // 2: post.PostByIdResponse
+	(*DeletePostRequest)(nil),          // 3: post.DeletePostRequest
+	(*DeletePostResponse)(nil),         // 4: post.DeletePostResponse
+	(*CreatePostRequest)(nil),          // 5: post.CreatePostRequest
+	(*CreatePostResponse)(nil),         // 6: post.CreatePostResponse
+	(*UpdatePostRequest)(nil),          // 7: post.UpdatePostRequest
+	(*UpdatePostResponse)(nil),         // 8: post.UpdatePostResponse
+	(*ArchivedPostByIdRequest)(nil),    // 9: post.ArchivedPostByIdRequest
+	(*ArchivedPostByIdResponse)(nil),   // 10: post.ArchivedPostByIdResponse
+	(*MovePostToArchivedRequest)(nil),  // 11: post.MovePostToArchivedRequest
+	(*MovePostToArchivedResponse)(nil), // 12: post.MovePostToArchivedResponse
+	(*AllArchivedPostRequest)(nil),     // 13: post.AllArchivedPostRequest
+	(*AllArchivedPostResponse)(nil),    // 14: post.AllArchivedPostResponse
+	(*AllPostRequest)(nil),             // 15: post.AllPostRequest
+	(*AllPostResponse)(nil),            // 16: post.AllPostResponse
 }
 var file_proto_post_proto_depIdxs = []int32{
-	0, // 0: post.PostByIdResponse.post:type_name -> post.Post
-	0, // 1: post.CreatePostResponse.post:type_name -> post.Post
-	0, // 2: post.UpdatePostResponse.post:type_name -> post.Post
-	5, // 3: post.PostService.CreatePost:input_type -> post.CreatePostRequest
-	1, // 4: post.PostService.GetPostById:input_type -> post.PostByIdRequest
-	3, // 5: post.PostService.DeletePost:input_type -> post.DeletePostRequest
-	7, // 6: post.PostService.UpdatePost:input_type -> post.UpdatePostRequest
-	6, // 7: post.PostService.CreatePost:output_type -> post.CreatePostResponse
-	2, // 8: post.PostService.GetPostById:output_type -> post.PostByIdResponse
-	4, // 9: post.PostService.DeletePost:output_type -> post.DeletePostResponse
-	8, // 10: post.PostService.UpdatePost:output_type -> post.UpdatePostResponse
-	7, // [7:11] is the sub-list for method output_type
-	3, // [3:7] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	0,  // 0: post.PostByIdResponse.post:type_name -> post.Post
+	0,  // 1: post.CreatePostResponse.post:type_name -> post.Post
+	0,  // 2: post.UpdatePostResponse.post:type_name -> post.Post
+	0,  // 3: post.ArchivedPostByIdResponse.post:type_name -> post.Post
+	0,  // 4: post.AllArchivedPostResponse.post:type_name -> post.Post
+	0,  // 5: post.AllPostResponse.post:type_name -> post.Post
+	5,  // 6: post.PostService.CreatePost:input_type -> post.CreatePostRequest
+	1,  // 7: post.PostService.GetPostById:input_type -> post.PostByIdRequest
+	3,  // 8: post.PostService.DeletePost:input_type -> post.DeletePostRequest
+	7,  // 9: post.PostService.UpdatePost:input_type -> post.UpdatePostRequest
+	11, // 10: post.PostService.MovePostToArchived:input_type -> post.MovePostToArchivedRequest
+	9,  // 11: post.PostService.GetArchivedPostById:input_type -> post.ArchivedPostByIdRequest
+	13, // 12: post.PostService.GetAllArchivedPosts:input_type -> post.AllArchivedPostRequest
+	15, // 13: post.PostService.GetAllPosts:input_type -> post.AllPostRequest
+	6,  // 14: post.PostService.CreatePost:output_type -> post.CreatePostResponse
+	2,  // 15: post.PostService.GetPostById:output_type -> post.PostByIdResponse
+	4,  // 16: post.PostService.DeletePost:output_type -> post.DeletePostResponse
+	8,  // 17: post.PostService.UpdatePost:output_type -> post.UpdatePostResponse
+	12, // 18: post.PostService.MovePostToArchived:output_type -> post.MovePostToArchivedResponse
+	10, // 19: post.PostService.GetArchivedPostById:output_type -> post.ArchivedPostByIdResponse
+	14, // 20: post.PostService.GetAllArchivedPosts:output_type -> post.AllArchivedPostResponse
+	16, // 21: post.PostService.GetAllPosts:output_type -> post.AllPostResponse
+	14, // [14:22] is the sub-list for method output_type
+	6,  // [6:14] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_proto_post_proto_init() }
@@ -643,7 +1046,7 @@ func file_proto_post_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_post_proto_rawDesc), len(file_proto_post_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
