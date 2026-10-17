@@ -12,9 +12,13 @@ import (
 
 type PostService interface {
 	GetPostById(ctx context.Context, id string) (*models.Post, error)
+	GetAllPost(ctx context.Context, authorId string) ([]models.Post, error)
 	CreatePost(ctx context.Context, input models.CreatePostInput) (*models.Post, error)
 	UpdatePost(ctx context.Context, input models.UpdatePostInput, postId string, authorId string) (*models.Post, error)
-	DeletePost(ctx context.Context, postid string, authorid string) (*models.DeletePostResponse, error)
+	DeletePost(ctx context.Context, postid string, authorid string) (*models.Response, error)
+	MovePostToArchive(ctx context.Context, postid string, authorid string) (*models.Response, error)
+	GetAllArchivedPost(ctx context.Context, authorId string) ([]models.Post, error)
+	GetArchivedPostById(ctx context.Context, id string) (*models.Post, error)
 }
 
 type postService struct {
@@ -40,6 +44,23 @@ func (s *postService) GetPostById(ctx context.Context, id string) (*models.Post,
 	}
 
 	return post, nil
+}
+
+func (s *postService) GetAllPost(ctx context.Context, authorId string) ([]models.Post, error) {
+	authorid, err := uuid.Parse(authorId)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to parse the id: %v", err)
+	}
+
+	posts, err := s.postRepo.GetAllPost(ctx, authorid)
+	if err != nil {
+		if errors.Is(err, models.ErrPostNotFound) {
+			return nil, models.ErrPostNotFound
+		}
+		return nil, fmt.Errorf("Internal Server Error: %w", err)
+	}
+
+	return posts, nil
 }
 
 func (s *postService) CreatePost(ctx context.Context, input models.CreatePostInput) (*models.Post, error) {
@@ -119,7 +140,7 @@ func (s *postService) UpdatePost(ctx context.Context, input models.UpdatePostInp
 	return updatedPost, nil
 }
 
-func (s *postService) DeletePost(ctx context.Context, postid string, authorid string) (*models.DeletePostResponse, error) {
+func (s *postService) DeletePost(ctx context.Context, postid string, authorid string) (*models.Response, error) {
 	postId, err := uuid.Parse(postid)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to parse the id: %v", err)
@@ -134,7 +155,61 @@ func (s *postService) DeletePost(ctx context.Context, postid string, authorid st
 		return nil, fmt.Errorf("Error Deleting Post: %v", err)
 	}
 
-	return &models.DeletePostResponse{
+	return &models.Response{
 		Message: "Post Deleted Successfully",
 	}, nil
+}
+
+func (s *postService) MovePostToArchive(ctx context.Context, postid string, authorid string) (*models.Response, error) {
+	postId, err := uuid.Parse(postid)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to parse the id: %v", err)
+	}
+
+	authorId, err := uuid.Parse(authorid)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to parse the id: %v", err)
+	}
+
+	if err := s.postRepo.MovePostToArchive(ctx, postId, authorId); err != nil {
+		return nil, fmt.Errorf("Error Moving Post to archive: %v", err)
+	}
+
+	return &models.Response{
+		Message: "Post Moved to archive Successfully",
+	}, nil
+}
+
+func (s *postService) GetAllArchivedPost(ctx context.Context, authorId string) ([]models.Post, error) {
+	authorid, err := uuid.Parse(authorId)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to parse the id: %v", err)
+	}
+
+	posts, err := s.postRepo.GetAllArchivedPost(ctx, authorid)
+	if err != nil {
+		if errors.Is(err, models.ErrPostNotFound) {
+			return nil, models.ErrPostNotFound
+		}
+		return nil, fmt.Errorf("Internal Server Error: %w", err)
+	}
+
+	return posts, nil
+}
+
+func (s *postService) GetArchivedPostById(ctx context.Context, id string) (*models.Post, error) {
+	postId, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to parse the id: %v", err)
+	}
+
+	post, err := s.postRepo.GetArchivedPostById(ctx, postId)
+	if err != nil {
+		if errors.Is(err, models.ErrPostNotFound) {
+			return nil, models.ErrPostNotFound
+		}
+		return nil, fmt.Errorf("Internal Server Error: %w", err)
+	}
+
+	return post, nil
 }
