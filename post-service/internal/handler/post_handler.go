@@ -32,7 +32,7 @@ func formatTimestamp(t *time.Time) string {
 func (h *PostHandler) CreatePost(ctx context.Context, req *postpb.CreatePostRequest) (*postpb.CreatePostResponse, error) {
 	authorId, err := uuid.Parse(req.AuthorId)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "invalid author ID format: %v", err)
+		return nil, status.Errorf(codes.InvalidArgument, "invalid author ID format: %v", err)
 	}
 
 	input := models.CreatePostInput{
@@ -45,10 +45,10 @@ func (h *PostHandler) CreatePost(ctx context.Context, req *postpb.CreatePostRequ
 	post, err := h.postService.CreatePost(ctx, input)
 	if err != nil {
 		if errors.Is(err, models.ErrInvalidInput) {
-			return nil, models.ErrInvalidInput
+			return nil, status.Error(codes.InvalidArgument, "Invalid Input")
 		}
 
-		return nil, status.Errorf(codes.Internal, "faield to create post: %v", err)
+		return nil, status.Errorf(codes.Internal, "failed to create post: %v", err)
 	}
 
 	return &postpb.CreatePostResponse{
@@ -69,7 +69,7 @@ func (h *PostHandler) GetPostById(ctx context.Context, input *postpb.PostByIdReq
 	res, err := h.postService.GetPostById(ctx, input.Id)
 	if err != nil {
 		if errors.Is(err, models.ErrPostNotFound) {
-			return &postpb.PostByIdResponse{}, models.ErrPostNotFound
+			return &postpb.PostByIdResponse{}, status.Error(codes.NotFound, "Post Not Found")
 		}
 		return nil, status.Errorf(codes.Internal, "failed to find post %v", err)
 	}
@@ -111,7 +111,7 @@ func (h *PostHandler) UpdatePost(ctx context.Context, req *postpb.UpdatePostRequ
 			return nil, models.ErrPostNotFound
 		}
 
-		return nil, status.Errorf(codes.Internal, "faield to update post: %v", err)
+		return nil, status.Errorf(codes.Internal, "failed to update post: %v", err)
 	}
 
 	return &postpb.UpdatePostResponse{

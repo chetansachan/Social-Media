@@ -14,14 +14,14 @@ type PostService interface {
 	GetPostById(ctx context.Context, id string) (*models.Post, error)
 	CreatePost(ctx context.Context, input models.CreatePostInput) (*models.Post, error)
 	UpdatePost(ctx context.Context, input models.UpdatePostInput, postId string, authorId string) (*models.Post, error)
-	DeletePost(ctx context.Context, postid string, authorid string) (*models.DeleteUserResponse, error)
+	DeletePost(ctx context.Context, postid string, authorid string) (*models.DeletePostResponse, error)
 }
 
 type postService struct {
-	postRepo repository.PostRepostiory
+	postRepo repository.PostRepository
 }
 
-func NewPostService(postRepo repository.PostRepostiory) PostService {
+func NewPostService(postRepo repository.PostRepository) PostService {
 	return &postService{postRepo: postRepo}
 }
 
@@ -119,22 +119,22 @@ func (s *postService) UpdatePost(ctx context.Context, input models.UpdatePostInp
 	return updatedPost, nil
 }
 
-func (s *postService) DeletePost(ctx context.Context, postid string, authorid string) (*models.DeleteUserResponse, error) {
+func (s *postService) DeletePost(ctx context.Context, postid string, authorid string) (*models.DeletePostResponse, error) {
 	postId, err := uuid.Parse(postid)
 	if err != nil {
-		return &models.DeleteUserResponse{}, fmt.Errorf("Unable to parse the id: %v", err)
+		return &models.DeletePostResponse{}, fmt.Errorf("Unable to parse the id: %v", err)
 	}
 
 	authorId, err := uuid.Parse(authorid)
 	if err != nil {
-		return &models.DeleteUserResponse{}, fmt.Errorf("Unable to parse the id: %v", err)
+		return &models.DeletePostResponse{}, fmt.Errorf("Unable to parse the id: %v", err)
 	}
 
 	if err := s.postRepo.DeletePost(ctx, postId, authorId); err != nil {
-		return &models.DeleteUserResponse{}, fmt.Errorf("Error Deleting Post: %v", err)
+		return &models.DeletePostResponse{}, fmt.Errorf("Error Deleting Post: %v", err)
 	}
 
-	return &models.DeleteUserResponse{
+	return &models.DeletePostResponse{
 		Message: "Post Deleted Successfully",
 	}, nil
 }

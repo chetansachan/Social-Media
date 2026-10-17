@@ -11,22 +11,22 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type PostRepostiory interface {
+type PostRepository interface {
 	CreatePost(ctx context.Context, input *models.CreatePostInput) (*models.Post, error)
 	GetPostById(ctx context.Context, id uuid.UUID) (*models.Post, error)
 	UpdatePost(ctx context.Context, input *models.UpdatePostInput, postId uuid.UUID, authorId uuid.UUID) (*models.Post, error)
 	DeletePost(ctx context.Context, postId uuid.UUID, authorId uuid.UUID) error
 }
 
-type postRepostiory struct {
+type postRepository struct {
 	db *pgxpool.Pool
 }
 
-func NewPostRepository(db *pgxpool.Pool) PostRepostiory {
-	return &postRepostiory{db: db}
+func NewPostRepository(db *pgxpool.Pool) PostRepository {
+	return &postRepository{db: db}
 }
 
-func (r *postRepostiory) GetPostById(ctx context.Context, id uuid.UUID) (*models.Post, error) {
+func (r *postRepository) GetPostById(ctx context.Context, id uuid.UUID) (*models.Post, error) {
 	query := `
 		SELECT id, author_id, content, media_url, is_public, like_count, created_at, updated_at, deleted_at
 		FROM posts
@@ -53,7 +53,7 @@ func (r *postRepostiory) GetPostById(ctx context.Context, id uuid.UUID) (*models
 	return Post, nil
 }
 
-func (r *postRepostiory) CreatePost(ctx context.Context, input *models.CreatePostInput) (*models.Post, error) {
+func (r *postRepository) CreatePost(ctx context.Context, input *models.CreatePostInput) (*models.Post, error) {
 	query := `
 		INSERT INTO posts(author_id, content, media_url, is_public)
 		VALUES ($1, $2, $3, $4)
@@ -83,7 +83,7 @@ func (r *postRepostiory) CreatePost(ctx context.Context, input *models.CreatePos
 	return post, nil
 }
 
-func (r *postRepostiory) UpdatePost(ctx context.Context, input *models.UpdatePostInput, postId uuid.UUID, authorId uuid.UUID) (*models.Post, error) {
+func (r *postRepository) UpdatePost(ctx context.Context, input *models.UpdatePostInput, postId uuid.UUID, authorId uuid.UUID) (*models.Post, error) {
 	query := `
 		UPDATE posts
 		SET content = $1, is_public = $2, updated_at = CURRENT_TIMESTAMP
@@ -117,15 +117,18 @@ func (r *postRepostiory) UpdatePost(ctx context.Context, input *models.UpdatePos
 	return post, nil
 }
 
-func (r *postRepostiory) DeletePost(ctx context.Context, postId uuid.UUID, authorId uuid.UUID) error {
-	query :=  `
+func (r *postRepository) DeletePost(ctx context.Context, postId uuid.UUID, authorId uuid.UUID) error {
+	query := `
 		DELETE FROM posts
 		WHERE id = $1 AND author_id = $2
 	`
 
-	_, err := r.db.Exec(ctx, query, postId, authorId)
+	tag, err := r.db.Exec(ctx, query, postId, authorId)
 	if err != nil {
 		return fmt.Errorf("Error deleting Post: %v", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return models.ErrPostNotFound
 	}
 
 	return nil

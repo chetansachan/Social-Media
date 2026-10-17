@@ -30,6 +30,6 @@ type UpdatePostInput struct {
 	IsPublic *bool      `json:"is_public,omitempty"`
 }
 
-type DeleteUserResponse struct {
+type DeletePostResponse struct {
 	Message string `json:"message"`
 }
