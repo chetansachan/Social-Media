@@ -88,6 +88,35 @@ func (h *PostHandler) GetPostById(ctx context.Context, input *postpb.PostByIdReq
 	}, nil
 }
 
+func (h *PostHandler) GetAllPosts(ctx context.Context, input *postpb.AllPostRequest) (*postpb.AllPostResponse, error) {
+	posts, err := h.postService.GetAllPost(ctx, input.AuthorId)
+	if err != nil {
+		if errors.Is(err, models.ErrPostNotFound) {
+			return &postpb.AllPostResponse{}, status.Error(codes.NotFound, "Post Not Found")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to find post %v", err)
+	}
+
+	Posts := make([]*postpb.Post, 0, len(posts))
+
+	for _, res := range posts {
+		Posts = append(Posts, &postpb.Post{
+			Id:        res.ID.String(),
+			AuthorId:  res.AuthorID.String(),
+			Content:   res.Content,
+			MediaUrl:  res.MediaURL,
+			IsPublic:  res.IsPublic,
+			LikeCount: int32(res.LikeCount),
+			CreatedAt: res.CreatedAt.Format(time.RFC3339),
+			UpdatedAt: formatTimestamp(res.UpdatedAt),
+		})
+	}
+
+	return &postpb.AllPostResponse{
+		Post: Posts,
+	}, nil
+}
+
 func (h *PostHandler) DeletePost(ctx context.Context, input *postpb.DeletePostRequest) (*postpb.DeletePostResponse, error) {
 	_, err := h.postService.DeletePost(ctx, input.PostId, input.AuthorId)
 	if err != nil {
@@ -129,5 +158,72 @@ func (h *PostHandler) UpdatePost(ctx context.Context, req *postpb.UpdatePostRequ
 			CreatedAt: post.CreatedAt.Format(time.RFC3339),
 			UpdatedAt: formatTimestamp(post.UpdatedAt),
 		},
+	}, nil
+}
+
+func (h *PostHandler) GetAllArchivedPosts(ctx context.Context, input *postpb.AllArchivedPostRequest) (*postpb.AllArchivedPostResponse, error) {
+	posts, err := h.postService.GetAllArchivedPost(ctx, input.AuthorId)
+	if err != nil {
+		if errors.Is(err, models.ErrPostNotFound) {
+			return &postpb.AllArchivedPostResponse{}, status.Error(codes.NotFound, "Post Not Found")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to find post %v", err)
+	}
+
+	Posts := make([]*postpb.Post, 0, len(posts))
+
+	for _, res := range posts {
+		Posts = append(Posts, &postpb.Post{
+			Id:        res.ID.String(),
+			AuthorId:  res.AuthorID.String(),
+			Content:   res.Content,
+			MediaUrl:  res.MediaURL,
+			IsPublic:  res.IsPublic,
+			LikeCount: int32(res.LikeCount),
+			CreatedAt: res.CreatedAt.Format(time.RFC3339),
+			UpdatedAt: formatTimestamp(res.UpdatedAt),
+		})
+	}
+
+	return &postpb.AllArchivedPostResponse{
+		Post: Posts,
+	}, nil
+}
+
+func (h *PostHandler) GetArchivedPostById(ctx context.Context, input *postpb.ArchivedPostByIdRequest) (*postpb.ArchivedPostByIdResponse, error) {
+	post, err := h.postService.GetArchivedPostById(ctx, input.Id) 
+	if err != nil {
+		if errors.Is(err, models.ErrPostNotFound) {
+			return &postpb.ArchivedPostByIdResponse{}, status.Error(codes.NotFound, "Post Not Found")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to find post %v", err)
+	}
+
+	return &postpb.ArchivedPostByIdResponse{
+		Post: &postpb.Post{
+			Id:        post.ID.String(),
+			AuthorId:  post.AuthorID.String(),
+			Content:   post.Content,
+			MediaUrl:  post.MediaURL,
+			IsPublic:  post.IsPublic,
+			LikeCount: int32(post.LikeCount),
+			CreatedAt: post.CreatedAt.Format(time.RFC3339),
+			UpdatedAt: formatTimestamp(post.UpdatedAt),
+		},
+	}, nil
+}
+
+func (h *PostHandler) MovePostToArchived(ctx context.Context, input *postpb.MovePostToArchivedRequest) (*postpb.MovePostToArchivedResponse, error) {
+	_, err := h.postService.MovePostToArchive(ctx, input.PostId, input.AuthorId)
+	if err != nil {
+		if errors.Is(err, models.ErrPostNotFound) {
+			return nil, status.Error(codes.NotFound, "Post Not Found")
+		}
+
+		return &postpb.MovePostToArchivedResponse{}, status.Errorf(codes.Internal, "Error Moving Post to Archive: %v", err)
+	}
+
+	return &postpb.MovePostToArchivedResponse{
+		Message: "Post Moved to Archive Successfully",
 	}, nil
 }
