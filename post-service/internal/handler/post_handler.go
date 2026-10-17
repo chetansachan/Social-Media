@@ -91,6 +91,10 @@ func (h *PostHandler) GetPostById(ctx context.Context, input *postpb.PostByIdReq
 func (h *PostHandler) DeletePost(ctx context.Context, input *postpb.DeletePostRequest) (*postpb.DeletePostResponse, error) {
 	_, err := h.postService.DeletePost(ctx, input.PostId, input.AuthorId)
 	if err != nil {
+		if errors.Is(err, models.ErrPostNotFound) {
+			return nil, status.Error(codes.NotFound, "Post Not Found")
+		}
+
 		return &postpb.DeletePostResponse{}, status.Errorf(codes.Internal, "Error Deleting Post: %v", err)
 	}
 
@@ -108,7 +112,7 @@ func (h *PostHandler) UpdatePost(ctx context.Context, req *postpb.UpdatePostRequ
 	post, err := h.postService.UpdatePost(ctx, input, req.PostId, req.AuthorId)
 	if err != nil {
 		if errors.Is(err, models.ErrPostNotFound) {
-			return nil, models.ErrPostNotFound
+			return nil, status.Error(codes.NotFound, "Post Not Found")
 		}
 
 		return nil, status.Errorf(codes.Internal, "failed to update post: %v", err)

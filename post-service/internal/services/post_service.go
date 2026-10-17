@@ -28,15 +28,15 @@ func NewPostService(postRepo repository.PostRepository) PostService {
 func (s *postService) GetPostById(ctx context.Context, id string) (*models.Post, error) {
 	postId, err := uuid.Parse(id)
 	if err != nil {
-		return &models.Post{}, fmt.Errorf("Unable to parse the id: %v", err)
+		return nil, fmt.Errorf("Unable to parse the id: %v", err)
 	}
 
 	post, err := s.postRepo.GetPostById(ctx, postId)
 	if err != nil {
 		if errors.Is(err, models.ErrPostNotFound) {
-			return &models.Post{}, models.ErrPostNotFound
+			return nil, models.ErrPostNotFound
 		}
-		return &models.Post{}, fmt.Errorf("Internal Server Error: %v", err)
+		return nil, fmt.Errorf("Internal Server Error: %w", err)
 	}
 
 	return post, nil
@@ -44,15 +44,15 @@ func (s *postService) GetPostById(ctx context.Context, id string) (*models.Post,
 
 func (s *postService) CreatePost(ctx context.Context, input models.CreatePostInput) (*models.Post, error) {
 	if input.AuthorID == uuid.Nil {
-		return &models.Post{}, models.ErrInvalidInput
+		return nil, models.ErrInvalidInput
 	}
 
 	if input.Content == "" {
-		return &models.Post{}, models.ErrInvalidInput
+		return nil, models.ErrInvalidInput
 	}
 
 	if input.MediaURL == "" {
-		return &models.Post{}, models.ErrInvalidInput
+		return nil, models.ErrInvalidInput
 	}
 
 	isPublic := true
@@ -68,7 +68,7 @@ func (s *postService) CreatePost(ctx context.Context, input models.CreatePostInp
 	}
 	post, err := s.postRepo.CreatePost(ctx, postinput)
 	if err != nil {
-		return &models.Post{}, fmt.Errorf("Error Creating Post: %v", err)
+		return nil, fmt.Errorf("Error Creating Post: %v", err)
 	}
 
 	return post, nil
@@ -77,20 +77,20 @@ func (s *postService) CreatePost(ctx context.Context, input models.CreatePostInp
 func (s *postService) UpdatePost(ctx context.Context, input models.UpdatePostInput, postid string, authorid string) (*models.Post, error) {
 	postId, err := uuid.Parse(postid)
 	if err != nil {
-		return &models.Post{}, fmt.Errorf("Unable to parse the id: %v", err)
+		return nil, fmt.Errorf("Unable to parse the id: %v", err)
 	}
 
 	authorId, err := uuid.Parse(authorid)
 	if err != nil {
-		return &models.Post{}, fmt.Errorf("Unable to parse the id: %v", err)
+		return nil, fmt.Errorf("Unable to parse the id: %v", err)
 	}
 
 	post, err := s.postRepo.GetPostById(ctx, postId)
 	if err != nil {
 		if errors.Is(err, models.ErrPostNotFound) {
-			return &models.Post{}, fmt.Errorf("Post Not Found: %v", err)
+			return nil, fmt.Errorf("Post Not Found: %w", err)
 		}
-		return &models.Post{}, fmt.Errorf("Internal Server Error: %v", err)
+		return nil, fmt.Errorf("Internal Server Error: %w", err)
 	}
 
 	content := post.Content
@@ -111,9 +111,9 @@ func (s *postService) UpdatePost(ctx context.Context, input models.UpdatePostInp
 	updatedPost, err := s.postRepo.UpdatePost(ctx, &updateinput, postId, authorId)
 	if err != nil {
 		if errors.Is(err, models.ErrPostNotFound) {
-			return &models.Post{}, models.ErrPostNotFound
+			return nil, models.ErrPostNotFound
 		}
-		return &models.Post{}, fmt.Errorf("Internal Server Error: %v", err)
+		return nil, fmt.Errorf("Internal Server Error: %v", err)
 	}
 
 	return updatedPost, nil
@@ -122,16 +122,16 @@ func (s *postService) UpdatePost(ctx context.Context, input models.UpdatePostInp
 func (s *postService) DeletePost(ctx context.Context, postid string, authorid string) (*models.DeletePostResponse, error) {
 	postId, err := uuid.Parse(postid)
 	if err != nil {
-		return &models.DeletePostResponse{}, fmt.Errorf("Unable to parse the id: %v", err)
+		return nil, fmt.Errorf("Unable to parse the id: %v", err)
 	}
 
 	authorId, err := uuid.Parse(authorid)
 	if err != nil {
-		return &models.DeletePostResponse{}, fmt.Errorf("Unable to parse the id: %v", err)
+		return nil, fmt.Errorf("Unable to parse the id: %v", err)
 	}
 
 	if err := s.postRepo.DeletePost(ctx, postId, authorId); err != nil {
-		return &models.DeletePostResponse{}, fmt.Errorf("Error Deleting Post: %v", err)
+		return nil, fmt.Errorf("Error Deleting Post: %v", err)
 	}
 
 	return &models.DeletePostResponse{
