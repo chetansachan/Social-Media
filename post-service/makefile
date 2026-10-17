@@ -1,4 +1,4 @@
-DATABASE_URL=postgres://postgres:chetan156@localhost:5432/social_media?sslmode=disable
+DATABASE_URL=postgres://postgres:chetan156@localhost:5432/social_media?sslmode=disable&x-migrations-table=post_schema_migrations
 MIGRATIONS_PATH=migrations
 
 build-and-migrate:
