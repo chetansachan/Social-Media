@@ -131,7 +131,7 @@ func (r *mutationResolver) UpdatePost(ctx context.Context, input model.UpdatePos
 }
 
 // DeletePost is the resolver for the deletePost field.
-func (r *mutationResolver) DeletePost(ctx context.Context, input *model.DeletePostInput) (*model.DeletePostResponse, error) {
+func (r *mutationResolver) DeletePost(ctx context.Context, input model.DeletePostInput) (*model.DeletePostResponse, error) {
 	_, err := r.PostClient.DeletePost(ctx, &userpb.DeletePostRequest{
 		PostId:   input.ID,
 		AuthorId: input.AuthorID,
@@ -142,6 +142,21 @@ func (r *mutationResolver) DeletePost(ctx context.Context, input *model.DeletePo
 
 	return &model.DeletePostResponse{
 		Message: "Post Deleted Successfully",
+	}, nil
+}
+
+// MoveToArchive is the resolver for the moveToArchive field.
+func (r *mutationResolver) MoveToArchive(ctx context.Context, input model.MovePostToArchivedInput) (*model.MovePostToArchivedResponse, error) {
+	_, err := r.PostClient.MovePostToArchived(ctx, &userpb.MovePostToArchivedRequest{
+		PostId:   input.ID,
+		AuthorId: input.AuthorID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.MovePostToArchivedResponse{
+		Message: "Post Moved to Archive Successfully",
 	}, nil
 }
 
@@ -163,28 +178,6 @@ func (r *queryResolver) GetUserByID(ctx context.Context, id string) (*model.User
 		IsPublic:  u.GetIsPublic(),
 		CreatedAt: u.GetCreatedAt(),
 		UpdatedAt: u.GetUpdatedAt(),
-	}, nil
-}
-
-// GetPostByID is the resolver for the getPostById field.
-func (r *queryResolver) GetPostByID(ctx context.Context, id string) (*model.Post, error) {
-	res, err := r.PostClient.GetPostById(ctx, &userpb.PostByIdRequest{
-		Id: id,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	p := res.GetPost()
-	return &model.Post{
-		ID:        p.Id,
-		AuthorID:  p.AuthorId,
-		Content:   p.Content,
-		MediaURL:  p.MediaUrl,
-		IsPublic:  p.IsPublic,
-		LikeCount: p.LikeCount,
-		CreatedAt: p.CreatedAt,
-		UpdatedAt: p.UpdatedAt,
 	}, nil
 }
 
@@ -257,6 +250,102 @@ func (r *queryResolver) DeleteUser(ctx context.Context, id string) (*model.Delet
 	return &model.DeleteUserResponse{
 		Message: "User Deleted Successfully",
 	}, nil
+}
+
+// GetPostByID is the resolver for the getPostById field.
+func (r *queryResolver) GetPostByID(ctx context.Context, id string) (*model.Post, error) {
+	res, err := r.PostClient.GetPostById(ctx, &userpb.PostByIdRequest{
+		Id: id,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	p := res.GetPost()
+	return &model.Post{
+		ID:        p.Id,
+		AuthorID:  p.AuthorId,
+		Content:   p.Content,
+		MediaURL:  p.MediaUrl,
+		IsPublic:  p.IsPublic,
+		LikeCount: p.LikeCount,
+		CreatedAt: p.CreatedAt,
+		UpdatedAt: p.UpdatedAt,
+	}, nil
+}
+
+// GetArchivedPostByID is the resolver for the getArchivedPostById field.
+func (r *queryResolver) GetArchivedPostByID(ctx context.Context, id string) (*model.Post, error) {
+	res, err := r.PostClient.GetArchivedPostById(ctx, &userpb.ArchivedPostByIdRequest{
+		Id: id,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	p := res.GetPost()
+	return &model.Post{
+		ID:        p.Id,
+		AuthorID:  p.AuthorId,
+		Content:   p.Content,
+		MediaURL:  p.MediaUrl,
+		IsPublic:  p.IsPublic,
+		LikeCount: p.LikeCount,
+		CreatedAt: p.CreatedAt,
+		UpdatedAt: p.UpdatedAt,
+	}, nil
+}
+
+// GetAllPost is the resolver for the getAllPost field.
+func (r *queryResolver) GetAllPost(ctx context.Context, authorID string) ([]*model.Post, error) {
+	res, err := r.PostClient.GetAllPosts(ctx, &userpb.AllPostRequest{
+		AuthorId: authorID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	posts := make([]*model.Post, 0, len(res.GetPost()))
+	for _, p := range res.GetPost() {
+		posts = append(posts, &model.Post{
+			ID:        p.Id,
+			AuthorID:  p.AuthorId,
+			Content:   p.Content,
+			MediaURL:  p.MediaUrl,
+			IsPublic:  p.IsPublic,
+			LikeCount: p.LikeCount,
+			CreatedAt: p.CreatedAt,
+			UpdatedAt: p.UpdatedAt,
+		})
+	}
+
+	return posts, nil
+}
+
+// GetAllArchivedPost is the resolver for the getAllArchivedPost field.
+func (r *queryResolver) GetAllArchivedPost(ctx context.Context, authorID string) ([]*model.Post, error) {
+	res, err := r.PostClient.GetAllArchivedPosts(ctx, &userpb.AllArchivedPostRequest{
+		AuthorId: authorID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	posts := make([]*model.Post, 0, len(res.GetPost()))
+	for _, p := range res.GetPost() {
+		posts = append(posts, &model.Post{
+			ID:        p.Id,
+			AuthorID:  p.AuthorId,
+			Content:   p.Content,
+			MediaURL:  p.MediaUrl,
+			IsPublic:  p.IsPublic,
+			LikeCount: p.LikeCount,
+			CreatedAt: p.CreatedAt,
+			UpdatedAt: p.UpdatedAt,
+		})
+	}
+
+	return posts, nil
 }
 
 // Mutation returns MutationResolver implementation.

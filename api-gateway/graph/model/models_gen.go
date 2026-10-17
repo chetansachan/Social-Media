@@ -33,6 +33,15 @@ type LoginResponse struct {
 	Message      string `json:"message"`
 }
 
+type MovePostToArchivedInput struct {
+	ID       string `json:"id"`
+	AuthorID string `json:"authorId"`
+}
+
+type MovePostToArchivedResponse struct {
+	Message string `json:"message"`
+}
+
 type Mutation struct {
 }
 

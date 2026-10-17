@@ -21,12 +21,15 @@ type Post {
 
 type Query {
     getUserById(id: ID!): User
-    getPostById(id: ID!): Post
     getUserByEmail(email: String!): User
     getUserByUsername(username: String!): User
     tokenGenration(refressToken: String!): newTokens
     deleteUser(id: ID!): DeleteUserResponse
 
+    getPostById(id: ID!): Post!
+    getArchivedPostById(id: ID!): Post!
+    getAllPost(author_id: String!): [Post!]!
+    getAllArchivedPost(author_id: String!): [Post!]!
 }
 
 type Mutation {
@@ -35,7 +38,8 @@ type Mutation {
     UpdateUser(input: UpdateUserInput!): User!
     CreatePost(input: CreatePostInput!): Post!
     UpdatePost(input: UpdatePostInput!): Post!
-    deletePost(input: DeletePostInput): DeletePostResponse!
+    deletePost(input: DeletePostInput!): DeletePostResponse!
+    moveToArchive(input: MovePostToArchivedInput!): MovePostToArchivedResponse!
 }
 
 input RegisterUserInput {
@@ -95,5 +99,14 @@ input DeletePostInput {
 }
 
 type DeletePostResponse {
+    message: String!
+}
+
+input MovePostToArchivedInput {
+    id: String!
+    authorId: String!
+}
+
+type MovePostToArchivedResponse {
     message: String!
 }
