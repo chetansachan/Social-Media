@@ -112,3 +112,16 @@ func (s *followService) GetFollowing(ctx context.Context, userID string) ([]stri
 
 	return following, nil
 }
+
+func (s *followService) GetFollowCounts(ctx context.Context, userID string) (*models.FollowCounts, error) {
+	if userID == "" {
+		return nil, models.ErrInvalidID
+	}
+
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, fmt.Errorf("%w: invalid user id", models.ErrInvalidID)
+	}
+
+	return s.followRepo.GetFollowCounts(ctx, userUUID)
+}
