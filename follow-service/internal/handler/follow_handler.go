@@ -19,3 +19,27 @@ type FollowHandler struct {
 func NewFollowHandler(followService services.FollowService) *FollowHandler {
 	return &FollowHandler{followService: followService}
 }
+
+func (h *FollowHandler) FollowUser(ctx context.Context, req *followpb.FollowUserRequest) (*followpb.FollowUserResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	err := h.followService.FollowUser(ctx, req.FollowerId, req.FollowingId)
+	if err != nil {
+		if errors.Is(err, models.ErrCannotFollowSelf) {
+			return nil, status.Error(codes.InvalidArgument, "cannot follow yourself")
+		}
+		if errors.Is(err, models.ErrAlreadyFollowing) {
+			return nil, status.Error(codes.AlreadyExists, "already following this user")
+		}
+		if errors.Is(err, models.ErrInvalidID) {
+			return nil, status.Errorf(codes.InvalidArgument, "%v", err)
+		}
+		return nil, status.Errorf(codes.Internal, "failed to follow user: %v", err)
+	}
+
+	return &followpb.FollowUserResponse{
+		Message: "Successfully followed user",
+	}, nil
+}
