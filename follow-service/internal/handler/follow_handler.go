@@ -43,3 +43,24 @@ func (h *FollowHandler) FollowUser(ctx context.Context, req *followpb.FollowUser
 		Message: "Successfully followed user",
 	}, nil
 }
+
+func (h *FollowHandler) UnfollowUser(ctx context.Context, req *followpb.UnfollowUserRequest) (*followpb.UnfollowUserResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	err := h.followService.UnfollowUser(ctx, req.FollowerId, req.FollowingId)
+	if err != nil {
+		if errors.Is(err, models.ErrRelationNotFound) {
+			return nil, status.Error(codes.NotFound, "follow relationship not found")
+		}
+		if errors.Is(err, models.ErrInvalidID) {
+			return nil, status.Errorf(codes.InvalidArgument, "%v", err)
+		}
+		return nil, status.Errorf(codes.Internal, "failed to unfollow user: %v", err)
+	}
+
+	return &followpb.UnfollowUserResponse{
+		Message: "Successfully unfollowed user",
+	}, nil
+}
