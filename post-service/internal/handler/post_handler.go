@@ -248,16 +248,16 @@ func (h *PostHandler) LikePost(ctx context.Context, req *postpb.LikePostRequest)
 	}, nil
 }
 
-// func (h *PostHandler) GetAllPostLikers(ctx context.Context, req *postpb.GetAllPostLikersRequest) (*postpb.GetAllPostLikersResponse, error) {
-// 	likers, err := h.postService.GetAllPostLikers(ctx, req.GetPostId())
-// 	if err != nil {
-// 		return nil, status.Errorf(codes.Internal, "failed to get post likers: %v", err)
-// 	}
+func (h *PostHandler) GetAllPostLikers(ctx context.Context, req *postpb.GetAllPostLikersRequest) (*postpb.GetAllPostLikersResponse, error) {
+	likers, err := h.postService.GetAllPostLikers(ctx, req.GetPostId())
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get post likers: %v", err)
+	}
 
-// 	return &postpb.GetAllPostLikersResponse{
-// 		UserIds: likers,
-// 	}, nil
-// }
+	return &postpb.GetAllPostLikersResponse{
+		UserIds: likers,
+	}, nil
+}
 
 // func (h *PostHandler) GetAllLikedPosts(ctx context.Context, req *postpb.GetAllLikedPostsRequest) (*postpb.GetAllLikedPostsResponse, error) {
 // 	posts, err := h.postService.GetAllLikedPosts(ctx, req.GetUserId())
