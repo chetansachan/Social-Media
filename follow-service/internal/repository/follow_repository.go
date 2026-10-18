@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/chetansachan/socialflow/follow-service/internal/models"
 	"github.com/google/uuid"
@@ -24,4 +25,23 @@ type followRepository struct {
 
 func NewFollowRepository(db *pgxpool.Pool) FollowRepository {
 	return &followRepository{db: db}
+}
+
+func (r *followRepository) FollowUser(ctx context.Context, followerID, followingID uuid.UUID) error {
+	query := `
+		INSERT INTO follows (follower_id, following_id)
+		VALUES ($1, $2)
+		ON CONFLICT (follower_id, following_id) DO NOTHING
+	`
+
+	tag, err := r.db.Exec(ctx, query, followerID, followingID)
+	if err != nil {
+		return fmt.Errorf("failed to follow user: %w", err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		return models.ErrAlreadyFollowing
+	}
+
+	return nil
 }
