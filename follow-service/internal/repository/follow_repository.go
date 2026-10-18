@@ -123,3 +123,19 @@ func (r *followRepository) GetFollowing(ctx context.Context, userID uuid.UUID) (
 
 	return following, nil
 }
+
+func (r *followRepository) GetFollowCounts(ctx context.Context, userID uuid.UUID) (*models.FollowCounts, error) {
+	query := `
+		SELECT 
+			(SELECT COUNT(*) FROM follows WHERE following_id = $1) AS followers_count,
+			(SELECT COUNT(*) FROM follows WHERE follower_id = $1) AS following_count
+	`
+
+	counts := &models.FollowCounts{}
+	err := r.db.QueryRow(ctx, query, userID).Scan(&counts.FollowersCount, &counts.FollowingCount)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get follow counts: %w", err)
+	}
+
+	return counts, nil
+}
