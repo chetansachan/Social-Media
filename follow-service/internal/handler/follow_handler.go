@@ -137,3 +137,24 @@ func (h *FollowHandler) GetFollowStatus(ctx context.Context, req *followpb.GetFo
 		IsFollowing: isFollowing,
 	}, nil
 }
+
+func (h *FollowHandler) RemoveFollower(ctx context.Context, req *followpb.RemoveFollowerRequest) (*followpb.RemoveFollowerResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	err := h.followService.RemoveFollower(ctx, req.UserId, req.FollowerId)
+	if err != nil {
+		if errors.Is(err, models.ErrRelationNotFound) {
+			return nil, status.Error(codes.NotFound, "follow relationship not found")
+		}
+		if errors.Is(err, models.ErrInvalidID) {
+			return nil, status.Errorf(codes.InvalidArgument, "%v", err)
+		}
+		return nil, status.Errorf(codes.Internal, "failed to remove follower: %v", err)
+	}
+
+	return &followpb.RemoveFollowerResponse{
+		Message: "Successfully removed follower",
+	}, nil
+}
