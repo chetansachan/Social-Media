@@ -17,6 +17,24 @@ type DeleteUserResponse struct {
 	Message string `json:"message"`
 }
 
+type FollowCountsResponse struct {
+	FollowersCount int32 `json:"followersCount"`
+	FollowingCount int32 `json:"followingCount"`
+}
+
+type FollowStatusResponse struct {
+	IsFollowing bool `json:"isFollowing"`
+}
+
+type FollowUserInput struct {
+	FollowerID  string `json:"followerId"`
+	FollowingID string `json:"followingId"`
+}
+
+type FollowUserResponse struct {
+	Message string `json:"message"`
+}
+
 type LikePostInput struct {
 	PostID string `json:"postId"`
 	UserID string `json:"userId"`
@@ -65,6 +83,24 @@ type RegisterUserInput struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 	IsPublic *bool  `json:"isPublic,omitempty"`
+}
+
+type RemoveFollowerInput struct {
+	UserID     string `json:"userId"`
+	FollowerID string `json:"followerId"`
+}
+
+type RemoveFollowerResponse struct {
+	Message string `json:"message"`
+}
+
+type UnfollowUserInput struct {
+	FollowerID  string `json:"followerId"`
+	FollowingID string `json:"followingId"`
+}
+
+type UnfollowUserResponse struct {
+	Message string `json:"message"`
 }
 
 type UpdatePostInput struct {

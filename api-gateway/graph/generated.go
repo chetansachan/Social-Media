@@ -45,6 +45,19 @@ type ComplexityRoot struct {
 		Message func(childComplexity int) int
 	}
 
+	FollowCountsResponse struct {
+		FollowersCount func(childComplexity int) int
+		FollowingCount func(childComplexity int) int
+	}
+
+	FollowStatusResponse struct {
+		IsFollowing func(childComplexity int) int
+	}
+
+	FollowUserResponse struct {
+		Message func(childComplexity int) int
+	}
+
 	LikePostResponse struct {
 		IsLiked func(childComplexity int) int
 		Message func(childComplexity int) int
@@ -61,12 +74,15 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		CreatePost func(childComplexity int, input model.CreatePostInput) int
-		LikePost   func(childComplexity int, input model.LikePostInput) int
-		Login      func(childComplexity int, input model.LoginInput) int
-		Register   func(childComplexity int, input model.RegisterUserInput) int
-		UpdatePost func(childComplexity int, input model.UpdatePostInput) int
-		UpdateUser func(childComplexity int, input model.UpdateUserInput) int
+		CreatePost     func(childComplexity int, input model.CreatePostInput) int
+		FollowUser     func(childComplexity int, input model.FollowUserInput) int
+		LikePost       func(childComplexity int, input model.LikePostInput) int
+		Login          func(childComplexity int, input model.LoginInput) int
+		Register       func(childComplexity int, input model.RegisterUserInput) int
+		RemoveFollower func(childComplexity int, input model.RemoveFollowerInput) int
+		UnfollowUser   func(childComplexity int, input model.UnfollowUserInput) int
+		UpdatePost     func(childComplexity int, input model.UpdatePostInput) int
+		UpdateUser     func(childComplexity int, input model.UpdateUserInput) int
 	}
 
 	Post struct {
@@ -88,12 +104,24 @@ type ComplexityRoot struct {
 		GetAllPost          func(childComplexity int, authorID string) int
 		GetAllPostLikers    func(childComplexity int, postID string) int
 		GetArchivedPostByID func(childComplexity int, id string) int
+		GetFollowCounts     func(childComplexity int, userID string) int
+		GetFollowStatus     func(childComplexity int, followerID string, followingID string) int
+		GetFollowers        func(childComplexity int, userID string) int
+		GetFollowing        func(childComplexity int, userID string) int
 		GetPostByID         func(childComplexity int, id string) int
 		GetUserByEmail      func(childComplexity int, email string) int
 		GetUserByID         func(childComplexity int, id string) int
 		GetUserByUsername   func(childComplexity int, username string) int
 		MoveToArchive       func(childComplexity int, id string) int
 		TokenGenration      func(childComplexity int, refressToken string) int
+	}
+
+	RemoveFollowerResponse struct {
+		Message func(childComplexity int) int
+	}
+
+	UnfollowUserResponse struct {
+		Message func(childComplexity int) int
 	}
 
 	User struct {
@@ -123,6 +151,9 @@ type MutationResolver interface {
 	CreatePost(ctx context.Context, input model.CreatePostInput) (*model.Post, error)
 	UpdatePost(ctx context.Context, input model.UpdatePostInput) (*model.Post, error)
 	LikePost(ctx context.Context, input model.LikePostInput) (*model.LikePostResponse, error)
+	FollowUser(ctx context.Context, input model.FollowUserInput) (*model.FollowUserResponse, error)
+	UnfollowUser(ctx context.Context, input model.UnfollowUserInput) (*model.UnfollowUserResponse, error)
+	RemoveFollower(ctx context.Context, input model.RemoveFollowerInput) (*model.RemoveFollowerResponse, error)
 }
 type QueryResolver interface {
 	GetUserByID(ctx context.Context, id string) (*model.User, error)
@@ -138,6 +169,10 @@ type QueryResolver interface {
 	MoveToArchive(ctx context.Context, id string) (*model.MovePostToArchivedResponse, error)
 	GetAllPostLikers(ctx context.Context, postID string) ([]string, error)
 	GetAllLikedPosts(ctx context.Context, userID string) ([]*model.Post, error)
+	GetFollowers(ctx context.Context, userID string) ([]string, error)
+	GetFollowing(ctx context.Context, userID string) ([]string, error)
+	GetFollowCounts(ctx context.Context, userID string) (*model.FollowCountsResponse, error)
+	GetFollowStatus(ctx context.Context, followerID string, followingID string) (*model.FollowStatusResponse, error)
 }
 
 // endregion ************************** generated!.gotpl **************************
@@ -171,6 +206,33 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.DeleteUserResponse.Message(childComplexity), true
+
+	case "FollowCountsResponse.followersCount":
+		if e.ComplexityRoot.FollowCountsResponse.FollowersCount == nil {
+			break
+		}
+
+		return e.ComplexityRoot.FollowCountsResponse.FollowersCount(childComplexity), true
+	case "FollowCountsResponse.followingCount":
+		if e.ComplexityRoot.FollowCountsResponse.FollowingCount == nil {
+			break
+		}
+
+		return e.ComplexityRoot.FollowCountsResponse.FollowingCount(childComplexity), true
+
+	case "FollowStatusResponse.isFollowing":
+		if e.ComplexityRoot.FollowStatusResponse.IsFollowing == nil {
+			break
+		}
+
+		return e.ComplexityRoot.FollowStatusResponse.IsFollowing(childComplexity), true
+
+	case "FollowUserResponse.message":
+		if e.ComplexityRoot.FollowUserResponse.Message == nil {
+			break
+		}
+
+		return e.ComplexityRoot.FollowUserResponse.Message(childComplexity), true
 
 	case "LikePostResponse.isLiked":
 		if e.ComplexityRoot.LikePostResponse.IsLiked == nil {
@@ -222,6 +284,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.CreatePost(childComplexity, args["input"].(model.CreatePostInput)), true
+	case "Mutation.followUser":
+		if e.ComplexityRoot.Mutation.FollowUser == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_followUser_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.FollowUser(childComplexity, args["input"].(model.FollowUserInput)), true
 	case "Mutation.likePost":
 		if e.ComplexityRoot.Mutation.LikePost == nil {
 			break
@@ -255,6 +328,28 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.Register(childComplexity, args["input"].(model.RegisterUserInput)), true
+	case "Mutation.removeFollower":
+		if e.ComplexityRoot.Mutation.RemoveFollower == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_removeFollower_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.RemoveFollower(childComplexity, args["input"].(model.RemoveFollowerInput)), true
+	case "Mutation.unfollowUser":
+		if e.ComplexityRoot.Mutation.UnfollowUser == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_unfollowUser_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.UnfollowUser(childComplexity, args["input"].(model.UnfollowUserInput)), true
 	case "Mutation.UpdatePost":
 		if e.ComplexityRoot.Mutation.UpdatePost == nil {
 			break
@@ -404,6 +499,50 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.GetArchivedPostByID(childComplexity, args["id"].(string)), true
+	case "Query.getFollowCounts":
+		if e.ComplexityRoot.Query.GetFollowCounts == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getFollowCounts_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.GetFollowCounts(childComplexity, args["userId"].(string)), true
+	case "Query.getFollowStatus":
+		if e.ComplexityRoot.Query.GetFollowStatus == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getFollowStatus_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.GetFollowStatus(childComplexity, args["followerId"].(string), args["followingId"].(string)), true
+	case "Query.getFollowers":
+		if e.ComplexityRoot.Query.GetFollowers == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getFollowers_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.GetFollowers(childComplexity, args["userId"].(string)), true
+	case "Query.getFollowing":
+		if e.ComplexityRoot.Query.GetFollowing == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getFollowing_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.GetFollowing(childComplexity, args["userId"].(string)), true
 	case "Query.getPostById":
 		if e.ComplexityRoot.Query.GetPostByID == nil {
 			break
@@ -472,6 +611,20 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.Query.TokenGenration(childComplexity, args["refressToken"].(string)), true
 
+	case "RemoveFollowerResponse.message":
+		if e.ComplexityRoot.RemoveFollowerResponse.Message == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RemoveFollowerResponse.Message(childComplexity), true
+
+	case "UnfollowUserResponse.message":
+		if e.ComplexityRoot.UnfollowUserResponse.Message == nil {
+			break
+		}
+
+		return e.ComplexityRoot.UnfollowUserResponse.Message(childComplexity), true
+
 	case "User.createdAt":
 		if e.ComplexityRoot.User.CreatedAt == nil {
 			break
@@ -537,9 +690,12 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	ec := newExecutionContext(opCtx, e, make(chan graphql.DeferredResult))
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
 		ec.unmarshalInputCreatePostInput,
+		ec.unmarshalInputFollowUserInput,
 		ec.unmarshalInputLikePostInput,
 		ec.unmarshalInputLoginInput,
 		ec.unmarshalInputRegisterUserInput,
+		ec.unmarshalInputRemoveFollowerInput,
+		ec.unmarshalInputUnfollowUserInput,
 		ec.unmarshalInputUpdatePostInput,
 		ec.unmarshalInputUpdateUserInput,
 	)
@@ -652,6 +808,32 @@ func (ec *executionContext) childFields_DeleteUserResponse(ctx context.Context, 
 	return nil, fmt.Errorf("no field named %q was found under type DeleteUserResponse", field.Name)
 }
 
+func (ec *executionContext) childFields_FollowCountsResponse(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "followersCount":
+		return ec.fieldContext_FollowCountsResponse_followersCount(ctx, field)
+	case "followingCount":
+		return ec.fieldContext_FollowCountsResponse_followingCount(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type FollowCountsResponse", field.Name)
+}
+
+func (ec *executionContext) childFields_FollowStatusResponse(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "isFollowing":
+		return ec.fieldContext_FollowStatusResponse_isFollowing(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type FollowStatusResponse", field.Name)
+}
+
+func (ec *executionContext) childFields_FollowUserResponse(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "message":
+		return ec.fieldContext_FollowUserResponse_message(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type FollowUserResponse", field.Name)
+}
+
 func (ec *executionContext) childFields_LikePostResponse(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 	switch field.Name {
 	case "isLiked":
@@ -702,6 +884,22 @@ func (ec *executionContext) childFields_Post(ctx context.Context, field graphql.
 		return ec.fieldContext_Post_updatedAt(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type Post", field.Name)
+}
+
+func (ec *executionContext) childFields_RemoveFollowerResponse(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "message":
+		return ec.fieldContext_RemoveFollowerResponse_message(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type RemoveFollowerResponse", field.Name)
+}
+
+func (ec *executionContext) childFields_UnfollowUserResponse(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "message":
+		return ec.fieldContext_UnfollowUserResponse_message(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type UnfollowUserResponse", field.Name)
 }
 
 func (ec *executionContext) childFields_User(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
@@ -906,6 +1104,20 @@ func (ec *executionContext) field_Mutation_UpdateUser_args(ctx context.Context, 
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_followUser_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (model.FollowUserInput, error) {
+			return ec.unmarshalNFollowUserInput2githubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐFollowUserInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_likePost_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -926,6 +1138,34 @@ func (ec *executionContext) field_Mutation_register_args(ctx context.Context, ra
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
 		func(ctx context.Context, v any) (model.RegisterUserInput, error) {
 			return ec.unmarshalNRegisterUserInput2githubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐRegisterUserInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_removeFollower_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (model.RemoveFollowerInput, error) {
+			return ec.unmarshalNRemoveFollowerInput2githubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐRemoveFollowerInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_unfollowUser_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (model.UnfollowUserInput, error) {
+			return ec.unmarshalNUnfollowUserInput2githubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐUnfollowUserInput(ctx, v)
 		})
 	if err != nil {
 		return nil, err
@@ -1043,6 +1283,70 @@ func (ec *executionContext) field_Query_getArchivedPostById_args(ctx context.Con
 		return nil, err
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_getFollowCounts_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "userId",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNString2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["userId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_getFollowStatus_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "followerId",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNString2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["followerId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "followingId",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNString2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["followingId"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_getFollowers_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "userId",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNString2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["userId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_getFollowing_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "userId",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNString2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["userId"] = arg0
 	return args, nil
 }
 
@@ -1234,6 +1538,98 @@ func (ec *executionContext) _DeleteUserResponse_message(ctx context.Context, fie
 }
 func (ec *executionContext) fieldContext_DeleteUserResponse_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("DeleteUserResponse", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _FollowCountsResponse_followersCount(ctx context.Context, field graphql.CollectedField, obj *model.FollowCountsResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FollowCountsResponse_followersCount(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.FollowersCount, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int32) graphql.Marshaler {
+			return ec.marshalNInt2int32(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_FollowCountsResponse_followersCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("FollowCountsResponse", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _FollowCountsResponse_followingCount(ctx context.Context, field graphql.CollectedField, obj *model.FollowCountsResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FollowCountsResponse_followingCount(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.FollowingCount, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int32) graphql.Marshaler {
+			return ec.marshalNInt2int32(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_FollowCountsResponse_followingCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("FollowCountsResponse", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _FollowStatusResponse_isFollowing(ctx context.Context, field graphql.CollectedField, obj *model.FollowStatusResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FollowStatusResponse_isFollowing(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.IsFollowing, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_FollowStatusResponse_isFollowing(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("FollowStatusResponse", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _FollowUserResponse_message(ctx context.Context, field graphql.CollectedField, obj *model.FollowUserResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FollowUserResponse_message(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_FollowUserResponse_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("FollowUserResponse", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _LikePostResponse_isLiked(ctx context.Context, field graphql.CollectedField, obj *model.LikePostResponse) (ret graphql.Marshaler) {
@@ -1632,6 +2028,138 @@ func (ec *executionContext) fieldContext_Mutation_likePost(ctx context.Context, 
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_likePost_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_followUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_followUser(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().FollowUser(ctx, fc.Args["input"].(model.FollowUserInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.FollowUserResponse) graphql.Marshaler {
+			return ec.marshalNFollowUserResponse2ᚖgithubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐFollowUserResponse(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_followUser(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_FollowUserResponse(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_followUser_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_unfollowUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_unfollowUser(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().UnfollowUser(ctx, fc.Args["input"].(model.UnfollowUserInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.UnfollowUserResponse) graphql.Marshaler {
+			return ec.marshalNUnfollowUserResponse2ᚖgithubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐUnfollowUserResponse(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_unfollowUser(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_UnfollowUserResponse(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_unfollowUser_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_removeFollower(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_removeFollower(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().RemoveFollower(ctx, fc.Args["input"].(model.RemoveFollowerInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.RemoveFollowerResponse) graphql.Marshaler {
+			return ec.marshalNRemoveFollowerResponse2ᚖgithubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐRemoveFollowerResponse(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_removeFollower(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_RemoveFollowerResponse(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_removeFollower_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -2394,6 +2922,182 @@ func (ec *executionContext) fieldContext_Query_getAllLikedPosts(ctx context.Cont
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_getFollowers(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_getFollowers(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().GetFollowers(ctx, fc.Args["userId"].(string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []string) graphql.Marshaler {
+			return ec.marshalNString2ᚕstringᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_getFollowers(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getFollowers_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getFollowing(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_getFollowing(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().GetFollowing(ctx, fc.Args["userId"].(string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []string) graphql.Marshaler {
+			return ec.marshalNString2ᚕstringᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_getFollowing(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getFollowing_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getFollowCounts(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_getFollowCounts(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().GetFollowCounts(ctx, fc.Args["userId"].(string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.FollowCountsResponse) graphql.Marshaler {
+			return ec.marshalNFollowCountsResponse2ᚖgithubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐFollowCountsResponse(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_getFollowCounts(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_FollowCountsResponse(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getFollowCounts_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getFollowStatus(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_getFollowStatus(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().GetFollowStatus(ctx, fc.Args["followerId"].(string), fc.Args["followingId"].(string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.FollowStatusResponse) graphql.Marshaler {
+			return ec.marshalNFollowStatusResponse2ᚖgithubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐFollowStatusResponse(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_getFollowStatus(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_FollowStatusResponse(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getFollowStatus_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -2468,6 +3172,52 @@ func (ec *executionContext) fieldContext_Query___schema(_ context.Context, field
 		},
 	}
 	return fc, nil
+}
+
+func (ec *executionContext) _RemoveFollowerResponse_message(ctx context.Context, field graphql.CollectedField, obj *model.RemoveFollowerResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RemoveFollowerResponse_message(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_RemoveFollowerResponse_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("RemoveFollowerResponse", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _UnfollowUserResponse_message(ctx context.Context, field graphql.CollectedField, obj *model.UnfollowUserResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_UnfollowUserResponse_message(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_UnfollowUserResponse_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("UnfollowUserResponse", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
@@ -3787,6 +4537,43 @@ func (ec *executionContext) unmarshalInputCreatePostInput(ctx context.Context, o
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputFollowUserInput(ctx context.Context, obj any) (model.FollowUserInput, error) {
+	var it model.FollowUserInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"followerId", "followingId"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "followerId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("followerId"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.FollowerID = data
+		case "followingId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("followingId"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.FollowingID = data
+		}
+	}
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputLikePostInput(ctx context.Context, obj any) (model.LikePostInput, error) {
 	var it model.LikePostInput
 	if obj == nil {
@@ -3914,6 +4701,80 @@ func (ec *executionContext) unmarshalInputRegisterUserInput(ctx context.Context,
 				return it, err
 			}
 			it.IsPublic = data
+		}
+	}
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputRemoveFollowerInput(ctx context.Context, obj any) (model.RemoveFollowerInput, error) {
+	var it model.RemoveFollowerInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"userId", "followerId"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "userId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.UserID = data
+		case "followerId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("followerId"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.FollowerID = data
+		}
+	}
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUnfollowUserInput(ctx context.Context, obj any) (model.UnfollowUserInput, error) {
+	var it model.UnfollowUserInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"followerId", "followingId"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "followerId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("followerId"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.FollowerID = data
+		case "followingId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("followingId"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.FollowingID = data
 		}
 	}
 	return it, nil
@@ -4095,6 +4956,125 @@ func (ec *executionContext) _DeleteUserResponse(ctx context.Context, sel ast.Sel
 			out.Values[i] = graphql.MarshalString("DeleteUserResponse")
 		case "message":
 			out.Values[i] = ec._DeleteUserResponse_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var followCountsResponseImplementors = []string{"FollowCountsResponse"}
+
+func (ec *executionContext) _FollowCountsResponse(ctx context.Context, sel ast.SelectionSet, obj *model.FollowCountsResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, followCountsResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FollowCountsResponse")
+		case "followersCount":
+			out.Values[i] = ec._FollowCountsResponse_followersCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "followingCount":
+			out.Values[i] = ec._FollowCountsResponse_followingCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var followStatusResponseImplementors = []string{"FollowStatusResponse"}
+
+func (ec *executionContext) _FollowStatusResponse(ctx context.Context, sel ast.SelectionSet, obj *model.FollowStatusResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, followStatusResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FollowStatusResponse")
+		case "isFollowing":
+			out.Values[i] = ec._FollowStatusResponse_isFollowing(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var followUserResponseImplementors = []string{"FollowUserResponse"}
+
+func (ec *executionContext) _FollowUserResponse(ctx context.Context, sel ast.SelectionSet, obj *model.FollowUserResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, followUserResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FollowUserResponse")
+		case "message":
+			out.Values[i] = ec._FollowUserResponse_message(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -4306,6 +5286,27 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "likePost":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_likePost(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "followUser":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_followUser(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "unfollowUser":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_unfollowUser(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "removeFollower":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_removeFollower(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -4710,6 +5711,94 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getFollowers":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getFollowers(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getFollowing":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getFollowing(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getFollowCounts":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getFollowCounts(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getFollowStatus":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getFollowStatus(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "__type":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___type(ctx, field)
@@ -4723,6 +5812,82 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			})
 			if out.Values[i] == graphql.RequiredNull {
 				atomic.AddUint32(&out.Invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var removeFollowerResponseImplementors = []string{"RemoveFollowerResponse"}
+
+func (ec *executionContext) _RemoveFollowerResponse(ctx context.Context, sel ast.SelectionSet, obj *model.RemoveFollowerResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, removeFollowerResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RemoveFollowerResponse")
+		case "message":
+			out.Values[i] = ec._RemoveFollowerResponse_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var unfollowUserResponseImplementors = []string{"UnfollowUserResponse"}
+
+func (ec *executionContext) _UnfollowUserResponse(ctx context.Context, sel ast.SelectionSet, obj *model.UnfollowUserResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, unfollowUserResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("UnfollowUserResponse")
+		case "message":
+			out.Values[i] = ec._UnfollowUserResponse_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -5289,6 +6454,41 @@ func (ec *executionContext) marshalNDeleteUserResponse2ᚖgithubᚗcomᚋchetans
 	return ec._DeleteUserResponse(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNFollowCountsResponse2ᚖgithubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐFollowCountsResponse(ctx context.Context, sel ast.SelectionSet, v *model.FollowCountsResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._FollowCountsResponse(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNFollowStatusResponse2ᚖgithubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐFollowStatusResponse(ctx context.Context, sel ast.SelectionSet, v *model.FollowStatusResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._FollowStatusResponse(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNFollowUserInput2githubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐFollowUserInput(ctx context.Context, v any) (model.FollowUserInput, error) {
+	res, err := ec.unmarshalInputFollowUserInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNFollowUserResponse2ᚖgithubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐFollowUserResponse(ctx context.Context, sel ast.SelectionSet, v *model.FollowUserResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._FollowUserResponse(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNID2string(ctx context.Context, v any) (string, error) {
 	res, err := graphql.UnmarshalID(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -5392,6 +6592,21 @@ func (ec *executionContext) unmarshalNRegisterUserInput2githubᚗcomᚋchetansac
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNRemoveFollowerInput2githubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐRemoveFollowerInput(ctx context.Context, v any) (model.RemoveFollowerInput, error) {
+	res, err := ec.unmarshalInputRemoveFollowerInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNRemoveFollowerResponse2ᚖgithubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐRemoveFollowerResponse(ctx context.Context, sel ast.SelectionSet, v *model.RemoveFollowerResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._RemoveFollowerResponse(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v any) (string, error) {
 	res, err := graphql.UnmarshalString(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -5435,6 +6650,21 @@ func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel
 	}
 
 	return ret
+}
+
+func (ec *executionContext) unmarshalNUnfollowUserInput2githubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐUnfollowUserInput(ctx context.Context, v any) (model.UnfollowUserInput, error) {
+	res, err := ec.unmarshalInputUnfollowUserInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNUnfollowUserResponse2ᚖgithubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐUnfollowUserResponse(ctx context.Context, sel ast.SelectionSet, v *model.UnfollowUserResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._UnfollowUserResponse(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNUpdatePostInput2githubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐUpdatePostInput(ctx context.Context, v any) (model.UpdatePostInput, error) {
