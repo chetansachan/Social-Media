@@ -22,7 +22,7 @@ type PostRepository interface {
 	GetAllPost(ctx context.Context, authorId uuid.UUID) ([]models.Post, error)
 	LikePost(ctx context.Context, postId, userId uuid.UUID) (bool, error)
 	GetAllPostLikers(ctx context.Context, postId uuid.UUID) ([]string, error)
-	// GetAllLikedPosts(ctx context.Context, userId uuid.UUID) ([]models.Post, error)
+	GetAllLikedPosts(ctx context.Context, userId uuid.UUID) ([]models.Post, error)
 }
 
 type postRepository struct {
@@ -358,44 +358,44 @@ func (r *postRepository) GetAllPostLikers(ctx context.Context, postId uuid.UUID)
 	return likers, nil
 }
 
-// func (r *postRepository) GetAllLikedPosts(ctx context.Context, userId uuid.UUID) ([]models.Post, error) {
-// 	query := `
-// 		SELECT p.id, p.author_id, p.content, p.media_url, p.is_public, p.like_count, p.created_at, p.updated_at, p.deleted_at
-// 		FROM posts p
-// 		JOIN post_likes pl ON p.id = pl.post_id
-// 		WHERE pl.user_id = $1 AND pl.is_liked = TRUE AND p.deleted_at IS NULL
-// 		ORDER BY pl.liked_at DESC
-// 	`
+func (r *postRepository) GetAllLikedPosts(ctx context.Context, userId uuid.UUID) ([]models.Post, error) {
+	query := `
+		SELECT p.id, p.author_id, p.content, p.media_url, p.is_public, p.like_count, p.created_at, p.updated_at, p.deleted_at
+		FROM posts p
+		JOIN post_likes pl ON p.id = pl.post_id
+		WHERE pl.user_id = $1 AND pl.is_liked = TRUE AND p.deleted_at IS NULL
+		ORDER BY pl.liked_at DESC
+	`
 
-// 	rows, err := r.db.Query(ctx, query, userId)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to query liked posts: %w", err)
-// 	}
-// 	defer rows.Close()
+	rows, err := r.db.Query(ctx, query, userId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query liked posts: %w", err)
+	}
+	defer rows.Close()
 
-// 	posts := make([]models.Post, 0)
-// 	for rows.Next() {
-// 		var p models.Post
-// 		err := rows.Scan(
-// 			&p.ID,
-// 			&p.AuthorID,
-// 			&p.Content,
-// 			&p.MediaURL,
-// 			&p.IsPublic,
-// 			&p.LikeCount,
-// 			&p.CreatedAt,
-// 			&p.UpdatedAt,
-// 			&p.DeletedAt,
-// 		)
-// 		if err != nil {
-// 			return nil, fmt.Errorf("row scan failed: %w", err)
-// 		}
-// 		posts = append(posts, p)
-// 	}
+	posts := make([]models.Post, 0)
+	for rows.Next() {
+		var p models.Post
+		err := rows.Scan(
+			&p.ID,
+			&p.AuthorID,
+			&p.Content,
+			&p.MediaURL,
+			&p.IsPublic,
+			&p.LikeCount,
+			&p.CreatedAt,
+			&p.UpdatedAt,
+			&p.DeletedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("row scan failed: %w", err)
+		}
+		posts = append(posts, p)
+	}
 
-// 	if err := rows.Err(); err != nil {
-// 		return nil, fmt.Errorf("error during row iteration: %w", err)
-// 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error during row iteration: %w", err)
+	}
 
-// 	return posts, nil
-// }
+	return posts, nil
+}
