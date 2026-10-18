@@ -27,6 +27,9 @@ const (
 	PostService_GetArchivedPostById_FullMethodName = "/post.PostService/GetArchivedPostById"
 	PostService_GetAllArchivedPosts_FullMethodName = "/post.PostService/GetAllArchivedPosts"
 	PostService_GetAllPosts_FullMethodName         = "/post.PostService/GetAllPosts"
+	PostService_LikePost_FullMethodName            = "/post.PostService/LikePost"
+	PostService_GetAllPostLikers_FullMethodName    = "/post.PostService/GetAllPostLikers"
+	PostService_GetAllLikedPosts_FullMethodName    = "/post.PostService/GetAllLikedPosts"
 )
 
 // PostServiceClient is the client API for PostService service.
@@ -41,6 +44,9 @@ type PostServiceClient interface {
 	GetArchivedPostById(ctx context.Context, in *ArchivedPostByIdRequest, opts ...grpc.CallOption) (*ArchivedPostByIdResponse, error)
 	GetAllArchivedPosts(ctx context.Context, in *AllArchivedPostRequest, opts ...grpc.CallOption) (*AllArchivedPostResponse, error)
 	GetAllPosts(ctx context.Context, in *AllPostRequest, opts ...grpc.CallOption) (*AllPostResponse, error)
+	LikePost(ctx context.Context, in *LikePostRequest, opts ...grpc.CallOption) (*LikePostResponse, error)
+	GetAllPostLikers(ctx context.Context, in *GetAllPostLikersRequest, opts ...grpc.CallOption) (*GetAllPostLikersResponse, error)
+	GetAllLikedPosts(ctx context.Context, in *GetAllLikedPostsRequest, opts ...grpc.CallOption) (*GetAllLikedPostsResponse, error)
 }
 
 type postServiceClient struct {
@@ -131,6 +137,36 @@ func (c *postServiceClient) GetAllPosts(ctx context.Context, in *AllPostRequest,
 	return out, nil
 }
 
+func (c *postServiceClient) LikePost(ctx context.Context, in *LikePostRequest, opts ...grpc.CallOption) (*LikePostResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LikePostResponse)
+	err := c.cc.Invoke(ctx, PostService_LikePost_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *postServiceClient) GetAllPostLikers(ctx context.Context, in *GetAllPostLikersRequest, opts ...grpc.CallOption) (*GetAllPostLikersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAllPostLikersResponse)
+	err := c.cc.Invoke(ctx, PostService_GetAllPostLikers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *postServiceClient) GetAllLikedPosts(ctx context.Context, in *GetAllLikedPostsRequest, opts ...grpc.CallOption) (*GetAllLikedPostsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAllLikedPostsResponse)
+	err := c.cc.Invoke(ctx, PostService_GetAllLikedPosts_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PostServiceServer is the server API for PostService service.
 // All implementations must embed UnimplementedPostServiceServer
 // for forward compatibility.
@@ -143,6 +179,9 @@ type PostServiceServer interface {
 	GetArchivedPostById(context.Context, *ArchivedPostByIdRequest) (*ArchivedPostByIdResponse, error)
 	GetAllArchivedPosts(context.Context, *AllArchivedPostRequest) (*AllArchivedPostResponse, error)
 	GetAllPosts(context.Context, *AllPostRequest) (*AllPostResponse, error)
+	LikePost(context.Context, *LikePostRequest) (*LikePostResponse, error)
+	GetAllPostLikers(context.Context, *GetAllPostLikersRequest) (*GetAllPostLikersResponse, error)
+	GetAllLikedPosts(context.Context, *GetAllLikedPostsRequest) (*GetAllLikedPostsResponse, error)
 	mustEmbedUnimplementedPostServiceServer()
 }
 
@@ -176,6 +215,15 @@ func (UnimplementedPostServiceServer) GetAllArchivedPosts(context.Context, *AllA
 }
 func (UnimplementedPostServiceServer) GetAllPosts(context.Context, *AllPostRequest) (*AllPostResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAllPosts not implemented")
+}
+func (UnimplementedPostServiceServer) LikePost(context.Context, *LikePostRequest) (*LikePostResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method LikePost not implemented")
+}
+func (UnimplementedPostServiceServer) GetAllPostLikers(context.Context, *GetAllPostLikersRequest) (*GetAllPostLikersResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAllPostLikers not implemented")
+}
+func (UnimplementedPostServiceServer) GetAllLikedPosts(context.Context, *GetAllLikedPostsRequest) (*GetAllLikedPostsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAllLikedPosts not implemented")
 }
 func (UnimplementedPostServiceServer) mustEmbedUnimplementedPostServiceServer() {}
 func (UnimplementedPostServiceServer) testEmbeddedByValue()                     {}
@@ -342,6 +390,60 @@ func _PostService_GetAllPosts_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PostService_LikePost_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LikePostRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PostServiceServer).LikePost(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PostService_LikePost_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PostServiceServer).LikePost(ctx, req.(*LikePostRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PostService_GetAllPostLikers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAllPostLikersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PostServiceServer).GetAllPostLikers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PostService_GetAllPostLikers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PostServiceServer).GetAllPostLikers(ctx, req.(*GetAllPostLikersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PostService_GetAllLikedPosts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAllLikedPostsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PostServiceServer).GetAllLikedPosts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PostService_GetAllLikedPosts_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PostServiceServer).GetAllLikedPosts(ctx, req.(*GetAllLikedPostsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PostService_ServiceDesc is the grpc.ServiceDesc for PostService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -380,6 +482,18 @@ var PostService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetAllPosts",
 			Handler:    _PostService_GetAllPosts_Handler,
+		},
+		{
+			MethodName: "LikePost",
+			Handler:    _PostService_LikePost_Handler,
+		},
+		{
+			MethodName: "GetAllPostLikers",
+			Handler:    _PostService_GetAllPostLikers_Handler,
+		},
+		{
+			MethodName: "GetAllLikedPosts",
+			Handler:    _PostService_GetAllLikedPosts_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -13,6 +13,9 @@ service PostService{
     rpc GetArchivedPostById(ArchivedPostByIdRequest) returns (ArchivedPostByIdResponse);
     rpc GetAllArchivedPosts(AllArchivedPostRequest) returns (AllArchivedPostResponse);
     rpc GetAllPosts(AllPostRequest) returns (AllPostResponse);
+    rpc LikePost(LikePostRequest) returns (LikePostResponse);
+    rpc GetAllPostLikers(GetAllPostLikersRequest) returns (GetAllPostLikersResponse);
+    rpc GetAllLikedPosts(GetAllLikedPostsRequest) returns (GetAllLikedPostsResponse);
 }
 
 message Post {
@@ -93,5 +96,31 @@ message AllPostRequest {
 }
 
 message AllPostResponse {
+    repeated Post post = 1;
+}
+
+message LikePostRequest {
+    string post_id = 1;
+    string user_id = 2;
+}
+
+message LikePostResponse {
+    bool is_liked = 1;
+    string message = 2;
+}
+
+message GetAllPostLikersRequest {
+    string post_id = 1;
+}
+
+message GetAllPostLikersResponse {
+    repeated string user_ids = 1;
+}
+
+message GetAllLikedPostsRequest {
+    string user_id = 1;
+}
+
+message GetAllLikedPostsResponse {
     repeated Post post = 1;
 }

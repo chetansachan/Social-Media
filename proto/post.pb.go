@@ -873,6 +873,286 @@ func (x *AllPostResponse) GetPost() []*Post {
 	return nil
 }
 
+type LikePostRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PostId        string                 `protobuf:"bytes,1,opt,name=post_id,json=postId,proto3" json:"post_id,omitempty"`
+	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LikePostRequest) Reset() {
+	*x = LikePostRequest{}
+	mi := &file_proto_post_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LikePostRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LikePostRequest) ProtoMessage() {}
+
+func (x *LikePostRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_post_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LikePostRequest.ProtoReflect.Descriptor instead.
+func (*LikePostRequest) Descriptor() ([]byte, []int) {
+	return file_proto_post_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *LikePostRequest) GetPostId() string {
+	if x != nil {
+		return x.PostId
+	}
+	return ""
+}
+
+func (x *LikePostRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+type LikePostResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	IsLiked       bool                   `protobuf:"varint,1,opt,name=is_liked,json=isLiked,proto3" json:"is_liked,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LikePostResponse) Reset() {
+	*x = LikePostResponse{}
+	mi := &file_proto_post_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LikePostResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LikePostResponse) ProtoMessage() {}
+
+func (x *LikePostResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_post_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LikePostResponse.ProtoReflect.Descriptor instead.
+func (*LikePostResponse) Descriptor() ([]byte, []int) {
+	return file_proto_post_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *LikePostResponse) GetIsLiked() bool {
+	if x != nil {
+		return x.IsLiked
+	}
+	return false
+}
+
+func (x *LikePostResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+type GetAllPostLikersRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PostId        string                 `protobuf:"bytes,1,opt,name=post_id,json=postId,proto3" json:"post_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAllPostLikersRequest) Reset() {
+	*x = GetAllPostLikersRequest{}
+	mi := &file_proto_post_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAllPostLikersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAllPostLikersRequest) ProtoMessage() {}
+
+func (x *GetAllPostLikersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_post_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAllPostLikersRequest.ProtoReflect.Descriptor instead.
+func (*GetAllPostLikersRequest) Descriptor() ([]byte, []int) {
+	return file_proto_post_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *GetAllPostLikersRequest) GetPostId() string {
+	if x != nil {
+		return x.PostId
+	}
+	return ""
+}
+
+type GetAllPostLikersResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserIds       []string               `protobuf:"bytes,1,rep,name=user_ids,json=userIds,proto3" json:"user_ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAllPostLikersResponse) Reset() {
+	*x = GetAllPostLikersResponse{}
+	mi := &file_proto_post_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAllPostLikersResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAllPostLikersResponse) ProtoMessage() {}
+
+func (x *GetAllPostLikersResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_post_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAllPostLikersResponse.ProtoReflect.Descriptor instead.
+func (*GetAllPostLikersResponse) Descriptor() ([]byte, []int) {
+	return file_proto_post_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *GetAllPostLikersResponse) GetUserIds() []string {
+	if x != nil {
+		return x.UserIds
+	}
+	return nil
+}
+
+type GetAllLikedPostsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAllLikedPostsRequest) Reset() {
+	*x = GetAllLikedPostsRequest{}
+	mi := &file_proto_post_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAllLikedPostsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAllLikedPostsRequest) ProtoMessage() {}
+
+func (x *GetAllLikedPostsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_post_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAllLikedPostsRequest.ProtoReflect.Descriptor instead.
+func (*GetAllLikedPostsRequest) Descriptor() ([]byte, []int) {
+	return file_proto_post_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *GetAllLikedPostsRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+type GetAllLikedPostsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Post          []*Post                `protobuf:"bytes,1,rep,name=post,proto3" json:"post,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAllLikedPostsResponse) Reset() {
+	*x = GetAllLikedPostsResponse{}
+	mi := &file_proto_post_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAllLikedPostsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAllLikedPostsResponse) ProtoMessage() {}
+
+func (x *GetAllLikedPostsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_post_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAllLikedPostsResponse.ProtoReflect.Descriptor instead.
+func (*GetAllLikedPostsResponse) Descriptor() ([]byte, []int) {
+	return file_proto_post_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *GetAllLikedPostsResponse) GetPost() []*Post {
+	if x != nil {
+		return x.Post
+	}
+	return nil
+}
+
 var File_proto_post_proto protoreflect.FileDescriptor
 
 const file_proto_post_proto_rawDesc = "" +
@@ -939,7 +1219,22 @@ const file_proto_post_proto_rawDesc = "" +
 	"\tauthor_id\x18\x01 \x01(\tR\bauthorId\"1\n" +
 	"\x0fAllPostResponse\x12\x1e\n" +
 	"\x04post\x18\x01 \x03(\v2\n" +
-	".post.PostR\x04post2\xcd\x04\n" +
+	".post.PostR\x04post\"C\n" +
+	"\x0fLikePostRequest\x12\x17\n" +
+	"\apost_id\x18\x01 \x01(\tR\x06postId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\"G\n" +
+	"\x10LikePostResponse\x12\x19\n" +
+	"\bis_liked\x18\x01 \x01(\bR\aisLiked\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"2\n" +
+	"\x17GetAllPostLikersRequest\x12\x17\n" +
+	"\apost_id\x18\x01 \x01(\tR\x06postId\"5\n" +
+	"\x18GetAllPostLikersResponse\x12\x19\n" +
+	"\buser_ids\x18\x01 \x03(\tR\auserIds\"2\n" +
+	"\x17GetAllLikedPostsRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\":\n" +
+	"\x18GetAllLikedPostsResponse\x12\x1e\n" +
+	"\x04post\x18\x01 \x03(\v2\n" +
+	".post.PostR\x04post2\xae\x06\n" +
 	"\vPostService\x12?\n" +
 	"\n" +
 	"CreatePost\x12\x17.post.CreatePostRequest\x1a\x18.post.CreatePostResponse\x12<\n" +
@@ -951,7 +1246,10 @@ const file_proto_post_proto_rawDesc = "" +
 	"\x12MovePostToArchived\x12\x1f.post.MovePostToArchivedRequest\x1a .post.MovePostToArchivedResponse\x12T\n" +
 	"\x13GetArchivedPostById\x12\x1d.post.ArchivedPostByIdRequest\x1a\x1e.post.ArchivedPostByIdResponse\x12R\n" +
 	"\x13GetAllArchivedPosts\x12\x1c.post.AllArchivedPostRequest\x1a\x1d.post.AllArchivedPostResponse\x12:\n" +
-	"\vGetAllPosts\x12\x14.post.AllPostRequest\x1a\x15.post.AllPostResponseB*Z(github.com/chetansachan/socialflow/protob\x06proto3"
+	"\vGetAllPosts\x12\x14.post.AllPostRequest\x1a\x15.post.AllPostResponse\x129\n" +
+	"\bLikePost\x12\x15.post.LikePostRequest\x1a\x16.post.LikePostResponse\x12Q\n" +
+	"\x10GetAllPostLikers\x12\x1d.post.GetAllPostLikersRequest\x1a\x1e.post.GetAllPostLikersResponse\x12Q\n" +
+	"\x10GetAllLikedPosts\x12\x1d.post.GetAllLikedPostsRequest\x1a\x1e.post.GetAllLikedPostsResponseB*Z(github.com/chetansachan/socialflow/protob\x06proto3"
 
 var (
 	file_proto_post_proto_rawDescOnce sync.Once
@@ -965,7 +1263,7 @@ func file_proto_post_proto_rawDescGZIP() []byte {
 	return file_proto_post_proto_rawDescData
 }
 
-var file_proto_post_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_proto_post_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_proto_post_proto_goTypes = []any{
 	(*Post)(nil),                       // 0: post.Post
 	(*PostByIdRequest)(nil),            // 1: post.PostByIdRequest
@@ -984,6 +1282,12 @@ var file_proto_post_proto_goTypes = []any{
 	(*AllArchivedPostResponse)(nil),    // 14: post.AllArchivedPostResponse
 	(*AllPostRequest)(nil),             // 15: post.AllPostRequest
 	(*AllPostResponse)(nil),            // 16: post.AllPostResponse
+	(*LikePostRequest)(nil),            // 17: post.LikePostRequest
+	(*LikePostResponse)(nil),           // 18: post.LikePostResponse
+	(*GetAllPostLikersRequest)(nil),    // 19: post.GetAllPostLikersRequest
+	(*GetAllPostLikersResponse)(nil),   // 20: post.GetAllPostLikersResponse
+	(*GetAllLikedPostsRequest)(nil),    // 21: post.GetAllLikedPostsRequest
+	(*GetAllLikedPostsResponse)(nil),   // 22: post.GetAllLikedPostsResponse
 }
 var file_proto_post_proto_depIdxs = []int32{
 	0,  // 0: post.PostByIdResponse.post:type_name -> post.Post
@@ -992,27 +1296,34 @@ var file_proto_post_proto_depIdxs = []int32{
 	0,  // 3: post.ArchivedPostByIdResponse.post:type_name -> post.Post
 	0,  // 4: post.AllArchivedPostResponse.post:type_name -> post.Post
 	0,  // 5: post.AllPostResponse.post:type_name -> post.Post
-	5,  // 6: post.PostService.CreatePost:input_type -> post.CreatePostRequest
-	1,  // 7: post.PostService.GetPostById:input_type -> post.PostByIdRequest
-	3,  // 8: post.PostService.DeletePost:input_type -> post.DeletePostRequest
-	7,  // 9: post.PostService.UpdatePost:input_type -> post.UpdatePostRequest
-	11, // 10: post.PostService.MovePostToArchived:input_type -> post.MovePostToArchivedRequest
-	9,  // 11: post.PostService.GetArchivedPostById:input_type -> post.ArchivedPostByIdRequest
-	13, // 12: post.PostService.GetAllArchivedPosts:input_type -> post.AllArchivedPostRequest
-	15, // 13: post.PostService.GetAllPosts:input_type -> post.AllPostRequest
-	6,  // 14: post.PostService.CreatePost:output_type -> post.CreatePostResponse
-	2,  // 15: post.PostService.GetPostById:output_type -> post.PostByIdResponse
-	4,  // 16: post.PostService.DeletePost:output_type -> post.DeletePostResponse
-	8,  // 17: post.PostService.UpdatePost:output_type -> post.UpdatePostResponse
-	12, // 18: post.PostService.MovePostToArchived:output_type -> post.MovePostToArchivedResponse
-	10, // 19: post.PostService.GetArchivedPostById:output_type -> post.ArchivedPostByIdResponse
-	14, // 20: post.PostService.GetAllArchivedPosts:output_type -> post.AllArchivedPostResponse
-	16, // 21: post.PostService.GetAllPosts:output_type -> post.AllPostResponse
-	14, // [14:22] is the sub-list for method output_type
-	6,  // [6:14] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	0,  // 6: post.GetAllLikedPostsResponse.post:type_name -> post.Post
+	5,  // 7: post.PostService.CreatePost:input_type -> post.CreatePostRequest
+	1,  // 8: post.PostService.GetPostById:input_type -> post.PostByIdRequest
+	3,  // 9: post.PostService.DeletePost:input_type -> post.DeletePostRequest
+	7,  // 10: post.PostService.UpdatePost:input_type -> post.UpdatePostRequest
+	11, // 11: post.PostService.MovePostToArchived:input_type -> post.MovePostToArchivedRequest
+	9,  // 12: post.PostService.GetArchivedPostById:input_type -> post.ArchivedPostByIdRequest
+	13, // 13: post.PostService.GetAllArchivedPosts:input_type -> post.AllArchivedPostRequest
+	15, // 14: post.PostService.GetAllPosts:input_type -> post.AllPostRequest
+	17, // 15: post.PostService.LikePost:input_type -> post.LikePostRequest
+	19, // 16: post.PostService.GetAllPostLikers:input_type -> post.GetAllPostLikersRequest
+	21, // 17: post.PostService.GetAllLikedPosts:input_type -> post.GetAllLikedPostsRequest
+	6,  // 18: post.PostService.CreatePost:output_type -> post.CreatePostResponse
+	2,  // 19: post.PostService.GetPostById:output_type -> post.PostByIdResponse
+	4,  // 20: post.PostService.DeletePost:output_type -> post.DeletePostResponse
+	8,  // 21: post.PostService.UpdatePost:output_type -> post.UpdatePostResponse
+	12, // 22: post.PostService.MovePostToArchived:output_type -> post.MovePostToArchivedResponse
+	10, // 23: post.PostService.GetArchivedPostById:output_type -> post.ArchivedPostByIdResponse
+	14, // 24: post.PostService.GetAllArchivedPosts:output_type -> post.AllArchivedPostResponse
+	16, // 25: post.PostService.GetAllPosts:output_type -> post.AllPostResponse
+	18, // 26: post.PostService.LikePost:output_type -> post.LikePostResponse
+	20, // 27: post.PostService.GetAllPostLikers:output_type -> post.GetAllPostLikersResponse
+	22, // 28: post.PostService.GetAllLikedPosts:output_type -> post.GetAllLikedPostsResponse
+	18, // [18:29] is the sub-list for method output_type
+	7,  // [7:18] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_proto_post_proto_init() }
@@ -1028,7 +1339,7 @@ func file_proto_post_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_post_proto_rawDesc), len(file_proto_post_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   17,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
