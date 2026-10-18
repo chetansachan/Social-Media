@@ -21,7 +21,7 @@ type PostRepository interface {
 	MovePostToArchive(ctx context.Context, postId uuid.UUID) error
 	GetAllPost(ctx context.Context, authorId uuid.UUID) ([]models.Post, error)
 	LikePost(ctx context.Context, postId, userId uuid.UUID) (bool, error)
-	// GetAllPostLikers(ctx context.Context, postId uuid.UUID) ([]string, error)
+	GetAllPostLikers(ctx context.Context, postId uuid.UUID) ([]string, error)
 	// GetAllLikedPosts(ctx context.Context, userId uuid.UUID) ([]models.Post, error)
 }
 
@@ -328,35 +328,35 @@ func (r *postRepository) LikePost(ctx context.Context, postId, userId uuid.UUID)
 	return isCurrentlyLiked, nil
 }
 
-// func (r *postRepository) GetAllPostLikers(ctx context.Context, postId uuid.UUID) ([]string, error) {
-// 	query := `
-// 		SELECT user_id
-// 		FROM post_likes
-// 		WHERE post_id = $1 AND is_liked = TRUE
-// 		ORDER BY liked_at DESC
-// 	`
+func (r *postRepository) GetAllPostLikers(ctx context.Context, postId uuid.UUID) ([]string, error) {
+	query := `
+		SELECT user_id
+		FROM post_likes
+		WHERE post_id = $1 AND is_liked = TRUE
+		ORDER BY liked_at DESC
+	`
 
-// 	rows, err := r.db.Query(ctx, query, postId)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to query post likers: %w", err)
-// 	}
-// 	defer rows.Close()
+	rows, err := r.db.Query(ctx, query, postId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query post likers: %w", err)
+	}
+	defer rows.Close()
 
-// 	likers := make([]string, 0)
-// 	for rows.Next() {
-// 		var userID uuid.UUID
-// 		if err := rows.Scan(&userID); err != nil {
-// 			return nil, fmt.Errorf("failed to scan user id: %w", err)
-// 		}
-// 		likers = append(likers, userID.String())
-// 	}
+	likers := make([]string, 0)
+	for rows.Next() {
+		var userID uuid.UUID
+		if err := rows.Scan(&userID); err != nil {
+			return nil, fmt.Errorf("failed to scan user id: %w", err)
+		}
+		likers = append(likers, userID.String())
+	}
 
-// 	if err := rows.Err(); err != nil {
-// 		return nil, fmt.Errorf("error during row iteration: %w", err)
-// 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error during row iteration: %w", err)
+	}
 
-// 	return likers, nil
-// }
+	return likers, nil
+}
 
 // func (r *postRepository) GetAllLikedPosts(ctx context.Context, userId uuid.UUID) ([]models.Post, error) {
 // 	query := `
