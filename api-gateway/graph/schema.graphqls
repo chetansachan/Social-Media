@@ -32,6 +32,8 @@ type Query {
     getAllArchivedPost(author_id: String!): [Post!]!
     deletePost(id: ID!): DeletePostResponse!
     moveToArchive(id: ID!): MovePostToArchivedResponse!
+    getAllPostLikers(post_id: String!): [String!]!
+    getAllLikedPosts(user_id: String!): [Post!]!
 
 }
 
@@ -41,6 +43,7 @@ type Mutation {
     UpdateUser(input: UpdateUserInput!): User!
     CreatePost(input: CreatePostInput!): Post!
     UpdatePost(input: UpdatePostInput!): Post!
+    likePost(input: LikePostInput!): LikePostResponse!
 }
 
 input RegisterUserInput {
@@ -99,5 +102,15 @@ type DeletePostResponse {
 }
 
 type MovePostToArchivedResponse {
+    message: String!
+}
+
+input LikePostInput {
+    postId: String!
+    userId: String!
+}
+
+type LikePostResponse {
+    isLiked: Boolean!
     message: String!
 }

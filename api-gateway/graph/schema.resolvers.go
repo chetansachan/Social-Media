@@ -130,6 +130,22 @@ func (r *mutationResolver) UpdatePost(ctx context.Context, input model.UpdatePos
 	}, nil
 }
 
+// LikePost is the resolver for the likePost field.
+func (r *mutationResolver) LikePost(ctx context.Context, input model.LikePostInput) (*model.LikePostResponse, error) {
+	res, err := r.PostClient.LikePost(ctx, &userpb.LikePostRequest{
+		PostId: input.PostID,
+		UserId: input.UserID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.LikePostResponse{
+		IsLiked: res.GetIsLiked(),
+		Message: res.GetMessage(),
+	}, nil
+}
+
 // GetUserByID is the resolver for the GetUserById field.
 func (r *queryResolver) GetUserByID(ctx context.Context, id string) (*model.User, error) {
 	res, err := r.UserClient.GetUserById(ctx, &userpb.GetUserByIdRequest{
@@ -344,6 +360,44 @@ func (r *queryResolver) MoveToArchive(ctx context.Context, id string) (*model.Mo
 	return &model.MovePostToArchivedResponse{
 		Message: "Post Moved to Archive Successfully",
 	}, nil
+}
+
+// GetAllPostLikers is the resolver for the getAllPostLikers field.
+func (r *queryResolver) GetAllPostLikers(ctx context.Context, postID string) ([]string, error) {
+	res, err := r.PostClient.GetAllPostLikers(ctx, &userpb.GetAllPostLikersRequest{
+		PostId: postID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return res.GetUserIds(), nil
+}
+
+// GetAllLikedPosts is the resolver for the getAllLikedPosts field.
+func (r *queryResolver) GetAllLikedPosts(ctx context.Context, userID string) ([]*model.Post, error) {
+	res, err := r.PostClient.GetAllLikedPosts(ctx, &userpb.GetAllLikedPostsRequest{
+		UserId: userID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	posts := make([]*model.Post, 0, len(res.GetPost()))
+	for _, p := range res.GetPost() {
+		posts = append(posts, &model.Post{
+			ID:        p.Id,
+			AuthorID:  p.AuthorId,
+			Content:   p.Content,
+			MediaURL:  p.MediaUrl,
+			IsPublic:  p.IsPublic,
+			LikeCount: p.LikeCount,
+			CreatedAt: p.CreatedAt,
+			UpdatedAt: p.UpdatedAt,
+		})
+	}
+
+	return posts, nil
 }
 
 // Mutation returns MutationResolver implementation.

@@ -17,6 +17,16 @@ type DeleteUserResponse struct {
 	Message string `json:"message"`
 }
 
+type LikePostInput struct {
+	PostID string `json:"postId"`
+	UserID string `json:"userId"`
+}
+
+type LikePostResponse struct {
+	IsLiked bool   `json:"isLiked"`
+	Message string `json:"message"`
+}
+
 type LoginInput struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
