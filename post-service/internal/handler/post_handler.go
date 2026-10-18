@@ -259,27 +259,27 @@ func (h *PostHandler) GetAllPostLikers(ctx context.Context, req *postpb.GetAllPo
 	}, nil
 }
 
-// func (h *PostHandler) GetAllLikedPosts(ctx context.Context, req *postpb.GetAllLikedPostsRequest) (*postpb.GetAllLikedPostsResponse, error) {
-// 	posts, err := h.postService.GetAllLikedPosts(ctx, req.GetUserId())
-// 	if err != nil {
-// 		return nil, status.Errorf(codes.Internal, "failed to get liked posts: %v", err)
-// 	}
+func (h *PostHandler) GetAllLikedPosts(ctx context.Context, req *postpb.GetAllLikedPostsRequest) (*postpb.GetAllLikedPostsResponse, error) {
+	posts, err := h.postService.GetAllLikedPosts(ctx, req.GetUserId())
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get liked posts: %v", err)
+	}
 
-// 	postsPB := make([]*postpb.Post, 0, len(posts))
-// 	for _, p := range posts {
-// 		postsPB = append(postsPB, &postpb.Post{
-// 			Id:        p.ID.String(),
-// 			AuthorId:  p.AuthorID.String(),
-// 			Content:   p.Content,
-// 			MediaUrl:  p.MediaURL,
-// 			IsPublic:  p.IsPublic,
-// 			LikeCount: int32(p.LikeCount),
-// 			CreatedAt: p.CreatedAt.Format(time.RFC3339),
-// 			UpdatedAt: formatTimestamp(p.UpdatedAt),
-// 		})
-// 	}
+	postsPB := make([]*postpb.Post, 0, len(posts))
+	for _, p := range posts {
+		postsPB = append(postsPB, &postpb.Post{
+			Id:        p.ID.String(),
+			AuthorId:  p.AuthorID.String(),
+			Content:   p.Content,
+			MediaUrl:  p.MediaURL,
+			IsPublic:  p.IsPublic,
+			LikeCount: int32(p.LikeCount),
+			CreatedAt: p.CreatedAt.Format(time.RFC3339),
+			UpdatedAt: formatTimestamp(p.UpdatedAt),
+		})
+	}
 
-// 	return &postpb.GetAllLikedPostsResponse{
-// 		Post: postsPB,
-// 	}, nil
-// }
+	return &postpb.GetAllLikedPostsResponse{
+		Post: postsPB,
+	}, nil
+}
