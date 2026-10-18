@@ -89,3 +89,26 @@ func (s *followService) GetFollowers(ctx context.Context, userID string) ([]stri
 
 	return followers, nil
 }
+
+func (s *followService) GetFollowing(ctx context.Context, userID string) ([]string, error) {
+	if userID == "" {
+		return nil, models.ErrInvalidID
+	}
+
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, fmt.Errorf("%w: invalid user id", models.ErrInvalidID)
+	}
+
+	followingUUIDs, err := s.followRepo.GetFollowing(ctx, userUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	following := make([]string, len(followingUUIDs))
+	for i, id := range followingUUIDs {
+		following[i] = id.String()
+	}
+
+	return following, nil
+}
