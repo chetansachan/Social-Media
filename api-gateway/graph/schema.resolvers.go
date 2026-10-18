@@ -164,7 +164,17 @@ func (r *mutationResolver) FollowUser(ctx context.Context, input model.FollowUse
 
 // UnfollowUser is the resolver for the unfollowUser field.
 func (r *mutationResolver) UnfollowUser(ctx context.Context, input model.UnfollowUserInput) (*model.UnfollowUserResponse, error) {
-	panic(fmt.Errorf("not implemented: UnfollowUser - unfollowUser"))
+	res, err := r.FollowClient.UnfollowUser(ctx, &userpb.UnfollowUserRequest{
+		FollowerId:  input.FollowerID,
+		FollowingId: input.FollowingID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.UnfollowUserResponse{
+		Message: res.GetMessage(),
+	}, nil
 }
 
 // RemoveFollower is the resolver for the removeFollower field.
