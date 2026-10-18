@@ -21,6 +21,7 @@ const (
 	defaultPort            = "8080"
 	defaultUserServiceAddr = "localhost:50051"
 	defaultPostServiceAddr = "localhost:50052"
+	defaultFollowServiceAddr = "localhost:50053"
 )
 
 func main() {
@@ -61,12 +62,29 @@ func main() {
 
 	postClient := userpb.NewPostServiceClient(postConn)
 
+	followServiceAddr := os.Getenv("FOLLOW_SERVICE_ADDR")
+	if followServiceAddr == "" {
+		followServiceAddr = defaultFollowServiceAddr
+	}
+
+	followConn, err := grpc.NewClient(
+		followServiceAddr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		log.Fatalf("failed to connect to follow service: %v", err)
+	}
+	defer followConn.Close()
+
+	followClient := userpb.NewFollowServiceClient(followConn)
+
 	srv := handler.New(
 		graph.NewExecutableSchema(
 			graph.Config{
 				Resolvers: &graph.Resolver{
 					UserClient: userClient,
 					PostClient: postClient,
+					FollowClient: followClient,
 				},
 			},
 		),
