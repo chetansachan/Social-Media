@@ -19,6 +19,9 @@ type PostService interface {
 	MovePostToArchive(ctx context.Context, postid string) (*models.Response, error)
 	GetAllArchivedPost(ctx context.Context, authorId string) ([]models.Post, error)
 	GetArchivedPostById(ctx context.Context, id string) (*models.Post, error)
+	LikePost(ctx context.Context, postId string, userId string) (bool, error)
+	// GetAllPostLikers(ctx context.Context, postId string) ([]string, error)
+	// GetAllLikedPosts(ctx context.Context, userId string) ([]models.Post, error)
 }
 
 type postService struct {
@@ -203,3 +206,54 @@ func (s *postService) GetArchivedPostById(ctx context.Context, id string) (*mode
 
 	return post, nil
 }
+
+func (s *postService) LikePost(ctx context.Context, postId string, userId string) (bool, error) {
+	postUUID, err := uuid.Parse(postId)
+	if err != nil {
+		return false, fmt.Errorf("unable to parse the post id: %w", err)
+	}
+
+	userUUID, err := uuid.Parse(userId)
+	if err != nil {
+		return false, fmt.Errorf("unable to parse the user id: %w", err)
+	}
+
+	isLiked, err := s.postRepo.LikePost(ctx, postUUID, userUUID)
+	if err != nil {
+		if errors.Is(err, models.ErrPostNotFound) {
+			return false, models.ErrPostNotFound
+		}
+		return false, fmt.Errorf("failed to like post: %w", err)
+	}
+
+	return isLiked, nil
+}
+
+// func (s *postService) GetAllPostLikers(ctx context.Context, postId string) ([]string, error) {
+// 	postUUID, err := uuid.Parse(postId)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("unable to parse the post id: %w", err)
+// 	}
+
+// 	likers, err := s.postRepo.GetAllPostLikers(ctx, postUUID)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to get post likers: %w", err)
+// 	}
+
+// 	return likers, nil
+// }
+
+// func (s *postService) GetAllLikedPosts(ctx context.Context, userId string) ([]models.Post, error) {
+// 	userUUID, err := uuid.Parse(userId)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("unable to parse the user id: %w", err)
+// 	}
+
+// 	posts, err := s.postRepo.GetAllLikedPosts(ctx, userUUID)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to get liked posts: %w", err)
+// 	}
+
+// 	return posts, nil
+// }
+
