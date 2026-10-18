@@ -100,3 +100,22 @@ func (h *FollowHandler) GetFollowing(ctx context.Context, req *followpb.GetFollo
 		FollowingIds: followingIDs,
 	}, nil
 }
+
+func (h *FollowHandler) GetFollowCounts(ctx context.Context, req *followpb.GetFollowCountsRequest) (*followpb.GetFollowCountsResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	counts, err := h.followService.GetFollowCounts(ctx, req.UserId)
+	if err != nil {
+		if errors.Is(err, models.ErrInvalidID) {
+			return nil, status.Errorf(codes.InvalidArgument, "%v", err)
+		}
+		return nil, status.Errorf(codes.Internal, "failed to get follow counts: %v", err)
+	}
+
+	return &followpb.GetFollowCountsResponse{
+		FollowersCount: int32(counts.FollowersCount),
+		FollowingCount: int32(counts.FollowingCount),
+	}, nil
+}
