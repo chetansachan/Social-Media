@@ -21,7 +21,7 @@ type PostService interface {
 	GetArchivedPostById(ctx context.Context, id string) (*models.Post, error)
 	LikePost(ctx context.Context, postId string, userId string) (bool, error)
 	GetAllPostLikers(ctx context.Context, postId string) ([]string, error)
-	// GetAllLikedPosts(ctx context.Context, userId string) ([]models.Post, error)
+	GetAllLikedPosts(ctx context.Context, userId string) ([]models.Post, error)
 }
 
 type postService struct {
@@ -243,17 +243,17 @@ func (s *postService) GetAllPostLikers(ctx context.Context, postId string) ([]st
 	return likers, nil
 }
 
-// func (s *postService) GetAllLikedPosts(ctx context.Context, userId string) ([]models.Post, error) {
-// 	userUUID, err := uuid.Parse(userId)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("unable to parse the user id: %w", err)
-// 	}
+func (s *postService) GetAllLikedPosts(ctx context.Context, userId string) ([]models.Post, error) {
+	userUUID, err := uuid.Parse(userId)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse the user id: %w", err)
+	}
 
-// 	posts, err := s.postRepo.GetAllLikedPosts(ctx, userUUID)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to get liked posts: %w", err)
-// 	}
+	posts, err := s.postRepo.GetAllLikedPosts(ctx, userUUID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get liked posts: %w", err)
+	}
 
-// 	return posts, nil
-// }
+	return posts, nil
+}
 
