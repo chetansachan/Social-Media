@@ -139,3 +139,20 @@ func (r *followRepository) GetFollowCounts(ctx context.Context, userID uuid.UUID
 
 	return counts, nil
 }
+
+func (r *followRepository) GetFollowStatus(ctx context.Context, followerID, followingID uuid.UUID) (bool, error) {
+	query := `
+		SELECT EXISTS(
+			SELECT 1 FROM follows
+			WHERE follower_id = $1 AND following_id = $2
+		)
+	`
+
+	var isFollowing bool
+	err := r.db.QueryRow(ctx, query, followerID, followingID).Scan(&isFollowing)
+	if err != nil {
+		return false, fmt.Errorf("failed to check follow status: %w", err)
+	}
+
+	return isFollowing, nil
+}
