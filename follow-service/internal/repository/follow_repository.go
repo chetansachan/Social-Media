@@ -45,3 +45,21 @@ func (r *followRepository) FollowUser(ctx context.Context, followerID, following
 
 	return nil
 }
+
+func (r *followRepository) UnfollowUser(ctx context.Context, followerID, followingID uuid.UUID) error {
+	query := `
+		DELETE FROM follows
+		WHERE follower_id = $1 AND following_id = $2
+	`
+
+	tag, err := r.db.Exec(ctx, query, followerID, followingID)
+	if err != nil {
+		return fmt.Errorf("failed to unfollow user: %w", err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		return models.ErrRelationNotFound
+	}
+
+	return nil
+}
