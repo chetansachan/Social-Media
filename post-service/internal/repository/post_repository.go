@@ -20,6 +20,9 @@ type PostRepository interface {
 	GetArchivedPostById(ctx context.Context, id uuid.UUID) (*models.Post, error)
 	MovePostToArchive(ctx context.Context, postId uuid.UUID) error
 	GetAllPost(ctx context.Context, authorId uuid.UUID) ([]models.Post, error)
+	LikePost(ctx context.Context, postId, userId uuid.UUID) (bool, error)
+	// GetAllPostLikers(ctx context.Context, postId uuid.UUID) ([]string, error)
+	// GetAllLikedPosts(ctx context.Context, userId uuid.UUID) ([]models.Post, error)
 }
 
 type postRepository struct {
@@ -167,7 +170,7 @@ func (r *postRepository) UpdatePost(ctx context.Context, input *models.UpdatePos
 func (r *postRepository) DeletePost(ctx context.Context, postId uuid.UUID) error {
 	query := `
 		DELETE FROM posts
-		WHERE id = $1 AND author_id = $2
+		WHERE id = $1
 	`
 
 	tag, err := r.db.Exec(ctx, query, postId)
@@ -185,7 +188,7 @@ func (r *postRepository) MovePostToArchive(ctx context.Context, postId uuid.UUID
 	query := `
 		UPDATE posts
 		SET deleted_at = CURRENT_TIMESTAMP
-		WHERE id = $1 AND author_id = $2 AND deleted_at IS NULL
+		WHERE id = $1 AND deleted_at IS NULL
 	`
 
 	tag, err := r.db.Exec(ctx, query, postId)
@@ -268,3 +271,131 @@ func (r *postRepository) GetAllArchivedPost(ctx context.Context, authorId uuid.U
 
 	return posts, nil
 }
+
+func (r *postRepository) LikePost(ctx context.Context, postId, userId uuid.UUID) (bool, error) {
+	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{
+		IsoLevel: pgx.RepeatableRead,
+	})
+	if err != nil {
+		return false, err
+	}
+	defer tx.Rollback(ctx)
+
+	_, err2 := r.GetPostById(ctx, postId)
+	if err2 != nil {
+		return false, fmt.Errorf("Post NotFound %w", err2)
+	}
+
+	toggleQuery := `
+		INSERT INTO post_likes (post_id, user_id, is_liked, liked_at, unliked_at)
+		VALUES ($1, $2, true, NOW(), NOW())
+		ON CONFLICT (post_id, user_id) 
+		DO UPDATE SET 
+			is_liked = NOT post_likes.is_liked,
+			liked_at = CASE WHEN NOT post_likes.is_liked = true THEN NOW() ELSE post_likes.liked_at END,
+			unliked_at = CASE WHEN NOT post_likes.is_liked = false THEN NOW() ELSE post_likes.unliked_at END
+		RETURNING is_liked;
+	`
+
+	var isCurrentlyLiked bool
+	err = tx.QueryRow(ctx, toggleQuery, postId, userId).Scan(&isCurrentlyLiked)
+	if err != nil {
+		return false, fmt.Errorf("failed to toggle like status: %w", err)
+	}
+
+	var counterChange int
+	if isCurrentlyLiked {
+		counterChange = 1
+	} else {
+		counterChange = -1
+	}
+
+	// Update the post's total count. GREATEST(0, ...) prevents negative values.
+	updateCounterQuery := `
+		UPDATE posts 
+		SET like_count = GREATEST(0, like_count + $1), updated_at = NOW() 
+		WHERE id = $2 AND deleted_at IS NULL;
+	`
+	_, err = tx.Exec(ctx, updateCounterQuery, counterChange, postId)
+	if err != nil {
+		return false, fmt.Errorf("failed to update post like counter: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return false, fmt.Errorf("failed to commit tx: %w", err)
+	}
+
+	return isCurrentlyLiked, nil
+}
+
+// func (r *postRepository) GetAllPostLikers(ctx context.Context, postId uuid.UUID) ([]string, error) {
+// 	query := `
+// 		SELECT user_id
+// 		FROM post_likes
+// 		WHERE post_id = $1 AND is_liked = TRUE
+// 		ORDER BY liked_at DESC
+// 	`
+
+// 	rows, err := r.db.Query(ctx, query, postId)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to query post likers: %w", err)
+// 	}
+// 	defer rows.Close()
+
+// 	likers := make([]string, 0)
+// 	for rows.Next() {
+// 		var userID uuid.UUID
+// 		if err := rows.Scan(&userID); err != nil {
+// 			return nil, fmt.Errorf("failed to scan user id: %w", err)
+// 		}
+// 		likers = append(likers, userID.String())
+// 	}
+
+// 	if err := rows.Err(); err != nil {
+// 		return nil, fmt.Errorf("error during row iteration: %w", err)
+// 	}
+
+// 	return likers, nil
+// }
+
+// func (r *postRepository) GetAllLikedPosts(ctx context.Context, userId uuid.UUID) ([]models.Post, error) {
+// 	query := `
+// 		SELECT p.id, p.author_id, p.content, p.media_url, p.is_public, p.like_count, p.created_at, p.updated_at, p.deleted_at
+// 		FROM posts p
+// 		JOIN post_likes pl ON p.id = pl.post_id
+// 		WHERE pl.user_id = $1 AND pl.is_liked = TRUE AND p.deleted_at IS NULL
+// 		ORDER BY pl.liked_at DESC
+// 	`
+
+// 	rows, err := r.db.Query(ctx, query, userId)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to query liked posts: %w", err)
+// 	}
+// 	defer rows.Close()
+
+// 	posts := make([]models.Post, 0)
+// 	for rows.Next() {
+// 		var p models.Post
+// 		err := rows.Scan(
+// 			&p.ID,
+// 			&p.AuthorID,
+// 			&p.Content,
+// 			&p.MediaURL,
+// 			&p.IsPublic,
+// 			&p.LikeCount,
+// 			&p.CreatedAt,
+// 			&p.UpdatedAt,
+// 			&p.DeletedAt,
+// 		)
+// 		if err != nil {
+// 			return nil, fmt.Errorf("row scan failed: %w", err)
+// 		}
+// 		posts = append(posts, p)
+// 	}
+
+// 	if err := rows.Err(); err != nil {
+// 		return nil, fmt.Errorf("error during row iteration: %w", err)
+// 	}
+
+// 	return posts, nil
+// }
