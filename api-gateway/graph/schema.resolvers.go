@@ -7,7 +7,6 @@ package graph
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/chetansachan/socialflow/api-gateway/graph/model"
 	userpb "github.com/chetansachan/socialflow/proto"
