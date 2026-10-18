@@ -35,6 +35,10 @@ type Query {
     getAllPostLikers(post_id: String!): [String!]!
     getAllLikedPosts(user_id: String!): [Post!]!
 
+    getFollowers(userId: String!): [String!]!
+    getFollowing(userId: String!): [String!]!
+    getFollowCounts(userId: String!): FollowCountsResponse!
+    getFollowStatus(followerId: String!, followingId: String!): FollowStatusResponse!
 }
 
 type Mutation {
@@ -44,6 +48,9 @@ type Mutation {
     CreatePost(input: CreatePostInput!): Post!
     UpdatePost(input: UpdatePostInput!): Post!
     likePost(input: LikePostInput!): LikePostResponse!
+    followUser(input: FollowUserInput!): FollowUserResponse!
+    unfollowUser(input: UnfollowUserInput!): UnfollowUserResponse!
+    removeFollower(input: RemoveFollowerInput!): RemoveFollowerResponse!
 }
 
 input RegisterUserInput {
@@ -109,8 +116,43 @@ input LikePostInput {
     postId: String!
     userId: String!
 }
-
 type LikePostResponse {
     isLiked: Boolean!
     message: String!
+}
+
+input FollowUserInput {
+    followerId: String!
+    followingId: String!
+}
+
+type FollowUserResponse {
+    message: String!
+}
+
+input UnfollowUserInput {
+    followerId: String!
+    followingId: String!
+}
+
+type UnfollowUserResponse {
+    message: String!
+}
+
+input RemoveFollowerInput {
+    userId: String!
+    followerId: String!
+}
+
+type RemoveFollowerResponse {
+    message: String!
+}
+
+type FollowCountsResponse {
+    followersCount: Int!
+    followingCount: Int!
+}
+
+type FollowStatusResponse {
+    isFollowing: Boolean!
 }
