@@ -448,7 +448,14 @@ func (r *queryResolver) GetAllLikedPosts(ctx context.Context, userID string) ([]
 
 // GetFollowers is the resolver for the getFollowers field.
 func (r *queryResolver) GetFollowers(ctx context.Context, userID string) ([]string, error) {
-	panic(fmt.Errorf("not implemented: GetFollowers - getFollowers"))
+	res, err := r.FollowClient.GetFollowers(ctx, &userpb.GetFollowersRequest{
+		UserId: userID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return res.GetFollowerIds(), nil
 }
 
 // GetFollowing is the resolver for the getFollowing field.
