@@ -93,3 +93,33 @@ func (r *followRepository) GetFollowers(ctx context.Context, userID uuid.UUID) (
 
 	return followers, nil
 }
+
+func (r *followRepository) GetFollowing(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error) {
+	query := `
+		SELECT following_id
+		FROM follows
+		WHERE follower_id = $1
+		ORDER BY created_at DESC
+	`
+
+	rows, err := r.db.Query(ctx, query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get following: %w", err)
+	}
+	defer rows.Close()
+
+	following := make([]uuid.UUID, 0)
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("failed to scan following id: %w", err)
+		}
+		following = append(following, id)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating following: %w", err)
+	}
+
+	return following, nil
+}
