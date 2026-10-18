@@ -227,3 +227,59 @@ func (h *PostHandler) MovePostToArchived(ctx context.Context, input *postpb.Move
 		Message: "Post Moved to Archive Successfully",
 	}, nil
 }
+
+func (h *PostHandler) LikePost(ctx context.Context, req *postpb.LikePostRequest) (*postpb.LikePostResponse, error) {
+	isLiked, err := h.postService.LikePost(ctx, req.GetPostId(), req.GetUserId())
+	if err != nil {
+		if errors.Is(err, models.ErrPostNotFound) {
+			return nil, status.Error(codes.NotFound, "Post Not Found")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to like post: %v", err)
+	}
+
+	msg := "Post unliked successfully"
+	if isLiked {
+		msg = "Post liked successfully"
+	}
+
+	return &postpb.LikePostResponse{
+		IsLiked: isLiked,
+		Message: msg,
+	}, nil
+}
+
+// func (h *PostHandler) GetAllPostLikers(ctx context.Context, req *postpb.GetAllPostLikersRequest) (*postpb.GetAllPostLikersResponse, error) {
+// 	likers, err := h.postService.GetAllPostLikers(ctx, req.GetPostId())
+// 	if err != nil {
+// 		return nil, status.Errorf(codes.Internal, "failed to get post likers: %v", err)
+// 	}
+
+// 	return &postpb.GetAllPostLikersResponse{
+// 		UserIds: likers,
+// 	}, nil
+// }
+
+// func (h *PostHandler) GetAllLikedPosts(ctx context.Context, req *postpb.GetAllLikedPostsRequest) (*postpb.GetAllLikedPostsResponse, error) {
+// 	posts, err := h.postService.GetAllLikedPosts(ctx, req.GetUserId())
+// 	if err != nil {
+// 		return nil, status.Errorf(codes.Internal, "failed to get liked posts: %v", err)
+// 	}
+
+// 	postsPB := make([]*postpb.Post, 0, len(posts))
+// 	for _, p := range posts {
+// 		postsPB = append(postsPB, &postpb.Post{
+// 			Id:        p.ID.String(),
+// 			AuthorId:  p.AuthorID.String(),
+// 			Content:   p.Content,
+// 			MediaUrl:  p.MediaURL,
+// 			IsPublic:  p.IsPublic,
+// 			LikeCount: int32(p.LikeCount),
+// 			CreatedAt: p.CreatedAt.Format(time.RFC3339),
+// 			UpdatedAt: formatTimestamp(p.UpdatedAt),
+// 		})
+// 	}
+
+// 	return &postpb.GetAllLikedPostsResponse{
+// 		Post: postsPB,
+// 	}, nil
+// }
