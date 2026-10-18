@@ -487,7 +487,17 @@ func (r *queryResolver) GetFollowCounts(ctx context.Context, userID string) (*mo
 
 // GetFollowStatus is the resolver for the getFollowStatus field.
 func (r *queryResolver) GetFollowStatus(ctx context.Context, followerID string, followingID string) (*model.FollowStatusResponse, error) {
-	panic(fmt.Errorf("not implemented: GetFollowStatus - getFollowStatus"))
+	res, err := r.FollowClient.GetFollowStatus(ctx, &userpb.GetFollowStatusRequest{
+		FollowerId:  followerID,
+		FollowingId: followingID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.FollowStatusResponse{
+		IsFollowing: res.GetIsFollowing(),
+	}, nil
 }
 
 // Mutation returns MutationResolver implementation.
