@@ -48,3 +48,21 @@ func (s *followService) FollowUser(ctx context.Context, followerID, followingID 
 
 	return s.followRepo.FollowUser(ctx, followerUUID, followingUUID)
 }
+
+func (s *followService) UnfollowUser(ctx context.Context, followerID, followingID string) error {
+	if followerID == "" || followingID == "" {
+		return models.ErrInvalidID
+	}
+
+	followerUUID, err := uuid.Parse(followerID)
+	if err != nil {
+		return fmt.Errorf("%w: invalid follower id", models.ErrInvalidID)
+	}
+
+	followingUUID, err := uuid.Parse(followingID)
+	if err != nil {
+		return fmt.Errorf("%w: invalid following id", models.ErrInvalidID)
+	}
+
+	return s.followRepo.UnfollowUser(ctx, followerUUID, followingUUID)
+}
