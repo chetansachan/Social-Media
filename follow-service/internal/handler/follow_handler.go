@@ -64,3 +64,21 @@ func (h *FollowHandler) UnfollowUser(ctx context.Context, req *followpb.Unfollow
 		Message: "Successfully unfollowed user",
 	}, nil
 }
+
+func (h *FollowHandler) GetFollowers(ctx context.Context, req *followpb.GetFollowersRequest) (*followpb.GetFollowersResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	followerIDs, err := h.followService.GetFollowers(ctx, req.UserId)
+	if err != nil {
+		if errors.Is(err, models.ErrInvalidID) {
+			return nil, status.Errorf(codes.InvalidArgument, "%v", err)
+		}
+		return nil, status.Errorf(codes.Internal, "failed to get followers: %v", err)
+	}
+
+	return &followpb.GetFollowersResponse{
+		FollowerIds: followerIDs,
+	}, nil
+}
