@@ -156,3 +156,21 @@ func (r *followRepository) GetFollowStatus(ctx context.Context, followerID, foll
 
 	return isFollowing, nil
 }
+
+func (r *followRepository) RemoveFollower(ctx context.Context, userID, followerID uuid.UUID) error {
+	query := `
+		DELETE FROM follows
+		WHERE following_id = $1 AND follower_id = $2
+	`
+
+	tag, err := r.db.Exec(ctx, query, userID, followerID)
+	if err != nil {
+		return fmt.Errorf("failed to remove follower: %w", err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		return models.ErrRelationNotFound
+	}
+
+	return nil
+}
