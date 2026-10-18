@@ -82,3 +82,21 @@ func (h *FollowHandler) GetFollowers(ctx context.Context, req *followpb.GetFollo
 		FollowerIds: followerIDs,
 	}, nil
 }
+
+func (h *FollowHandler) GetFollowing(ctx context.Context, req *followpb.GetFollowingRequest) (*followpb.GetFollowingResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	followingIDs, err := h.followService.GetFollowing(ctx, req.UserId)
+	if err != nil {
+		if errors.Is(err, models.ErrInvalidID) {
+			return nil, status.Errorf(codes.InvalidArgument, "%v", err)
+		}
+		return nil, status.Errorf(codes.Internal, "failed to get following: %v", err)
+	}
+
+	return &followpb.GetFollowingResponse{
+		FollowingIds: followingIDs,
+	}, nil
+}
