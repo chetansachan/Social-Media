@@ -3,8 +3,11 @@ package services
 import (
 	"context"
 
+	"fmt"
+
 	"github.com/chetansachan/socialflow/follow-service/internal/models"
 	"github.com/chetansachan/socialflow/follow-service/internal/repository"
+	"github.com/google/uuid"
 )
 
 type FollowService interface {
@@ -23,4 +26,25 @@ type followService struct {
 
 func NewFollowService(followRepo repository.FollowRepository) FollowService {
 	return &followService{followRepo: followRepo}
+}
+
+func (s *followService) FollowUser(ctx context.Context, followerID, followingID string) error {
+	if followerID == "" || followingID == "" {
+		return models.ErrInvalidID
+	}
+	if followerID == followingID {
+		return models.ErrCannotFollowSelf
+	}
+
+	followerUUID, err := uuid.Parse(followerID)
+	if err != nil {
+		return fmt.Errorf("%w: invalid follower id", models.ErrInvalidID)
+	}
+
+	followingUUID, err := uuid.Parse(followingID)
+	if err != nil {
+		return fmt.Errorf("%w: invalid following id", models.ErrInvalidID)
+	}
+
+	return s.followRepo.FollowUser(ctx, followerUUID, followingUUID)
 }
