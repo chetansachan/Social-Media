@@ -119,3 +119,21 @@ func (h *FollowHandler) GetFollowCounts(ctx context.Context, req *followpb.GetFo
 		FollowingCount: int32(counts.FollowingCount),
 	}, nil
 }
+
+func (h *FollowHandler) GetFollowStatus(ctx context.Context, req *followpb.GetFollowStatusRequest) (*followpb.GetFollowStatusResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	isFollowing, err := h.followService.GetFollowStatus(ctx, req.FollowerId, req.FollowingId)
+	if err != nil {
+		if errors.Is(err, models.ErrInvalidID) {
+			return nil, status.Errorf(codes.InvalidArgument, "%v", err)
+		}
+		return nil, status.Errorf(codes.Internal, "failed to get follow status: %v", err)
+	}
+
+	return &followpb.GetFollowStatusResponse{
+		IsFollowing: isFollowing,
+	}, nil
+}
