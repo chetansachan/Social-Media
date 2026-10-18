@@ -143,3 +143,21 @@ func (s *followService) GetFollowStatus(ctx context.Context, followerID, followi
 
 	return s.followRepo.GetFollowStatus(ctx, followerUUID, followingUUID)
 }
+
+func (s *followService) RemoveFollower(ctx context.Context, userID, followerID string) error {
+	if userID == "" || followerID == "" {
+		return models.ErrInvalidID
+	}
+
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return fmt.Errorf("%w: invalid user id", models.ErrInvalidID)
+	}
+
+	followerUUID, err := uuid.Parse(followerID)
+	if err != nil {
+		return fmt.Errorf("%w: invalid follower id", models.ErrInvalidID)
+	}
+
+	return s.followRepo.RemoveFollower(ctx, userUUID, followerUUID)
+}
