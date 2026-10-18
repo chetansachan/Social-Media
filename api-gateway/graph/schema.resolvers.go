@@ -7,6 +7,7 @@ package graph
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/chetansachan/socialflow/api-gateway/graph/model"
 	userpb "github.com/chetansachan/socialflow/proto"
@@ -144,6 +145,31 @@ func (r *mutationResolver) LikePost(ctx context.Context, input model.LikePostInp
 		IsLiked: res.GetIsLiked(),
 		Message: res.GetMessage(),
 	}, nil
+}
+
+// FollowUser is the resolver for the followUser field.
+func (r *mutationResolver) FollowUser(ctx context.Context, input model.FollowUserInput) (*model.FollowUserResponse, error) {
+	res, err := r.FollowClient.FollowUser(ctx, &userpb.FollowUserRequest{
+		FollowerId:  input.FollowerID,
+		FollowingId: input.FollowingID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.FollowUserResponse{
+		Message: res.GetMessage(),
+	}, nil
+}
+
+// UnfollowUser is the resolver for the unfollowUser field.
+func (r *mutationResolver) UnfollowUser(ctx context.Context, input model.UnfollowUserInput) (*model.UnfollowUserResponse, error) {
+	panic(fmt.Errorf("not implemented: UnfollowUser - unfollowUser"))
+}
+
+// RemoveFollower is the resolver for the removeFollower field.
+func (r *mutationResolver) RemoveFollower(ctx context.Context, input model.RemoveFollowerInput) (*model.RemoveFollowerResponse, error) {
+	panic(fmt.Errorf("not implemented: RemoveFollower - removeFollower"))
 }
 
 // GetUserByID is the resolver for the GetUserById field.
@@ -398,6 +424,26 @@ func (r *queryResolver) GetAllLikedPosts(ctx context.Context, userID string) ([]
 	}
 
 	return posts, nil
+}
+
+// GetFollowers is the resolver for the getFollowers field.
+func (r *queryResolver) GetFollowers(ctx context.Context, userID string) ([]string, error) {
+	panic(fmt.Errorf("not implemented: GetFollowers - getFollowers"))
+}
+
+// GetFollowing is the resolver for the getFollowing field.
+func (r *queryResolver) GetFollowing(ctx context.Context, userID string) ([]string, error) {
+	panic(fmt.Errorf("not implemented: GetFollowing - getFollowing"))
+}
+
+// GetFollowCounts is the resolver for the getFollowCounts field.
+func (r *queryResolver) GetFollowCounts(ctx context.Context, userID string) (*model.FollowCountsResponse, error) {
+	panic(fmt.Errorf("not implemented: GetFollowCounts - getFollowCounts"))
+}
+
+// GetFollowStatus is the resolver for the getFollowStatus field.
+func (r *queryResolver) GetFollowStatus(ctx context.Context, followerID string, followingID string) (*model.FollowStatusResponse, error) {
+	panic(fmt.Errorf("not implemented: GetFollowStatus - getFollowStatus"))
 }
 
 // Mutation returns MutationResolver implementation.
