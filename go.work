@@ -4,6 +4,7 @@ use (
 	./api-gateway
 	./feed-service
 	./follow-service
+	./notification-service
 	./post-service
 	./proto
 	./user-service
