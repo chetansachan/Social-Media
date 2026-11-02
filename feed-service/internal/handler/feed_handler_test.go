@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/chetansachan/socialflow/feed-service/internal/models"
+	"github.com/chetansachan/socialflow/feed-service/internal/services"
 	feedpb "github.com/chetansachan/socialflow/proto"
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
@@ -26,6 +27,10 @@ func (m *mockFeedService) GetFeed(ctx context.Context, query models.GetFeedQuery
 
 func (m *mockFeedService) InvalidateUserFeed(ctx context.Context, userID string) error {
 	return m.err
+}
+
+func (m *mockFeedService) Fanout() services.FanoutService {
+	return nil
 }
 
 func TestFeedHandler_GetFeed_MissingUserID(t *testing.T) {

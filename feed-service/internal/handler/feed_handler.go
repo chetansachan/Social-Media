@@ -34,8 +34,11 @@ func (h *FeedHandler) GetFeed(ctx context.Context, req *feedpb.GetFeedRequest) (
 
 	result, err := h.feedService.GetFeed(ctx, query)
 	if err != nil {
-		if errors.Is(err, models.ErrInvalidInput) {
+		if errors.Is(err, models.ErrInvalidInput) || errors.Is(err, models.ErrInvalidCursor) {
 			return nil, status.Errorf(codes.InvalidArgument, "%v", err)
+		}
+		if errors.Is(err, models.ErrUserNotFound) {
+			return nil, status.Errorf(codes.NotFound, "%v", err)
 		}
 		return nil, status.Errorf(codes.Internal, "failed to get feed: %v", err)
 	}
