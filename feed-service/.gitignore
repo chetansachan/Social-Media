@@ -1,4 +1,0 @@
-.env
-tmp/
-*.exe
-build-errors.log
