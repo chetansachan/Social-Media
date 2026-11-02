@@ -1,0 +1,169 @@
+syntax = "proto3";
+
+package notification;
+
+option go_package = "github.com/chetansachan/socialflow/proto";
+
+service NotificationService {
+    // Inbox queries.
+    rpc GetNotifications(GetNotificationsRequest) returns (GetNotificationsResponse);
+    rpc GetUnreadCount(GetUnreadCountRequest) returns (GetUnreadCountResponse);
+
+    // Status mutations.
+    rpc MarkAsRead(MarkAsReadRequest) returns (MarkAsReadResponse);
+    rpc MarkAllAsRead(MarkAllAsReadRequest) returns (MarkAllAsReadResponse);
+    rpc DeleteNotification(DeleteNotificationRequest) returns (DeleteNotificationResponse);
+
+    // Preferences and settings.
+    rpc GetSettings(GetSettingsRequest) returns (GetSettingsResponse);
+    rpc UpdateSettings(UpdateSettingsRequest) returns (UpdateSettingsResponse);
+
+    // Push device registration.
+    rpc RegisterDeviceToken(RegisterDeviceTokenRequest) returns (RegisterDeviceTokenResponse);
+    rpc RevokeDeviceToken(RevokeDeviceTokenRequest) returns (RevokeDeviceTokenResponse);
+}
+
+enum NotificationType {
+    NOTIFICATION_TYPE_UNSPECIFIED = 0;
+    NOTIFICATION_TYPE_FOLLOW = 1;
+    NOTIFICATION_TYPE_POST_LIKE = 2;
+    NOTIFICATION_TYPE_COMMENT = 3;
+    NOTIFICATION_TYPE_COMMENT_REPLY = 4;
+    NOTIFICATION_TYPE_MENTION = 5;
+    NOTIFICATION_TYPE_CREATOR_POST = 6;
+    NOTIFICATION_TYPE_SYSTEM_ALERT = 7;
+}
+
+message NotificationActor {
+    string id = 1;
+    string username = 2;
+    string display_name = 3;
+    string avatar_url = 4;
+}
+
+message NotificationItem {
+    string id = 1;
+    string recipient_id = 2;
+    NotificationType type = 3;
+    string entity_id = 4;
+    string entity_type = 5;
+    repeated NotificationActor actors = 6;
+    int32 total_actors_count = 7;
+    string title = 8;
+    string content_preview = 9;
+    string action_url = 10;
+    bool is_read = 11;
+    string created_at = 12;
+    string updated_at = 13;
+}
+
+message GetNotificationsRequest {
+    string user_id = 1;
+    int32 page_size = 2;
+    string cursor = 3;
+    NotificationType filter_type = 4;
+}
+
+message GetNotificationsResponse {
+    repeated NotificationItem notifications = 1;
+    string next_cursor = 2;
+    bool has_more = 3;
+    int32 unread_count = 4;
+}
+
+message GetUnreadCountRequest {
+    string user_id = 1;
+}
+
+message GetUnreadCountResponse {
+    int32 unread_count = 1;
+}
+
+message MarkAsReadRequest {
+    string user_id = 1;
+    repeated string notification_ids = 2;
+}
+
+message MarkAsReadResponse {
+    bool success = 1;
+    int32 remaining_unread_count = 2;
+}
+
+message MarkAllAsReadRequest {
+    string user_id = 1;
+}
+
+message MarkAllAsReadResponse {
+    bool success = 1;
+    int32 marked_count = 2;
+}
+
+message DeleteNotificationRequest {
+    string user_id = 1;
+    string notification_id = 2;
+}
+
+message DeleteNotificationResponse {
+    bool success = 1;
+}
+
+message NotificationSettings {
+    bool inapp_likes = 1;
+    bool inapp_comments = 2;
+    bool inapp_follows = 3;
+    bool inapp_mentions = 4;
+
+    bool push_enabled = 5;
+    bool push_likes = 6;
+    bool push_comments = 7;
+    bool push_follows = 8;
+    bool push_mentions = 9;
+
+    bool email_enabled = 10;
+    bool email_weekly_digest = 11;
+    bool email_security_alerts = 12;
+
+    bool quiet_hours_enabled = 13;
+    string quiet_hours_start = 14;
+    string quiet_hours_end = 15;
+    string timezone = 16;
+}
+
+message GetSettingsRequest {
+    string user_id = 1;
+}
+
+message GetSettingsResponse {
+    NotificationSettings settings = 1;
+}
+
+message UpdateSettingsRequest {
+    string user_id = 1;
+    NotificationSettings settings = 2;
+}
+
+message UpdateSettingsResponse {
+    bool success = 1;
+    NotificationSettings settings = 2;
+}
+
+message RegisterDeviceTokenRequest {
+    string user_id = 1;
+    string token = 2;
+    string platform = 3;
+    string device_name = 4;
+    string app_version = 5;
+}
+
+message RegisterDeviceTokenResponse {
+    bool success = 1;
+}
+
+message RevokeDeviceTokenRequest {
+    string user_id = 1;
+    string token = 2;
+}
+
+message RevokeDeviceTokenResponse {
+    bool success = 1;
+}
