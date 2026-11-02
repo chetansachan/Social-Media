@@ -13,15 +13,19 @@ import (
 // notification row remains in PostgreSQL; Redis only remembers which row is
 // currently accepting new actors for an entity.
 type Aggregator struct {
-	cache  CacheStore
-	window time.Duration
+	cache    CacheStore
+	window   time.Duration
+	throttle time.Duration
 }
 
-func NewAggregator(cache CacheStore, window time.Duration) *Aggregator {
+func NewAggregator(cache CacheStore, window, throttle time.Duration) *Aggregator {
 	if window <= 0 {
 		window = 15 * time.Minute
 	}
-	return &Aggregator{cache: cache, window: window}
+	if throttle <= 0 {
+		throttle = 30 * time.Second
+	}
+	return &Aggregator{cache: cache, window: window, throttle: throttle}
 }
 
 // Key is the canonical aggregation key: agg:<recipient>:<type>:<entity>.
@@ -71,7 +75,7 @@ func (a *Aggregator) ShouldBroadcast(ctx context.Context, key string) bool {
 	if a == nil || a.cache == nil {
 		return true
 	}
-	throttled, err := a.cache.ShouldThrottle(ctx, "agg:rt:"+key, 30*time.Second)
+	throttled, err := a.cache.ShouldThrottle(ctx, "agg:rt:"+key, a.throttle)
 	if err != nil {
 		return true
 	}

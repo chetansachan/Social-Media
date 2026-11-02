@@ -415,6 +415,40 @@ func TestProcessEventCreatesNotification(t *testing.T) {
 	}
 }
 
+func TestUnreadCounterRebuildsAfterCacheLoss(t *testing.T) {
+	t.Parallel()
+
+	h := newHarness(t)
+	recipient := uuid.New()
+
+	if err := h.service.ProcessEvent(context.Background(), likeRequest(recipient, uuid.New())); err != nil {
+		t.Fatalf("first event: %v", err)
+	}
+
+	// Simulate a Redis restart/eviction. The next event must seed the badge from
+	// PostgreSQL instead of incrementing from zero and losing the first unread.
+	h.redis.FlushAll()
+
+	second := &models.NotificationRequest{
+		RecipientID: recipient,
+		ActorID:     uuidPointer(uuid.New()),
+		Type:        models.TypeFollow,
+		EntityID:    "user-2",
+		EntityType:  "user",
+	}
+	if err := h.service.ProcessEvent(context.Background(), second); err != nil {
+		t.Fatalf("second event: %v", err)
+	}
+
+	unread, err := h.service.GetUnreadCount(context.Background(), recipient.String())
+	if err != nil {
+		t.Fatalf("GetUnreadCount: %v", err)
+	}
+	if unread != 2 {
+		t.Fatalf("unread after cache loss = %d, want 2", unread)
+	}
+}
+
 func TestProcessEventDropsSelfAction(t *testing.T) {
 	t.Parallel()
 

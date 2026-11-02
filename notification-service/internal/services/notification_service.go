@@ -75,7 +75,7 @@ func NewNotificationService(deps Dependencies) NotificationService {
 
 	aggregator := deps.Aggregator
 	if aggregator == nil && deps.Cache != nil {
-		aggregator = NewAggregator(deps.Cache, options.AggregationWindow)
+		aggregator = NewAggregator(deps.Cache, options.AggregationWindow, options.RealtimeThrottle)
 	}
 
 	policy := deps.Policy
@@ -185,30 +185,12 @@ func (s *notificationService) unreadCount(ctx context.Context, userID uuid.UUID)
 }
 
 func (s *notificationService) unreadAfterCreate(ctx context.Context, userID uuid.UUID) int64 {
-	if s.cache != nil {
-		value, err := s.cache.IncrUnread(ctx, userID)
-		if err == nil {
-			return value
-		}
-		s.logf("failed to increment unread counter for %s: %v", userID, err)
-	}
-
-	count, err := s.notifications.CountUnread(ctx, userID)
-	if err != nil {
-		s.logf("failed to fall back to database unread count for %s: %v", userID, err)
-		return 0
-	}
-	return int64(count)
+	return s.incrementUnread(ctx, userID)
 }
 
 func (s *notificationService) unreadAfterAggregate(ctx context.Context, userID uuid.UUID, wasRead bool) int64 {
-	if wasRead && s.cache != nil {
-		value, err := s.cache.IncrUnread(ctx, userID)
-		if err == nil {
-			return value
-		}
-		s.logf("failed to reopen unread counter for %s: %v", userID, err)
-		return s.databaseUnread(ctx, userID)
+	if wasRead {
+		return s.incrementUnread(ctx, userID)
 	}
 
 	if s.cache != nil {
@@ -218,6 +200,33 @@ func (s *notificationService) unreadAfterAggregate(ctx context.Context, userID u
 		}
 	}
 	return s.databaseUnread(ctx, userID)
+}
+
+// incrementUnread only INCRs a counter that already exists. When the key was
+// evicted (or has never been seeded), CountUnread already includes the row that
+// was just committed, so seeding from the database is authoritative. Blindly
+// incrementing from zero would silently reset a user's badge after a Redis
+// restart.
+func (s *notificationService) incrementUnread(ctx context.Context, userID uuid.UUID) int64 {
+	if s.cache == nil {
+		return s.databaseUnread(ctx, userID)
+	}
+
+	_, found, err := s.cache.GetUnread(ctx, userID)
+	if err != nil {
+		s.logf("failed to read unread counter for %s: %v", userID, err)
+		return s.databaseUnread(ctx, userID)
+	}
+	if !found {
+		return s.databaseUnread(ctx, userID)
+	}
+
+	value, err := s.cache.IncrUnread(ctx, userID)
+	if err != nil {
+		s.logf("failed to increment unread counter for %s: %v", userID, err)
+		return s.databaseUnread(ctx, userID)
+	}
+	return value
 }
 
 func (s *notificationService) databaseUnread(ctx context.Context, userID uuid.UUID) int64 {

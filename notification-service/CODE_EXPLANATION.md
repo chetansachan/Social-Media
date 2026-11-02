@@ -490,8 +490,9 @@ agg:actors:<key>                 →  SET of actor UUIDs
 - `Remember` stores it for one window.
 - `AddActor` returns `false` if the actor is already in the set.
 - `RemoveActor` powers unlike handling.
-- `ShouldBroadcast` uses `agg:rt:<key>` with a 30-second window so a viral post
-  emits at most one realtime frame per 30 seconds.
+- `ShouldBroadcast` uses `agg:rt:<key>` with the configured
+  `REALTIME_THROTTLE` window (30 seconds by default) so a viral post emits at
+  most one realtime frame per window.
 
 ### 7.4 `policy_service.go`
 
@@ -530,7 +531,10 @@ This is the core. Its public methods fall into four groups.
 8. Return the unread count.
 
 `GetUnreadCount` uses `unreadCount`, which prefers the Redis counter and falls
-back to `COUNT(*)`, seeding Redis afterwards.
+back to `COUNT(*)`, seeding Redis afterwards. On the write path the service
+only `INCR`s a counter that already exists: after a Redis restart the key may
+be gone, and `COUNT(*)` (which already includes the row just committed) is the
+authoritative value. Blindly incrementing from zero would reset the badge.
 
 #### Mutations
 
