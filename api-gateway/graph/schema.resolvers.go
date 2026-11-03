@@ -8,6 +8,7 @@ package graph
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/chetansachan/socialflow/api-gateway/graph/model"
 	socialflowpb "github.com/chetansachan/socialflow/proto"
@@ -732,6 +733,36 @@ func (r *queryResolver) GetNotificationSettings(ctx context.Context) (*model.Not
 	}
 
 	return toModelNotificationSettings(res.GetSettings()), nil
+}
+
+// GetUploadSignature is the resolver for the getUploadSignature field.
+// The signature is bound to the authenticated user's folder, so one caller can
+// never overwrite another user's media.
+func (r *queryResolver) GetUploadSignature(ctx context.Context, resourceType *string, folder *string) (*model.UploadSignature, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := r.PostClient.GetUploadSignature(ctx, &socialflowpb.GetUploadSignatureRequest{
+		UserId:       principal.UserID,
+		ResourceType: derefString(resourceType),
+		Folder:       derefString(folder),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.UploadSignature{
+		CloudName: res.GetCloudName(),
+		APIKey:    res.GetApiKey(),
+		Timestamp: strconv.FormatInt(res.GetTimestamp(), 10),
+		Signature: res.GetSignature(),
+		Folder:    res.GetFolder(),
+		PublicID:  res.GetPublicId(),
+		UploadURL: res.GetUploadUrl(),
+		ExpiresAt: strconv.FormatInt(res.GetExpiresAt(), 10),
+	}, nil
 }
 
 // NotificationReceived is the resolver for the notificationReceived field.

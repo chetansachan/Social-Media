@@ -98,6 +98,20 @@ type NotificationSettings {
     timezone: String!
 }
 
+# Short-lived Cloudinary signature for a direct client upload. The API secret
+# never leaves post-service; the client posts the file straight to uploadUrl.
+type UploadSignature {
+    cloudName: String!
+    apiKey: String!
+    # Unix epoch seconds, encoded as a string so the contract outlives 2038.
+    timestamp: String!
+    signature: String!
+    folder: String!
+    publicId: String!
+    uploadUrl: String!
+    expiresAt: String!
+}
+
 type Query {
     getUserById(id: ID!): User! @auth
     getUserByEmail(email: String!): User! @auth
@@ -123,6 +137,7 @@ type Query {
     getNotifications(limit: Int, cursor: String, filter: NotificationType): NotificationResponse! @auth
     getUnreadNotificationCount: Int! @auth
     getNotificationSettings: NotificationSettings! @auth
+    getUploadSignature(resourceType: String, folder: String): UploadSignature! @auth
 }
 
 type Mutation {

@@ -4,6 +4,7 @@ go 1.26.2
 
 require (
 	github.com/99designs/gqlgen v0.17.95
+	github.com/alicebob/miniredis/v2 v2.40.0
 	github.com/chetansachan/socialflow/proto v0.0.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/graph-gophers/dataloader/v7 v7.1.0
@@ -15,7 +16,6 @@ require (
 
 require (
 	github.com/agnivade/levenshtein v1.2.1 // indirect
-	github.com/alicebob/miniredis/v2 v2.40.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/coder/websocket v1.8.15 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect

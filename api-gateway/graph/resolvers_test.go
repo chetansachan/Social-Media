@@ -14,6 +14,18 @@ import (
 
 type fakeUserClient struct {
 	socialflowpb.UserServiceClient
+
+	updateRequests []*socialflowpb.UpdateUserRequest
+}
+
+func (c *fakeUserClient) UpdateUser(ctx context.Context, req *socialflowpb.UpdateUserRequest, _ ...grpc.CallOption) (*socialflowpb.UpdateUserResponse, error) {
+	c.updateRequests = append(c.updateRequests, req)
+	return &socialflowpb.UpdateUserResponse{User: &socialflowpb.User{
+		Id:       req.GetId(),
+		Username: req.GetUsername(),
+		Name:     req.GetName(),
+		Email:    req.GetEmail(),
+	}}, nil
 }
 
 type fakePostClient struct {
@@ -24,6 +36,8 @@ type fakePostClient struct {
 	archived    []string
 	likeStates  map[string]bool
 	getPostErrs error
+
+	signatureRequest *socialflowpb.GetUploadSignatureRequest
 }
 
 func (c *fakePostClient) GetPostById(ctx context.Context, req *socialflowpb.PostByIdRequest, _ ...grpc.CallOption) (*socialflowpb.PostByIdResponse, error) {
@@ -53,6 +67,20 @@ func (c *fakePostClient) GetLikeStates(ctx context.Context, req *socialflowpb.Ge
 		liked[postID] = c.likeStates[postID]
 	}
 	return &socialflowpb.GetLikeStatesResponse{Liked: liked}, nil
+}
+
+func (c *fakePostClient) GetUploadSignature(ctx context.Context, req *socialflowpb.GetUploadSignatureRequest, _ ...grpc.CallOption) (*socialflowpb.GetUploadSignatureResponse, error) {
+	c.signatureRequest = req
+	return &socialflowpb.GetUploadSignatureResponse{
+		CloudName: "demo-cloud",
+		ApiKey:    "demo-key",
+		Timestamp: 1_800_000_000,
+		Signature: "signed",
+		Folder:    req.GetFolder(),
+		PublicId:  "public-id",
+		UploadUrl: "https://api.cloudinary.com/v1_1/demo-cloud/auto/upload",
+		ExpiresAt: 1_800_000_600,
+	}, nil
 }
 
 type fakeFeedClient struct {
@@ -261,6 +289,68 @@ func TestMarkNotificationAsReadRejectsEmptySelection(t *testing.T) {
 
 	if _, err := resolver.MarkNotificationAsRead(viewerContext("u1"), nil); err == nil {
 		t.Fatal("expected an empty notification selection to fail")
+	}
+}
+
+func TestGetUploadSignatureScopesToCaller(t *testing.T) {
+	posts := &fakePostClient{}
+	resolver := &queryResolver{&Resolver{PostClient: posts}}
+
+	resourceType := "image"
+	folder := "socialflow/custom"
+	res, err := resolver.GetUploadSignature(viewerContext("u1"), &resourceType, &folder)
+	if err != nil {
+		t.Fatalf("GetUploadSignature: %v", err)
+	}
+
+	if posts.signatureRequest.GetUserId() != "u1" {
+		t.Fatalf("signature requested for %q, want the authenticated caller", posts.signatureRequest.GetUserId())
+	}
+	if posts.signatureRequest.GetResourceType() != "image" || posts.signatureRequest.GetFolder() != "socialflow/custom" {
+		t.Fatalf("request = %+v", posts.signatureRequest)
+	}
+	if res.CloudName != "demo-cloud" || res.Signature != "signed" {
+		t.Fatalf("signature = %+v", res)
+	}
+	if res.Timestamp != "1800000000" || res.ExpiresAt != "1800000600" {
+		t.Fatalf("timestamps = %q/%q", res.Timestamp, res.ExpiresAt)
+	}
+}
+
+func TestUpdateUserRejectsAnotherUsersProfile(t *testing.T) {
+	users := &fakeUserClient{}
+	resolver := &mutationResolver{&Resolver{UserClient: users}}
+
+	name := "Hijacked"
+	_, err := resolver.UpdateUser(viewerContext("u1"), model.UpdateUserInput{
+		ID:   "u2",
+		Name: &name,
+	})
+	if err == nil {
+		t.Fatal("expected updating another user's profile to fail")
+	}
+	gqlErr, ok := err.(*gqlerror.Error)
+	if !ok || gqlErr.Extensions["code"] != "FORBIDDEN" {
+		t.Fatalf("error = %#v", err)
+	}
+	if len(users.updateRequests) != 0 {
+		t.Fatalf("user-service was called: %+v", users.updateRequests)
+	}
+}
+
+func TestUpdateUserScopesRequestToPrincipal(t *testing.T) {
+	users := &fakeUserClient{}
+	resolver := &mutationResolver{&Resolver{UserClient: users}}
+
+	name := "New Name"
+	if _, err := resolver.UpdateUser(viewerContext("u1"), model.UpdateUserInput{
+		ID:   "u1",
+		Name: &name,
+	}); err != nil {
+		t.Fatalf("UpdateUser: %v", err)
+	}
+	if len(users.updateRequests) != 1 || users.updateRequests[0].GetId() != "u1" {
+		t.Fatalf("requests = %+v", users.updateRequests)
 	}
 }
 

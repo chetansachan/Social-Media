@@ -215,6 +215,17 @@ type UpdateUserInput struct {
 	IsPublic *bool   `json:"isPublic,omitempty"`
 }
 
+type UploadSignature struct {
+	CloudName string `json:"cloudName"`
+	APIKey    string `json:"apiKey"`
+	Timestamp string `json:"timestamp"`
+	Signature string `json:"signature"`
+	Folder    string `json:"folder"`
+	PublicID  string `json:"publicId"`
+	UploadURL string `json:"uploadUrl"`
+	ExpiresAt string `json:"expiresAt"`
+}
+
 type User struct {
 	ID        string `json:"id"`
 	Username  string `json:"username"`
