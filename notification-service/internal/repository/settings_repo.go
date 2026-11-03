@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/chetansachan/socialflow/notification-service/internal/database"
 	"github.com/chetansachan/socialflow/notification-service/internal/models"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -22,16 +23,25 @@ type SettingsRepository interface {
 }
 
 type settingsRepository struct {
-	db       *pgxpool.Pool
+	writer   *pgxpool.Pool
+	reader   *pgxpool.Pool
 	cache    *redis.Client
 	cacheTTL time.Duration
 }
 
-func NewSettingsRepository(db *pgxpool.Pool, cache *redis.Client, cacheTTL time.Duration) SettingsRepository {
+// NewSettingsRepository builds the preference repository. Reads fall through to
+// the replica, and Save writes through to the primary then refreshes the Redis
+// cache, so the caller's next Get never depends on replication lag.
+func NewSettingsRepository(db *database.DB, cache *redis.Client, cacheTTL time.Duration) SettingsRepository {
 	if cacheTTL <= 0 {
 		cacheTTL = 24 * time.Hour
 	}
-	return &settingsRepository{db: db, cache: cache, cacheTTL: cacheTTL}
+	return &settingsRepository{
+		writer:   db.Writer(),
+		reader:   db.Reader(),
+		cache:    cache,
+		cacheTTL: cacheTTL,
+	}
 }
 
 func settingsCacheKey(userID uuid.UUID) string {
@@ -66,7 +76,7 @@ func (r *settingsRepository) Get(ctx context.Context, userID uuid.UUID) (*models
 	`
 
 	settings := &models.NotificationSettings{}
-	err := r.db.QueryRow(ctx, query, userID).Scan(
+	err := r.reader.QueryRow(ctx, query, userID).Scan(
 		&settings.UserID,
 		&settings.InAppLikes,
 		&settings.InAppComments,
@@ -134,7 +144,7 @@ func (r *settingsRepository) Save(ctx context.Context, settings *models.Notifica
 		RETURNING updated_at
 	`
 
-	if err := r.db.QueryRow(ctx, query,
+	if err := r.writer.QueryRow(ctx, query,
 		settings.UserID,
 		settings.InAppLikes,
 		settings.InAppComments,

@@ -18,6 +18,7 @@ type Config struct {
 	Env    string
 
 	DatabaseURL       string
+	DatabaseReadURL   string
 	DBMaxOpenConns    int
 	DBMaxIdleConns    int
 	DBConnMaxLifetime time.Duration
@@ -84,6 +85,7 @@ func Load() *Config {
 		Env:    env,
 
 		DatabaseURL:       getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/socialflow_notifications?sslmode=disable"),
+		DatabaseReadURL:   os.Getenv("DATABASE_READ_URL"),
 		DBMaxOpenConns:    getEnvAsInt("DB_MAX_OPEN_CONNS", 25),
 		DBMaxIdleConns:    getEnvAsInt("DB_MAX_IDLE_CONNS", 10),
 		DBConnMaxLifetime: getEnvAsDuration("DB_CONN_MAX_LIFETIME", 5*time.Minute),

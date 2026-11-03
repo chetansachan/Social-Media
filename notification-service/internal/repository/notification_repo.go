@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/chetansachan/socialflow/notification-service/internal/database"
 	"github.com/chetansachan/socialflow/notification-service/internal/models"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -31,11 +32,19 @@ type NotificationRepository interface {
 }
 
 type notificationRepository struct {
-	db *pgxpool.Pool
+	writer *pgxpool.Pool
+	reader *pgxpool.Pool
 }
 
-func NewNotificationRepository(db *pgxpool.Pool) NotificationRepository {
-	return &notificationRepository{db: db}
+// NewNotificationRepository builds the inbox repository. The inbox list is the
+// highest-volume read in this service and is served from the replica; every
+// mutation and every read immediately following a write (GetByID during
+// aggregation) stays on the primary.
+func NewNotificationRepository(db *database.DB) NotificationRepository {
+	return &notificationRepository{
+		writer: db.Writer(),
+		reader: db.Reader(),
+	}
 }
 
 const notificationColumns = `
@@ -93,7 +102,7 @@ func (r *notificationRepository) Create(ctx context.Context, input *models.Creat
 		VALUES ($1, $2::notification_type, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING ` + notificationColumns
 
-	notification, err := scanNotification(r.db.QueryRow(ctx, query,
+	notification, err := scanNotification(r.writer.QueryRow(ctx, query,
 		input.RecipientID,
 		string(input.Type),
 		input.EntityID,
@@ -113,7 +122,7 @@ func (r *notificationRepository) Create(ctx context.Context, input *models.Creat
 func (r *notificationRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Notification, error) {
 	query := `SELECT ` + notificationColumns + ` FROM notifications WHERE id = $1 AND deleted_at IS NULL`
 
-	notification, err := scanNotification(r.db.QueryRow(ctx, query, id))
+	notification, err := scanNotification(r.writer.QueryRow(ctx, query, id))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, models.ErrNotificationNotFound
@@ -150,7 +159,7 @@ func (r *notificationRepository) List(ctx context.Context, recipientID uuid.UUID
 		LIMIT $%d
 	`, notificationColumns, where, len(args))
 
-	rows, err := r.db.Query(ctx, query, args...)
+	rows, err := r.reader.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query notifications: %w", err)
 	}
@@ -193,7 +202,7 @@ func (r *notificationRepository) MarkRead(ctx context.Context, recipientID uuid.
 		  AND is_read = FALSE
 		  AND deleted_at IS NULL
 	`
-	tag, err := r.db.Exec(ctx, query, recipientID, parsed)
+	tag, err := r.writer.Exec(ctx, query, recipientID, parsed)
 	if err != nil {
 		return 0, fmt.Errorf("failed to mark notifications as read: %w", err)
 	}
@@ -206,7 +215,7 @@ func (r *notificationRepository) MarkAllRead(ctx context.Context, recipientID uu
 		SET is_read = TRUE, read_at = NOW(), updated_at = NOW()
 		WHERE recipient_id = $1 AND is_read = FALSE AND deleted_at IS NULL
 	`
-	tag, err := r.db.Exec(ctx, query, recipientID)
+	tag, err := r.writer.Exec(ctx, query, recipientID)
 	if err != nil {
 		return 0, fmt.Errorf("failed to mark all notifications as read: %w", err)
 	}
@@ -223,7 +232,7 @@ func (r *notificationRepository) Delete(ctx context.Context, recipientID uuid.UU
 		RETURNING is_read
 	`
 	var isRead bool
-	if err := r.db.QueryRow(ctx, query, id, recipientID).Scan(&isRead); err != nil {
+	if err := r.writer.QueryRow(ctx, query, id, recipientID).Scan(&isRead); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return false, models.ErrNotificationNotFound
 		}
@@ -239,7 +248,7 @@ func (r *notificationRepository) CountUnread(ctx context.Context, recipientID uu
 		WHERE recipient_id = $1 AND is_read = FALSE AND deleted_at IS NULL
 	`
 	var count int
-	if err := r.db.QueryRow(ctx, query, recipientID).Scan(&count); err != nil {
+	if err := r.writer.QueryRow(ctx, query, recipientID).Scan(&count); err != nil {
 		return 0, fmt.Errorf("failed to count unread notifications: %w", err)
 	}
 	return count, nil
@@ -281,7 +290,7 @@ func (r *notificationRepository) UpdateAggregate(ctx context.Context, id uuid.UU
 	`, setClause)
 
 	var wasRead bool
-	if err := r.db.QueryRow(ctx, query, id, actorIDs, total, title, preview).Scan(&wasRead); err != nil {
+	if err := r.writer.QueryRow(ctx, query, id, actorIDs, total, title, preview).Scan(&wasRead); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return false, models.ErrNotificationNotFound
 		}
@@ -311,7 +320,7 @@ func (r *notificationRepository) EnsurePartitions(ctx context.Context, monthsAhe
 			start.Format("2006-01-02 15:04:05Z07:00"),
 			end.Format("2006-01-02 15:04:05Z07:00"),
 		)
-		if _, err := r.db.Exec(ctx, query); err != nil {
+		if _, err := r.writer.Exec(ctx, query); err != nil {
 			return fmt.Errorf("failed to create partition %s: %w", name, err)
 		}
 	}
@@ -334,7 +343,7 @@ func (r *notificationRepository) PruneBefore(ctx context.Context, cutoff time.Ti
 				LIMIT $2
 			)
 		`
-		tag, err := r.db.Exec(ctx, query, cutoff, batchSize)
+		tag, err := r.writer.Exec(ctx, query, cutoff, batchSize)
 		if err != nil {
 			return total, fmt.Errorf("failed to prune notifications: %w", err)
 		}
@@ -362,7 +371,7 @@ func (r *notificationRepository) DropPartitionsBefore(ctx context.Context, cutof
 		  AND ns.nspname = current_schema()
 		  AND child.relname LIKE 'notifications\_%'
 	`
-	rows, err := r.db.Query(ctx, query)
+	rows, err := r.writer.Query(ctx, query)
 	if err != nil {
 		return 0, fmt.Errorf("failed to list notification partitions: %w", err)
 	}
@@ -397,7 +406,7 @@ func (r *notificationRepository) DropPartitionsBefore(ctx context.Context, cutof
 			continue
 		}
 
-		if _, err := r.db.Exec(ctx, "DROP TABLE IF EXISTS "+pgx.Identifier{name}.Sanitize()); err != nil {
+		if _, err := r.writer.Exec(ctx, "DROP TABLE IF EXISTS "+pgx.Identifier{name}.Sanitize()); err != nil {
 			return dropped, fmt.Errorf("failed to drop partition %s: %w", name, err)
 		}
 		dropped++

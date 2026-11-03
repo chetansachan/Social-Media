@@ -35,7 +35,13 @@ func main() {
 
 	// PostgreSQL is the system of record: without it the inbox cannot serve
 	// reads or persist events, so a failure here is fatal.
-	dbPool, err := database.ConnectPostgres(ctx, cfg.DatabaseURL, cfg.DBMaxOpenConns, cfg.DBMaxIdleConns, cfg.DBConnMaxLifetime)
+	dbPool, err := database.Connect(ctx, database.Options{
+		WriteURL:        cfg.DatabaseURL,
+		ReadURL:         cfg.DatabaseReadURL,
+		MaxConns:        cfg.DBMaxOpenConns,
+		MinConns:        cfg.DBMaxIdleConns,
+		MaxConnLifetime: cfg.DBConnMaxLifetime,
+	})
 	if err != nil {
 		logger.Fatalf("failed to connect to PostgreSQL: %v", err)
 	}

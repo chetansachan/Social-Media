@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/chetansachan/socialflow/notification-service/internal/database"
 	"github.com/chetansachan/socialflow/notification-service/internal/models"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -18,11 +19,14 @@ type DeviceTokenRepository interface {
 }
 
 type deviceTokenRepository struct {
-	db *pgxpool.Pool
+	writer *pgxpool.Pool
 }
 
-func NewDeviceTokenRepository(db *pgxpool.Pool) DeviceTokenRepository {
-	return &deviceTokenRepository{db: db}
+// NewDeviceTokenRepository keeps every device operation on the primary. Token
+// registration and push dispatch are separated by milliseconds, so a replica
+// read here would routinely miss a just-registered device.
+func NewDeviceTokenRepository(db *database.DB) DeviceTokenRepository {
+	return &deviceTokenRepository{writer: db.Writer()}
 }
 
 func (r *deviceTokenRepository) Register(ctx context.Context, userID uuid.UUID, token, platform, deviceName, appVersion string) error {
@@ -37,7 +41,7 @@ func (r *deviceTokenRepository) Register(ctx context.Context, userID uuid.UUID, 
 			is_active = TRUE,
 			last_seen_at = NOW()
 	`
-	if _, err := r.db.Exec(ctx, query, userID, token, platform, deviceName, appVersion); err != nil {
+	if _, err := r.writer.Exec(ctx, query, userID, token, platform, deviceName, appVersion); err != nil {
 		return fmt.Errorf("failed to register device token: %w", err)
 	}
 	return nil
@@ -49,7 +53,7 @@ func (r *deviceTokenRepository) Revoke(ctx context.Context, userID uuid.UUID, to
 		SET is_active = FALSE
 		WHERE user_id = $1 AND token = $2
 	`
-	if _, err := r.db.Exec(ctx, query, userID, token); err != nil {
+	if _, err := r.writer.Exec(ctx, query, userID, token); err != nil {
 		return fmt.Errorf("failed to revoke device token: %w", err)
 	}
 	return nil
@@ -63,7 +67,7 @@ func (r *deviceTokenRepository) ListActive(ctx context.Context, userID uuid.UUID
 		WHERE user_id = $1 AND is_active = TRUE
 		ORDER BY last_seen_at DESC
 	`
-	rows, err := r.db.Query(ctx, query, userID)
+	rows, err := r.writer.Query(ctx, query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list device tokens: %w", err)
 	}
@@ -95,7 +99,7 @@ func (r *deviceTokenRepository) ListActive(ctx context.Context, userID uuid.UUID
 
 func (r *deviceTokenRepository) MarkInactive(ctx context.Context, token string) error {
 	query := `UPDATE user_device_tokens SET is_active = FALSE WHERE token = $1`
-	if _, err := r.db.Exec(ctx, query, token); err != nil {
+	if _, err := r.writer.Exec(ctx, query, token); err != nil {
 		return fmt.Errorf("failed to deactivate device token: %w", err)
 	}
 	return nil
