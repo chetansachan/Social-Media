@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.12
 // 	protoc        v7.36.0
-// source: proto/post.proto
+// source: post.proto
 
 package proto
 
@@ -37,7 +37,7 @@ type Post struct {
 
 func (x *Post) Reset() {
 	*x = Post{}
-	mi := &file_proto_post_proto_msgTypes[0]
+	mi := &file_post_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -49,7 +49,7 @@ func (x *Post) String() string {
 func (*Post) ProtoMessage() {}
 
 func (x *Post) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_post_proto_msgTypes[0]
+	mi := &file_post_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -62,7 +62,7 @@ func (x *Post) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Post.ProtoReflect.Descriptor instead.
 func (*Post) Descriptor() ([]byte, []int) {
-	return file_proto_post_proto_rawDescGZIP(), []int{0}
+	return file_post_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Post) GetId() string {
@@ -130,7 +130,7 @@ type PostByIdRequest struct {
 
 func (x *PostByIdRequest) Reset() {
 	*x = PostByIdRequest{}
-	mi := &file_proto_post_proto_msgTypes[1]
+	mi := &file_post_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -142,7 +142,7 @@ func (x *PostByIdRequest) String() string {
 func (*PostByIdRequest) ProtoMessage() {}
 
 func (x *PostByIdRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_post_proto_msgTypes[1]
+	mi := &file_post_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -155,7 +155,7 @@ func (x *PostByIdRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PostByIdRequest.ProtoReflect.Descriptor instead.
 func (*PostByIdRequest) Descriptor() ([]byte, []int) {
-	return file_proto_post_proto_rawDescGZIP(), []int{1}
+	return file_post_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *PostByIdRequest) GetId() string {
@@ -174,7 +174,7 @@ type PostByIdResponse struct {
 
 func (x *PostByIdResponse) Reset() {
 	*x = PostByIdResponse{}
-	mi := &file_proto_post_proto_msgTypes[2]
+	mi := &file_post_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -186,7 +186,7 @@ func (x *PostByIdResponse) String() string {
 func (*PostByIdResponse) ProtoMessage() {}
 
 func (x *PostByIdResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_post_proto_msgTypes[2]
+	mi := &file_post_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -199,7 +199,7 @@ func (x *PostByIdResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PostByIdResponse.ProtoReflect.Descriptor instead.
 func (*PostByIdResponse) Descriptor() ([]byte, []int) {
-	return file_proto_post_proto_rawDescGZIP(), []int{2}
+	return file_post_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *PostByIdResponse) GetPost() *Post {
@@ -218,7 +218,7 @@ type DeletePostRequest struct {
 
 func (x *DeletePostRequest) Reset() {
 	*x = DeletePostRequest{}
-	mi := &file_proto_post_proto_msgTypes[3]
+	mi := &file_post_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -230,7 +230,7 @@ func (x *DeletePostRequest) String() string {
 func (*DeletePostRequest) ProtoMessage() {}
 
 func (x *DeletePostRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_post_proto_msgTypes[3]
+	mi := &file_post_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -243,7 +243,7 @@ func (x *DeletePostRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeletePostRequest.ProtoReflect.Descriptor instead.
 func (*DeletePostRequest) Descriptor() ([]byte, []int) {
-	return file_proto_post_proto_rawDescGZIP(), []int{3}
+	return file_post_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *DeletePostRequest) GetPostId() string {
@@ -262,7 +262,7 @@ type DeletePostResponse struct {
 
 func (x *DeletePostResponse) Reset() {
 	*x = DeletePostResponse{}
-	mi := &file_proto_post_proto_msgTypes[4]
+	mi := &file_post_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -274,7 +274,7 @@ func (x *DeletePostResponse) String() string {
 func (*DeletePostResponse) ProtoMessage() {}
 
 func (x *DeletePostResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_post_proto_msgTypes[4]
+	mi := &file_post_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -287,7 +287,7 @@ func (x *DeletePostResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeletePostResponse.ProtoReflect.Descriptor instead.
 func (*DeletePostResponse) Descriptor() ([]byte, []int) {
-	return file_proto_post_proto_rawDescGZIP(), []int{4}
+	return file_post_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *DeletePostResponse) GetMessage() string {
@@ -309,7 +309,7 @@ type CreatePostRequest struct {
 
 func (x *CreatePostRequest) Reset() {
 	*x = CreatePostRequest{}
-	mi := &file_proto_post_proto_msgTypes[5]
+	mi := &file_post_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -321,7 +321,7 @@ func (x *CreatePostRequest) String() string {
 func (*CreatePostRequest) ProtoMessage() {}
 
 func (x *CreatePostRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_post_proto_msgTypes[5]
+	mi := &file_post_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -334,7 +334,7 @@ func (x *CreatePostRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreatePostRequest.ProtoReflect.Descriptor instead.
 func (*CreatePostRequest) Descriptor() ([]byte, []int) {
-	return file_proto_post_proto_rawDescGZIP(), []int{5}
+	return file_post_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *CreatePostRequest) GetAuthorId() string {
@@ -374,7 +374,7 @@ type CreatePostResponse struct {
 
 func (x *CreatePostResponse) Reset() {
 	*x = CreatePostResponse{}
-	mi := &file_proto_post_proto_msgTypes[6]
+	mi := &file_post_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -386,7 +386,7 @@ func (x *CreatePostResponse) String() string {
 func (*CreatePostResponse) ProtoMessage() {}
 
 func (x *CreatePostResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_post_proto_msgTypes[6]
+	mi := &file_post_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -399,7 +399,7 @@ func (x *CreatePostResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreatePostResponse.ProtoReflect.Descriptor instead.
 func (*CreatePostResponse) Descriptor() ([]byte, []int) {
-	return file_proto_post_proto_rawDescGZIP(), []int{6}
+	return file_post_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *CreatePostResponse) GetPost() *Post {
@@ -421,7 +421,7 @@ type UpdatePostRequest struct {
 
 func (x *UpdatePostRequest) Reset() {
 	*x = UpdatePostRequest{}
-	mi := &file_proto_post_proto_msgTypes[7]
+	mi := &file_post_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -433,7 +433,7 @@ func (x *UpdatePostRequest) String() string {
 func (*UpdatePostRequest) ProtoMessage() {}
 
 func (x *UpdatePostRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_post_proto_msgTypes[7]
+	mi := &file_post_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -446,7 +446,7 @@ func (x *UpdatePostRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePostRequest.ProtoReflect.Descriptor instead.
 func (*UpdatePostRequest) Descriptor() ([]byte, []int) {
-	return file_proto_post_proto_rawDescGZIP(), []int{7}
+	return file_post_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *UpdatePostRequest) GetPostId() string {
@@ -486,7 +486,7 @@ type UpdatePostResponse struct {
 
 func (x *UpdatePostResponse) Reset() {
 	*x = UpdatePostResponse{}
-	mi := &file_proto_post_proto_msgTypes[8]
+	mi := &file_post_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -498,7 +498,7 @@ func (x *UpdatePostResponse) String() string {
 func (*UpdatePostResponse) ProtoMessage() {}
 
 func (x *UpdatePostResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_post_proto_msgTypes[8]
+	mi := &file_post_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -511,7 +511,7 @@ func (x *UpdatePostResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePostResponse.ProtoReflect.Descriptor instead.
 func (*UpdatePostResponse) Descriptor() ([]byte, []int) {
-	return file_proto_post_proto_rawDescGZIP(), []int{8}
+	return file_post_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *UpdatePostResponse) GetPost() *Post {
@@ -530,7 +530,7 @@ type ArchivedPostByIdRequest struct {
 
 func (x *ArchivedPostByIdRequest) Reset() {
 	*x = ArchivedPostByIdRequest{}
-	mi := &file_proto_post_proto_msgTypes[9]
+	mi := &file_post_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -542,7 +542,7 @@ func (x *ArchivedPostByIdRequest) String() string {
 func (*ArchivedPostByIdRequest) ProtoMessage() {}
 
 func (x *ArchivedPostByIdRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_post_proto_msgTypes[9]
+	mi := &file_post_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -555,7 +555,7 @@ func (x *ArchivedPostByIdRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ArchivedPostByIdRequest.ProtoReflect.Descriptor instead.
 func (*ArchivedPostByIdRequest) Descriptor() ([]byte, []int) {
-	return file_proto_post_proto_rawDescGZIP(), []int{9}
+	return file_post_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ArchivedPostByIdRequest) GetId() string {
@@ -574,7 +574,7 @@ type ArchivedPostByIdResponse struct {
 
 func (x *ArchivedPostByIdResponse) Reset() {
 	*x = ArchivedPostByIdResponse{}
-	mi := &file_proto_post_proto_msgTypes[10]
+	mi := &file_post_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -586,7 +586,7 @@ func (x *ArchivedPostByIdResponse) String() string {
 func (*ArchivedPostByIdResponse) ProtoMessage() {}
 
 func (x *ArchivedPostByIdResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_post_proto_msgTypes[10]
+	mi := &file_post_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -599,7 +599,7 @@ func (x *ArchivedPostByIdResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ArchivedPostByIdResponse.ProtoReflect.Descriptor instead.
 func (*ArchivedPostByIdResponse) Descriptor() ([]byte, []int) {
-	return file_proto_post_proto_rawDescGZIP(), []int{10}
+	return file_post_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ArchivedPostByIdResponse) GetPost() *Post {
@@ -618,7 +618,7 @@ type MovePostToArchivedRequest struct {
 
 func (x *MovePostToArchivedRequest) Reset() {
 	*x = MovePostToArchivedRequest{}
-	mi := &file_proto_post_proto_msgTypes[11]
+	mi := &file_post_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -630,7 +630,7 @@ func (x *MovePostToArchivedRequest) String() string {
 func (*MovePostToArchivedRequest) ProtoMessage() {}
 
 func (x *MovePostToArchivedRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_post_proto_msgTypes[11]
+	mi := &file_post_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -643,7 +643,7 @@ func (x *MovePostToArchivedRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MovePostToArchivedRequest.ProtoReflect.Descriptor instead.
 func (*MovePostToArchivedRequest) Descriptor() ([]byte, []int) {
-	return file_proto_post_proto_rawDescGZIP(), []int{11}
+	return file_post_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *MovePostToArchivedRequest) GetPostId() string {
@@ -662,7 +662,7 @@ type MovePostToArchivedResponse struct {
 
 func (x *MovePostToArchivedResponse) Reset() {
 	*x = MovePostToArchivedResponse{}
-	mi := &file_proto_post_proto_msgTypes[12]
+	mi := &file_post_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -674,7 +674,7 @@ func (x *MovePostToArchivedResponse) String() string {
 func (*MovePostToArchivedResponse) ProtoMessage() {}
 
 func (x *MovePostToArchivedResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_post_proto_msgTypes[12]
+	mi := &file_post_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -687,7 +687,7 @@ func (x *MovePostToArchivedResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MovePostToArchivedResponse.ProtoReflect.Descriptor instead.
 func (*MovePostToArchivedResponse) Descriptor() ([]byte, []int) {
-	return file_proto_post_proto_rawDescGZIP(), []int{12}
+	return file_post_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *MovePostToArchivedResponse) GetMessage() string {
@@ -706,7 +706,7 @@ type AllArchivedPostRequest struct {
 
 func (x *AllArchivedPostRequest) Reset() {
 	*x = AllArchivedPostRequest{}
-	mi := &file_proto_post_proto_msgTypes[13]
+	mi := &file_post_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -718,7 +718,7 @@ func (x *AllArchivedPostRequest) String() string {
 func (*AllArchivedPostRequest) ProtoMessage() {}
 
 func (x *AllArchivedPostRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_post_proto_msgTypes[13]
+	mi := &file_post_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -731,7 +731,7 @@ func (x *AllArchivedPostRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AllArchivedPostRequest.ProtoReflect.Descriptor instead.
 func (*AllArchivedPostRequest) Descriptor() ([]byte, []int) {
-	return file_proto_post_proto_rawDescGZIP(), []int{13}
+	return file_post_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *AllArchivedPostRequest) GetAuthorId() string {
@@ -750,7 +750,7 @@ type AllArchivedPostResponse struct {
 
 func (x *AllArchivedPostResponse) Reset() {
 	*x = AllArchivedPostResponse{}
-	mi := &file_proto_post_proto_msgTypes[14]
+	mi := &file_post_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -762,7 +762,7 @@ func (x *AllArchivedPostResponse) String() string {
 func (*AllArchivedPostResponse) ProtoMessage() {}
 
 func (x *AllArchivedPostResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_post_proto_msgTypes[14]
+	mi := &file_post_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -775,7 +775,7 @@ func (x *AllArchivedPostResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AllArchivedPostResponse.ProtoReflect.Descriptor instead.
 func (*AllArchivedPostResponse) Descriptor() ([]byte, []int) {
-	return file_proto_post_proto_rawDescGZIP(), []int{14}
+	return file_post_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *AllArchivedPostResponse) GetPost() []*Post {
@@ -794,7 +794,7 @@ type AllPostRequest struct {
 
 func (x *AllPostRequest) Reset() {
 	*x = AllPostRequest{}
-	mi := &file_proto_post_proto_msgTypes[15]
+	mi := &file_post_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -806,7 +806,7 @@ func (x *AllPostRequest) String() string {
 func (*AllPostRequest) ProtoMessage() {}
 
 func (x *AllPostRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_post_proto_msgTypes[15]
+	mi := &file_post_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -819,7 +819,7 @@ func (x *AllPostRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AllPostRequest.ProtoReflect.Descriptor instead.
 func (*AllPostRequest) Descriptor() ([]byte, []int) {
-	return file_proto_post_proto_rawDescGZIP(), []int{15}
+	return file_post_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *AllPostRequest) GetAuthorId() string {
@@ -838,7 +838,7 @@ type AllPostResponse struct {
 
 func (x *AllPostResponse) Reset() {
 	*x = AllPostResponse{}
-	mi := &file_proto_post_proto_msgTypes[16]
+	mi := &file_post_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -850,7 +850,7 @@ func (x *AllPostResponse) String() string {
 func (*AllPostResponse) ProtoMessage() {}
 
 func (x *AllPostResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_post_proto_msgTypes[16]
+	mi := &file_post_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -863,7 +863,7 @@ func (x *AllPostResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AllPostResponse.ProtoReflect.Descriptor instead.
 func (*AllPostResponse) Descriptor() ([]byte, []int) {
-	return file_proto_post_proto_rawDescGZIP(), []int{16}
+	return file_post_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *AllPostResponse) GetPost() []*Post {
@@ -883,7 +883,7 @@ type LikePostRequest struct {
 
 func (x *LikePostRequest) Reset() {
 	*x = LikePostRequest{}
-	mi := &file_proto_post_proto_msgTypes[17]
+	mi := &file_post_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -895,7 +895,7 @@ func (x *LikePostRequest) String() string {
 func (*LikePostRequest) ProtoMessage() {}
 
 func (x *LikePostRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_post_proto_msgTypes[17]
+	mi := &file_post_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -908,7 +908,7 @@ func (x *LikePostRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LikePostRequest.ProtoReflect.Descriptor instead.
 func (*LikePostRequest) Descriptor() ([]byte, []int) {
-	return file_proto_post_proto_rawDescGZIP(), []int{17}
+	return file_post_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *LikePostRequest) GetPostId() string {
@@ -935,7 +935,7 @@ type LikePostResponse struct {
 
 func (x *LikePostResponse) Reset() {
 	*x = LikePostResponse{}
-	mi := &file_proto_post_proto_msgTypes[18]
+	mi := &file_post_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -947,7 +947,7 @@ func (x *LikePostResponse) String() string {
 func (*LikePostResponse) ProtoMessage() {}
 
 func (x *LikePostResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_post_proto_msgTypes[18]
+	mi := &file_post_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -960,7 +960,7 @@ func (x *LikePostResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LikePostResponse.ProtoReflect.Descriptor instead.
 func (*LikePostResponse) Descriptor() ([]byte, []int) {
-	return file_proto_post_proto_rawDescGZIP(), []int{18}
+	return file_post_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *LikePostResponse) GetIsLiked() bool {
@@ -986,7 +986,7 @@ type GetAllPostLikersRequest struct {
 
 func (x *GetAllPostLikersRequest) Reset() {
 	*x = GetAllPostLikersRequest{}
-	mi := &file_proto_post_proto_msgTypes[19]
+	mi := &file_post_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -998,7 +998,7 @@ func (x *GetAllPostLikersRequest) String() string {
 func (*GetAllPostLikersRequest) ProtoMessage() {}
 
 func (x *GetAllPostLikersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_post_proto_msgTypes[19]
+	mi := &file_post_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1011,7 +1011,7 @@ func (x *GetAllPostLikersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAllPostLikersRequest.ProtoReflect.Descriptor instead.
 func (*GetAllPostLikersRequest) Descriptor() ([]byte, []int) {
-	return file_proto_post_proto_rawDescGZIP(), []int{19}
+	return file_post_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *GetAllPostLikersRequest) GetPostId() string {
@@ -1030,7 +1030,7 @@ type GetAllPostLikersResponse struct {
 
 func (x *GetAllPostLikersResponse) Reset() {
 	*x = GetAllPostLikersResponse{}
-	mi := &file_proto_post_proto_msgTypes[20]
+	mi := &file_post_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1042,7 +1042,7 @@ func (x *GetAllPostLikersResponse) String() string {
 func (*GetAllPostLikersResponse) ProtoMessage() {}
 
 func (x *GetAllPostLikersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_post_proto_msgTypes[20]
+	mi := &file_post_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1055,7 +1055,7 @@ func (x *GetAllPostLikersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAllPostLikersResponse.ProtoReflect.Descriptor instead.
 func (*GetAllPostLikersResponse) Descriptor() ([]byte, []int) {
-	return file_proto_post_proto_rawDescGZIP(), []int{20}
+	return file_post_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *GetAllPostLikersResponse) GetUserIds() []string {
@@ -1074,7 +1074,7 @@ type GetAllLikedPostsRequest struct {
 
 func (x *GetAllLikedPostsRequest) Reset() {
 	*x = GetAllLikedPostsRequest{}
-	mi := &file_proto_post_proto_msgTypes[21]
+	mi := &file_post_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1086,7 +1086,7 @@ func (x *GetAllLikedPostsRequest) String() string {
 func (*GetAllLikedPostsRequest) ProtoMessage() {}
 
 func (x *GetAllLikedPostsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_post_proto_msgTypes[21]
+	mi := &file_post_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1099,7 +1099,7 @@ func (x *GetAllLikedPostsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAllLikedPostsRequest.ProtoReflect.Descriptor instead.
 func (*GetAllLikedPostsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_post_proto_rawDescGZIP(), []int{21}
+	return file_post_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *GetAllLikedPostsRequest) GetUserId() string {
@@ -1118,7 +1118,7 @@ type GetAllLikedPostsResponse struct {
 
 func (x *GetAllLikedPostsResponse) Reset() {
 	*x = GetAllLikedPostsResponse{}
-	mi := &file_proto_post_proto_msgTypes[22]
+	mi := &file_post_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1130,7 +1130,7 @@ func (x *GetAllLikedPostsResponse) String() string {
 func (*GetAllLikedPostsResponse) ProtoMessage() {}
 
 func (x *GetAllLikedPostsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_post_proto_msgTypes[22]
+	mi := &file_post_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1143,7 +1143,7 @@ func (x *GetAllLikedPostsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAllLikedPostsResponse.ProtoReflect.Descriptor instead.
 func (*GetAllLikedPostsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_post_proto_rawDescGZIP(), []int{22}
+	return file_post_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *GetAllLikedPostsResponse) GetPost() []*Post {
@@ -1153,11 +1153,268 @@ func (x *GetAllLikedPostsResponse) GetPost() []*Post {
 	return nil
 }
 
-var File_proto_post_proto protoreflect.FileDescriptor
+type GetLikeStatesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	PostIds       []string               `protobuf:"bytes,2,rep,name=post_ids,json=postIds,proto3" json:"post_ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
 
-const file_proto_post_proto_rawDesc = "" +
+func (x *GetLikeStatesRequest) Reset() {
+	*x = GetLikeStatesRequest{}
+	mi := &file_post_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetLikeStatesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetLikeStatesRequest) ProtoMessage() {}
+
+func (x *GetLikeStatesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_post_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetLikeStatesRequest.ProtoReflect.Descriptor instead.
+func (*GetLikeStatesRequest) Descriptor() ([]byte, []int) {
+	return file_post_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *GetLikeStatesRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *GetLikeStatesRequest) GetPostIds() []string {
+	if x != nil {
+		return x.PostIds
+	}
+	return nil
+}
+
+type GetLikeStatesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Liked         map[string]bool        `protobuf:"bytes,1,rep,name=liked,proto3" json:"liked,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetLikeStatesResponse) Reset() {
+	*x = GetLikeStatesResponse{}
+	mi := &file_post_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetLikeStatesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetLikeStatesResponse) ProtoMessage() {}
+
+func (x *GetLikeStatesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_post_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetLikeStatesResponse.ProtoReflect.Descriptor instead.
+func (*GetLikeStatesResponse) Descriptor() ([]byte, []int) {
+	return file_post_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *GetLikeStatesResponse) GetLiked() map[string]bool {
+	if x != nil {
+		return x.Liked
+	}
+	return nil
+}
+
+type GetUploadSignatureRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	ResourceType  string                 `protobuf:"bytes,2,opt,name=resource_type,json=resourceType,proto3" json:"resource_type,omitempty"`
+	Folder        string                 `protobuf:"bytes,3,opt,name=folder,proto3" json:"folder,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUploadSignatureRequest) Reset() {
+	*x = GetUploadSignatureRequest{}
+	mi := &file_post_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUploadSignatureRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUploadSignatureRequest) ProtoMessage() {}
+
+func (x *GetUploadSignatureRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_post_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUploadSignatureRequest.ProtoReflect.Descriptor instead.
+func (*GetUploadSignatureRequest) Descriptor() ([]byte, []int) {
+	return file_post_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *GetUploadSignatureRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *GetUploadSignatureRequest) GetResourceType() string {
+	if x != nil {
+		return x.ResourceType
+	}
+	return ""
+}
+
+func (x *GetUploadSignatureRequest) GetFolder() string {
+	if x != nil {
+		return x.Folder
+	}
+	return ""
+}
+
+type GetUploadSignatureResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CloudName     string                 `protobuf:"bytes,1,opt,name=cloud_name,json=cloudName,proto3" json:"cloud_name,omitempty"`
+	ApiKey        string                 `protobuf:"bytes,2,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	Timestamp     int64                  `protobuf:"varint,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	Signature     string                 `protobuf:"bytes,4,opt,name=signature,proto3" json:"signature,omitempty"`
+	Folder        string                 `protobuf:"bytes,5,opt,name=folder,proto3" json:"folder,omitempty"`
+	PublicId      string                 `protobuf:"bytes,6,opt,name=public_id,json=publicId,proto3" json:"public_id,omitempty"`
+	UploadUrl     string                 `protobuf:"bytes,7,opt,name=upload_url,json=uploadUrl,proto3" json:"upload_url,omitempty"`
+	ExpiresAt     int64                  `protobuf:"varint,8,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUploadSignatureResponse) Reset() {
+	*x = GetUploadSignatureResponse{}
+	mi := &file_post_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUploadSignatureResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUploadSignatureResponse) ProtoMessage() {}
+
+func (x *GetUploadSignatureResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_post_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUploadSignatureResponse.ProtoReflect.Descriptor instead.
+func (*GetUploadSignatureResponse) Descriptor() ([]byte, []int) {
+	return file_post_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *GetUploadSignatureResponse) GetCloudName() string {
+	if x != nil {
+		return x.CloudName
+	}
+	return ""
+}
+
+func (x *GetUploadSignatureResponse) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+func (x *GetUploadSignatureResponse) GetTimestamp() int64 {
+	if x != nil {
+		return x.Timestamp
+	}
+	return 0
+}
+
+func (x *GetUploadSignatureResponse) GetSignature() string {
+	if x != nil {
+		return x.Signature
+	}
+	return ""
+}
+
+func (x *GetUploadSignatureResponse) GetFolder() string {
+	if x != nil {
+		return x.Folder
+	}
+	return ""
+}
+
+func (x *GetUploadSignatureResponse) GetPublicId() string {
+	if x != nil {
+		return x.PublicId
+	}
+	return ""
+}
+
+func (x *GetUploadSignatureResponse) GetUploadUrl() string {
+	if x != nil {
+		return x.UploadUrl
+	}
+	return ""
+}
+
+func (x *GetUploadSignatureResponse) GetExpiresAt() int64 {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return 0
+}
+
+var File_post_proto protoreflect.FileDescriptor
+
+const file_post_proto_rawDesc = "" +
 	"\n" +
-	"\x10proto/post.proto\x12\x04post\"\xe4\x01\n" +
+	"\n" +
+	"post.proto\x12\x04post\"\xe4\x01\n" +
 	"\x04Post\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
 	"\tauthor_id\x18\x02 \x01(\tR\bauthorId\x12\x18\n" +
@@ -1234,7 +1491,32 @@ const file_proto_post_proto_rawDesc = "" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\":\n" +
 	"\x18GetAllLikedPostsResponse\x12\x1e\n" +
 	"\x04post\x18\x01 \x03(\v2\n" +
-	".post.PostR\x04post2\xae\x06\n" +
+	".post.PostR\x04post\"J\n" +
+	"\x14GetLikeStatesRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x19\n" +
+	"\bpost_ids\x18\x02 \x03(\tR\apostIds\"\x8f\x01\n" +
+	"\x15GetLikeStatesResponse\x12<\n" +
+	"\x05liked\x18\x01 \x03(\v2&.post.GetLikeStatesResponse.LikedEntryR\x05liked\x1a8\n" +
+	"\n" +
+	"LikedEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\bR\x05value:\x028\x01\"q\n" +
+	"\x19GetUploadSignatureRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12#\n" +
+	"\rresource_type\x18\x02 \x01(\tR\fresourceType\x12\x16\n" +
+	"\x06folder\x18\x03 \x01(\tR\x06folder\"\x83\x02\n" +
+	"\x1aGetUploadSignatureResponse\x12\x1d\n" +
+	"\n" +
+	"cloud_name\x18\x01 \x01(\tR\tcloudName\x12\x17\n" +
+	"\aapi_key\x18\x02 \x01(\tR\x06apiKey\x12\x1c\n" +
+	"\ttimestamp\x18\x03 \x01(\x03R\ttimestamp\x12\x1c\n" +
+	"\tsignature\x18\x04 \x01(\tR\tsignature\x12\x16\n" +
+	"\x06folder\x18\x05 \x01(\tR\x06folder\x12\x1b\n" +
+	"\tpublic_id\x18\x06 \x01(\tR\bpublicId\x12\x1d\n" +
+	"\n" +
+	"upload_url\x18\a \x01(\tR\tuploadUrl\x12\x1d\n" +
+	"\n" +
+	"expires_at\x18\b \x01(\x03R\texpiresAt2\xd1\a\n" +
 	"\vPostService\x12?\n" +
 	"\n" +
 	"CreatePost\x12\x17.post.CreatePostRequest\x1a\x18.post.CreatePostResponse\x12<\n" +
@@ -1249,22 +1531,24 @@ const file_proto_post_proto_rawDesc = "" +
 	"\vGetAllPosts\x12\x14.post.AllPostRequest\x1a\x15.post.AllPostResponse\x129\n" +
 	"\bLikePost\x12\x15.post.LikePostRequest\x1a\x16.post.LikePostResponse\x12Q\n" +
 	"\x10GetAllPostLikers\x12\x1d.post.GetAllPostLikersRequest\x1a\x1e.post.GetAllPostLikersResponse\x12Q\n" +
-	"\x10GetAllLikedPosts\x12\x1d.post.GetAllLikedPostsRequest\x1a\x1e.post.GetAllLikedPostsResponseB*Z(github.com/chetansachan/socialflow/protob\x06proto3"
+	"\x10GetAllLikedPosts\x12\x1d.post.GetAllLikedPostsRequest\x1a\x1e.post.GetAllLikedPostsResponse\x12H\n" +
+	"\rGetLikeStates\x12\x1a.post.GetLikeStatesRequest\x1a\x1b.post.GetLikeStatesResponse\x12W\n" +
+	"\x12GetUploadSignature\x12\x1f.post.GetUploadSignatureRequest\x1a .post.GetUploadSignatureResponseB*Z(github.com/chetansachan/socialflow/protob\x06proto3"
 
 var (
-	file_proto_post_proto_rawDescOnce sync.Once
-	file_proto_post_proto_rawDescData []byte
+	file_post_proto_rawDescOnce sync.Once
+	file_post_proto_rawDescData []byte
 )
 
-func file_proto_post_proto_rawDescGZIP() []byte {
-	file_proto_post_proto_rawDescOnce.Do(func() {
-		file_proto_post_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_post_proto_rawDesc), len(file_proto_post_proto_rawDesc)))
+func file_post_proto_rawDescGZIP() []byte {
+	file_post_proto_rawDescOnce.Do(func() {
+		file_post_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_post_proto_rawDesc), len(file_post_proto_rawDesc)))
 	})
-	return file_proto_post_proto_rawDescData
+	return file_post_proto_rawDescData
 }
 
-var file_proto_post_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
-var file_proto_post_proto_goTypes = []any{
+var file_post_proto_msgTypes = make([]protoimpl.MessageInfo, 28)
+var file_post_proto_goTypes = []any{
 	(*Post)(nil),                       // 0: post.Post
 	(*PostByIdRequest)(nil),            // 1: post.PostByIdRequest
 	(*PostByIdResponse)(nil),           // 2: post.PostByIdResponse
@@ -1288,8 +1572,13 @@ var file_proto_post_proto_goTypes = []any{
 	(*GetAllPostLikersResponse)(nil),   // 20: post.GetAllPostLikersResponse
 	(*GetAllLikedPostsRequest)(nil),    // 21: post.GetAllLikedPostsRequest
 	(*GetAllLikedPostsResponse)(nil),   // 22: post.GetAllLikedPostsResponse
+	(*GetLikeStatesRequest)(nil),       // 23: post.GetLikeStatesRequest
+	(*GetLikeStatesResponse)(nil),      // 24: post.GetLikeStatesResponse
+	(*GetUploadSignatureRequest)(nil),  // 25: post.GetUploadSignatureRequest
+	(*GetUploadSignatureResponse)(nil), // 26: post.GetUploadSignatureResponse
+	nil,                                // 27: post.GetLikeStatesResponse.LikedEntry
 }
-var file_proto_post_proto_depIdxs = []int32{
+var file_post_proto_depIdxs = []int32{
 	0,  // 0: post.PostByIdResponse.post:type_name -> post.Post
 	0,  // 1: post.CreatePostResponse.post:type_name -> post.Post
 	0,  // 2: post.UpdatePostResponse.post:type_name -> post.Post
@@ -1297,57 +1586,62 @@ var file_proto_post_proto_depIdxs = []int32{
 	0,  // 4: post.AllArchivedPostResponse.post:type_name -> post.Post
 	0,  // 5: post.AllPostResponse.post:type_name -> post.Post
 	0,  // 6: post.GetAllLikedPostsResponse.post:type_name -> post.Post
-	5,  // 7: post.PostService.CreatePost:input_type -> post.CreatePostRequest
-	1,  // 8: post.PostService.GetPostById:input_type -> post.PostByIdRequest
-	3,  // 9: post.PostService.DeletePost:input_type -> post.DeletePostRequest
-	7,  // 10: post.PostService.UpdatePost:input_type -> post.UpdatePostRequest
-	11, // 11: post.PostService.MovePostToArchived:input_type -> post.MovePostToArchivedRequest
-	9,  // 12: post.PostService.GetArchivedPostById:input_type -> post.ArchivedPostByIdRequest
-	13, // 13: post.PostService.GetAllArchivedPosts:input_type -> post.AllArchivedPostRequest
-	15, // 14: post.PostService.GetAllPosts:input_type -> post.AllPostRequest
-	17, // 15: post.PostService.LikePost:input_type -> post.LikePostRequest
-	19, // 16: post.PostService.GetAllPostLikers:input_type -> post.GetAllPostLikersRequest
-	21, // 17: post.PostService.GetAllLikedPosts:input_type -> post.GetAllLikedPostsRequest
-	6,  // 18: post.PostService.CreatePost:output_type -> post.CreatePostResponse
-	2,  // 19: post.PostService.GetPostById:output_type -> post.PostByIdResponse
-	4,  // 20: post.PostService.DeletePost:output_type -> post.DeletePostResponse
-	8,  // 21: post.PostService.UpdatePost:output_type -> post.UpdatePostResponse
-	12, // 22: post.PostService.MovePostToArchived:output_type -> post.MovePostToArchivedResponse
-	10, // 23: post.PostService.GetArchivedPostById:output_type -> post.ArchivedPostByIdResponse
-	14, // 24: post.PostService.GetAllArchivedPosts:output_type -> post.AllArchivedPostResponse
-	16, // 25: post.PostService.GetAllPosts:output_type -> post.AllPostResponse
-	18, // 26: post.PostService.LikePost:output_type -> post.LikePostResponse
-	20, // 27: post.PostService.GetAllPostLikers:output_type -> post.GetAllPostLikersResponse
-	22, // 28: post.PostService.GetAllLikedPosts:output_type -> post.GetAllLikedPostsResponse
-	18, // [18:29] is the sub-list for method output_type
-	7,  // [7:18] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	27, // 7: post.GetLikeStatesResponse.liked:type_name -> post.GetLikeStatesResponse.LikedEntry
+	5,  // 8: post.PostService.CreatePost:input_type -> post.CreatePostRequest
+	1,  // 9: post.PostService.GetPostById:input_type -> post.PostByIdRequest
+	3,  // 10: post.PostService.DeletePost:input_type -> post.DeletePostRequest
+	7,  // 11: post.PostService.UpdatePost:input_type -> post.UpdatePostRequest
+	11, // 12: post.PostService.MovePostToArchived:input_type -> post.MovePostToArchivedRequest
+	9,  // 13: post.PostService.GetArchivedPostById:input_type -> post.ArchivedPostByIdRequest
+	13, // 14: post.PostService.GetAllArchivedPosts:input_type -> post.AllArchivedPostRequest
+	15, // 15: post.PostService.GetAllPosts:input_type -> post.AllPostRequest
+	17, // 16: post.PostService.LikePost:input_type -> post.LikePostRequest
+	19, // 17: post.PostService.GetAllPostLikers:input_type -> post.GetAllPostLikersRequest
+	21, // 18: post.PostService.GetAllLikedPosts:input_type -> post.GetAllLikedPostsRequest
+	23, // 19: post.PostService.GetLikeStates:input_type -> post.GetLikeStatesRequest
+	25, // 20: post.PostService.GetUploadSignature:input_type -> post.GetUploadSignatureRequest
+	6,  // 21: post.PostService.CreatePost:output_type -> post.CreatePostResponse
+	2,  // 22: post.PostService.GetPostById:output_type -> post.PostByIdResponse
+	4,  // 23: post.PostService.DeletePost:output_type -> post.DeletePostResponse
+	8,  // 24: post.PostService.UpdatePost:output_type -> post.UpdatePostResponse
+	12, // 25: post.PostService.MovePostToArchived:output_type -> post.MovePostToArchivedResponse
+	10, // 26: post.PostService.GetArchivedPostById:output_type -> post.ArchivedPostByIdResponse
+	14, // 27: post.PostService.GetAllArchivedPosts:output_type -> post.AllArchivedPostResponse
+	16, // 28: post.PostService.GetAllPosts:output_type -> post.AllPostResponse
+	18, // 29: post.PostService.LikePost:output_type -> post.LikePostResponse
+	20, // 30: post.PostService.GetAllPostLikers:output_type -> post.GetAllPostLikersResponse
+	22, // 31: post.PostService.GetAllLikedPosts:output_type -> post.GetAllLikedPostsResponse
+	24, // 32: post.PostService.GetLikeStates:output_type -> post.GetLikeStatesResponse
+	26, // 33: post.PostService.GetUploadSignature:output_type -> post.GetUploadSignatureResponse
+	21, // [21:34] is the sub-list for method output_type
+	8,  // [8:21] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
-func init() { file_proto_post_proto_init() }
-func file_proto_post_proto_init() {
-	if File_proto_post_proto != nil {
+func init() { file_post_proto_init() }
+func file_post_proto_init() {
+	if File_post_proto != nil {
 		return
 	}
-	file_proto_post_proto_msgTypes[5].OneofWrappers = []any{}
-	file_proto_post_proto_msgTypes[7].OneofWrappers = []any{}
+	file_post_proto_msgTypes[5].OneofWrappers = []any{}
+	file_post_proto_msgTypes[7].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_post_proto_rawDesc), len(file_proto_post_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_post_proto_rawDesc), len(file_post_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   23,
+			NumMessages:   28,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_proto_post_proto_goTypes,
-		DependencyIndexes: file_proto_post_proto_depIdxs,
-		MessageInfos:      file_proto_post_proto_msgTypes,
+		GoTypes:           file_post_proto_goTypes,
+		DependencyIndexes: file_post_proto_depIdxs,
+		MessageInfos:      file_post_proto_msgTypes,
 	}.Build()
-	File_proto_post_proto = out.File
-	file_proto_post_proto_goTypes = nil
-	file_proto_post_proto_depIdxs = nil
+	File_post_proto = out.File
+	file_post_proto_goTypes = nil
+	file_post_proto_depIdxs = nil
 }

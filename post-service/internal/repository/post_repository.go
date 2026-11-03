@@ -24,6 +24,7 @@ type PostRepository interface {
 	LikePost(ctx context.Context, postId, userId uuid.UUID) (bool, error)
 	GetAllPostLikers(ctx context.Context, postId uuid.UUID) ([]string, error)
 	GetAllLikedPosts(ctx context.Context, userId uuid.UUID) ([]models.Post, error)
+	GetLikeStates(ctx context.Context, userId uuid.UUID, postIds []uuid.UUID) (map[string]bool, error)
 	SaveFiles(ctx context.Context, name string, ext string, mimeType string) error
 }
 
@@ -496,6 +497,38 @@ func (r *postRepository) GetAllLikedPosts(ctx context.Context, userId uuid.UUID)
 	}
 
 	return posts, nil
+}
+
+// GetLikeStates returns only the posts the user currently likes. Callers should
+// treat a missing key as false.
+func (r *postRepository) GetLikeStates(ctx context.Context, userId uuid.UUID, postIds []uuid.UUID) (map[string]bool, error) {
+	states := make(map[string]bool, len(postIds))
+	if len(postIds) == 0 {
+		return states, nil
+	}
+
+	const query = `
+		SELECT post_id
+		FROM post_likes
+		WHERE user_id = $1 AND is_liked = TRUE AND post_id = ANY($2)
+	`
+	rows, err := r.db.Query(ctx, query, userId, postIds)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query like states: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var postID uuid.UUID
+		if err := rows.Scan(&postID); err != nil {
+			return nil, fmt.Errorf("failed to scan like state: %w", err)
+		}
+		states[postID.String()] = true
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating like states: %w", err)
+	}
+	return states, nil
 }
 
 func (r *postRepository) SaveFiles(ctx context.Context, name string, ext string, mimeType string) error {

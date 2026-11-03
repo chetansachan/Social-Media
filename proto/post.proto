@@ -16,6 +16,8 @@ service PostService{
     rpc LikePost(LikePostRequest) returns (LikePostResponse);
     rpc GetAllPostLikers(GetAllPostLikersRequest) returns (GetAllPostLikersResponse);
     rpc GetAllLikedPosts(GetAllLikedPostsRequest) returns (GetAllLikedPostsResponse);
+    rpc GetLikeStates(GetLikeStatesRequest) returns (GetLikeStatesResponse);
+    rpc GetUploadSignature(GetUploadSignatureRequest) returns (GetUploadSignatureResponse);
 }
 
 message Post {
@@ -123,4 +125,30 @@ message GetAllLikedPostsRequest {
 
 message GetAllLikedPostsResponse {
     repeated Post post = 1;
+}
+
+message GetLikeStatesRequest {
+    string user_id = 1;
+    repeated string post_ids = 2;
+}
+
+message GetLikeStatesResponse {
+    map<string, bool> liked = 1;
+}
+
+message GetUploadSignatureRequest {
+    string user_id = 1;
+    string resource_type = 2;
+    string folder = 3;
+}
+
+message GetUploadSignatureResponse {
+    string cloud_name = 1;
+    string api_key = 2;
+    int64 timestamp = 3;
+    string signature = 4;
+    string folder = 5;
+    string public_id = 6;
+    string upload_url = 7;
+    int64 expires_at = 8;
 }

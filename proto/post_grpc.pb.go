@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             v7.36.0
-// source: proto/post.proto
+// source: post.proto
 
 package proto
 
@@ -30,6 +30,8 @@ const (
 	PostService_LikePost_FullMethodName            = "/post.PostService/LikePost"
 	PostService_GetAllPostLikers_FullMethodName    = "/post.PostService/GetAllPostLikers"
 	PostService_GetAllLikedPosts_FullMethodName    = "/post.PostService/GetAllLikedPosts"
+	PostService_GetLikeStates_FullMethodName       = "/post.PostService/GetLikeStates"
+	PostService_GetUploadSignature_FullMethodName  = "/post.PostService/GetUploadSignature"
 )
 
 // PostServiceClient is the client API for PostService service.
@@ -47,6 +49,8 @@ type PostServiceClient interface {
 	LikePost(ctx context.Context, in *LikePostRequest, opts ...grpc.CallOption) (*LikePostResponse, error)
 	GetAllPostLikers(ctx context.Context, in *GetAllPostLikersRequest, opts ...grpc.CallOption) (*GetAllPostLikersResponse, error)
 	GetAllLikedPosts(ctx context.Context, in *GetAllLikedPostsRequest, opts ...grpc.CallOption) (*GetAllLikedPostsResponse, error)
+	GetLikeStates(ctx context.Context, in *GetLikeStatesRequest, opts ...grpc.CallOption) (*GetLikeStatesResponse, error)
+	GetUploadSignature(ctx context.Context, in *GetUploadSignatureRequest, opts ...grpc.CallOption) (*GetUploadSignatureResponse, error)
 }
 
 type postServiceClient struct {
@@ -167,6 +171,26 @@ func (c *postServiceClient) GetAllLikedPosts(ctx context.Context, in *GetAllLike
 	return out, nil
 }
 
+func (c *postServiceClient) GetLikeStates(ctx context.Context, in *GetLikeStatesRequest, opts ...grpc.CallOption) (*GetLikeStatesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetLikeStatesResponse)
+	err := c.cc.Invoke(ctx, PostService_GetLikeStates_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *postServiceClient) GetUploadSignature(ctx context.Context, in *GetUploadSignatureRequest, opts ...grpc.CallOption) (*GetUploadSignatureResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetUploadSignatureResponse)
+	err := c.cc.Invoke(ctx, PostService_GetUploadSignature_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PostServiceServer is the server API for PostService service.
 // All implementations must embed UnimplementedPostServiceServer
 // for forward compatibility.
@@ -182,6 +206,8 @@ type PostServiceServer interface {
 	LikePost(context.Context, *LikePostRequest) (*LikePostResponse, error)
 	GetAllPostLikers(context.Context, *GetAllPostLikersRequest) (*GetAllPostLikersResponse, error)
 	GetAllLikedPosts(context.Context, *GetAllLikedPostsRequest) (*GetAllLikedPostsResponse, error)
+	GetLikeStates(context.Context, *GetLikeStatesRequest) (*GetLikeStatesResponse, error)
+	GetUploadSignature(context.Context, *GetUploadSignatureRequest) (*GetUploadSignatureResponse, error)
 	mustEmbedUnimplementedPostServiceServer()
 }
 
@@ -224,6 +250,12 @@ func (UnimplementedPostServiceServer) GetAllPostLikers(context.Context, *GetAllP
 }
 func (UnimplementedPostServiceServer) GetAllLikedPosts(context.Context, *GetAllLikedPostsRequest) (*GetAllLikedPostsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAllLikedPosts not implemented")
+}
+func (UnimplementedPostServiceServer) GetLikeStates(context.Context, *GetLikeStatesRequest) (*GetLikeStatesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetLikeStates not implemented")
+}
+func (UnimplementedPostServiceServer) GetUploadSignature(context.Context, *GetUploadSignatureRequest) (*GetUploadSignatureResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetUploadSignature not implemented")
 }
 func (UnimplementedPostServiceServer) mustEmbedUnimplementedPostServiceServer() {}
 func (UnimplementedPostServiceServer) testEmbeddedByValue()                     {}
@@ -444,6 +476,42 @@ func _PostService_GetAllLikedPosts_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PostService_GetLikeStates_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetLikeStatesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PostServiceServer).GetLikeStates(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PostService_GetLikeStates_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PostServiceServer).GetLikeStates(ctx, req.(*GetLikeStatesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PostService_GetUploadSignature_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUploadSignatureRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PostServiceServer).GetUploadSignature(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PostService_GetUploadSignature_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PostServiceServer).GetUploadSignature(ctx, req.(*GetUploadSignatureRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PostService_ServiceDesc is the grpc.ServiceDesc for PostService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -495,7 +563,15 @@ var PostService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "GetAllLikedPosts",
 			Handler:    _PostService_GetAllLikedPosts_Handler,
 		},
+		{
+			MethodName: "GetLikeStates",
+			Handler:    _PostService_GetLikeStates_Handler,
+		},
+		{
+			MethodName: "GetUploadSignature",
+			Handler:    _PostService_GetUploadSignature_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "proto/post.proto",
+	Metadata: "post.proto",
 }

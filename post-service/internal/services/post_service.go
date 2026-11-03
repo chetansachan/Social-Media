@@ -2,10 +2,14 @@ package services
 
 import (
 	"context"
+	"crypto/sha1"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"net/url"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/chetansachan/socialflow/post-service/internal/config"
 	"github.com/chetansachan/socialflow/post-service/internal/models"
@@ -28,7 +32,9 @@ type PostService interface {
 	LikePost(ctx context.Context, postId string, userId string) (bool, error)
 	GetAllPostLikers(ctx context.Context, postId string) ([]string, error)
 	GetAllLikedPosts(ctx context.Context, userId string) ([]models.Post, error)
+	GetLikeStates(ctx context.Context, userId string, postIds []string) (map[string]bool, error)
 	Upload(ctx context.Context, base64 string) (string, error)
+	CreateUploadSignature(ctx context.Context, userId, resourceType, folder string) (*models.UploadSignature, error)
 }
 
 type postService struct {
@@ -267,6 +273,83 @@ func (s *postService) GetAllLikedPosts(ctx context.Context, userId string) ([]mo
 	}
 
 	return posts, nil
+}
+
+// GetLikeStates resolves the viewer's like state for a batch of posts, which
+// lets the API gateway render feed pages with one RPC instead of N.
+func (s *postService) GetLikeStates(ctx context.Context, userId string, postIds []string) (map[string]bool, error) {
+	userUUID, err := uuid.Parse(userId)
+	if err != nil {
+		return nil, fmt.Errorf("%w: invalid user id", models.ErrInvalidInput)
+	}
+
+	parsed := make([]uuid.UUID, 0, len(postIds))
+	seen := make(map[uuid.UUID]struct{}, len(postIds))
+	for _, raw := range postIds {
+		id, err := uuid.Parse(raw)
+		if err != nil {
+			continue
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		parsed = append(parsed, id)
+	}
+
+	return s.postRepo.GetLikeStates(ctx, userUUID, parsed)
+}
+
+// CreateUploadSignature signs a direct-to-Cloudinary upload. The secret never
+// leaves the service; the client only receives the short-lived signature.
+func (s *postService) CreateUploadSignature(ctx context.Context, userId, resourceType, folder string) (*models.UploadSignature, error) {
+	userUUID, err := uuid.Parse(userId)
+	if err != nil {
+		return nil, fmt.Errorf("%w: invalid user id", models.ErrInvalidInput)
+	}
+
+	cfg := config.Load()
+	parsed, err := url.Parse(strings.TrimSpace(cfg.CloudinaryUrl))
+	if err != nil || parsed.Host == "" {
+		return nil, fmt.Errorf("cloudinary is not configured")
+	}
+	apiKey := parsed.User.Username()
+	apiSecret, hasSecret := parsed.User.Password()
+	if apiKey == "" || !hasSecret || apiSecret == "" {
+		return nil, fmt.Errorf("cloudinary credentials are incomplete")
+	}
+
+	resource := strings.ToLower(strings.TrimSpace(resourceType))
+	switch resource {
+	case "", "auto":
+		resource = "auto"
+	case "image", "video", "raw":
+	default:
+		return nil, fmt.Errorf("%w: unsupported resource type", models.ErrInvalidInput)
+	}
+
+	folder = strings.Trim(strings.TrimSpace(folder), "/")
+	if folder == "" {
+		folder = "socialflow/" + userUUID.String()
+	}
+
+	timestamp := time.Now().Unix()
+	publicID := uuid.NewString()
+	signature := sha1.Sum([]byte(fmt.Sprintf(
+		"folder=%s&public_id=%s&timestamp=%d%s",
+		folder, publicID, timestamp, apiSecret,
+	)))
+
+	return &models.UploadSignature{
+		CloudName: parsed.Host,
+		APIKey:    apiKey,
+		Timestamp: timestamp,
+		Signature: hex.EncodeToString(signature[:]),
+		Folder:    folder,
+		PublicID:  publicID,
+		UploadURL: fmt.Sprintf("https://api.cloudinary.com/v1_1/%s/%s/upload", parsed.Host, resource),
+		ExpiresAt: timestamp + 600,
+	}, nil
 }
 
 func inferMimeType(ext string) string {

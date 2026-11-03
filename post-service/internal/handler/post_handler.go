@@ -283,3 +283,35 @@ func (h *PostHandler) GetAllLikedPosts(ctx context.Context, req *postpb.GetAllLi
 		Post: postsPB,
 	}, nil
 }
+
+func (h *PostHandler) GetLikeStates(ctx context.Context, req *postpb.GetLikeStatesRequest) (*postpb.GetLikeStatesResponse, error) {
+	states, err := h.postService.GetLikeStates(ctx, req.GetUserId(), req.GetPostIds())
+	if err != nil {
+		if errors.Is(err, models.ErrInvalidInput) {
+			return nil, status.Error(codes.InvalidArgument, "invalid user id")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to get like states: %v", err)
+	}
+	return &postpb.GetLikeStatesResponse{Liked: states}, nil
+}
+
+func (h *PostHandler) GetUploadSignature(ctx context.Context, req *postpb.GetUploadSignatureRequest) (*postpb.GetUploadSignatureResponse, error) {
+	signature, err := h.postService.CreateUploadSignature(ctx, req.GetUserId(), req.GetResourceType(), req.GetFolder())
+	if err != nil {
+		if errors.Is(err, models.ErrInvalidInput) {
+			return nil, status.Errorf(codes.InvalidArgument, "%v", err)
+		}
+		return nil, status.Errorf(codes.FailedPrecondition, "failed to sign upload: %v", err)
+	}
+
+	return &postpb.GetUploadSignatureResponse{
+		CloudName: signature.CloudName,
+		ApiKey:    signature.APIKey,
+		Timestamp: signature.Timestamp,
+		Signature: signature.Signature,
+		Folder:    signature.Folder,
+		PublicId:  signature.PublicID,
+		UploadUrl: signature.UploadURL,
+		ExpiresAt: signature.ExpiresAt,
+	}, nil
+}
