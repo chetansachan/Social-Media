@@ -11,12 +11,14 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/chetansachan/socialflow/user-service/internal/cache"
 	"github.com/chetansachan/socialflow/user-service/internal/config"
 	"github.com/chetansachan/socialflow/user-service/internal/models"
 	"github.com/chetansachan/socialflow/user-service/internal/repository"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/sync/singleflight"
 )
 
 type UserService interface {
@@ -33,6 +35,30 @@ type UserService interface {
 
 type userService struct {
 	userRepo repository.UserRepository
+
+	// cache is optional. Without Redis the database is still protected by the
+	// singleflight group below.
+	cache    cache.UserCache
+	cacheTTL time.Duration
+
+	// profileGroup collapses concurrent misses for the same user into one
+	// database query. This is what keeps a cold cache from stampeding
+	// PostgreSQL when a popular profile is requested by thousands of clients.
+	profileGroup singleflight.Group
+}
+
+// Option customizes the service without breaking existing callers.
+type Option func(*userService)
+
+// WithUserCache enables the shared profile cache and sets its TTL.
+func WithUserCache(userCache cache.UserCache, ttl time.Duration) Option {
+	return func(s *userService) {
+		if ttl <= 0 {
+			ttl = 10 * time.Minute
+		}
+		s.cache = userCache
+		s.cacheTTL = ttl
+	}
 }
 
 // bcryptCost is above the library default so a leaked password table stays
@@ -44,8 +70,14 @@ const bcryptCost = 12
 // during a password change.
 const minPasswordLength = 8
 
-func NewUserService(userRepo repository.UserRepository) UserService {
-	return &userService{userRepo: userRepo}
+func NewUserService(userRepo repository.UserRepository, opts ...Option) UserService {
+	service := &userService{userRepo: userRepo}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(service)
+		}
+	}
+	return service
 }
 
 func (s *userService) Register(ctx context.Context, input models.CreateUserInput) (*models.User, error) {
@@ -202,13 +234,16 @@ func (s *userService) Login(ctx context.Context, input models.LoginRequest) (*mo
 	}, nil
 }
 
+// GetById returns a public profile. Redis serves repeated reads; concurrent
+// misses for the same id are collapsed into one repository query so a cold
+// cache cannot stampede PostgreSQL.
 func (s *userService) GetById(ctx context.Context, id string) (*models.User, error) {
 	userid, err := uuid.Parse(id)
 	if err != nil {
 		return nil, fmt.Errorf("Error parsing id %w", err)
 	}
 
-	user, err := s.userRepo.GetById(ctx, userid)
+	user, err := s.loadProfile(ctx, userid)
 	if err != nil {
 		if errors.Is(err, models.ErrUserNotFound) {
 			return nil, models.ErrUserNotFound
@@ -216,9 +251,61 @@ func (s *userService) GetById(ctx context.Context, id string) (*models.User, err
 		return nil, fmt.Errorf("Internal Server error %w", err)
 	}
 
-	user.Password = ""
-
 	return user, nil
+}
+
+func (s *userService) loadProfile(ctx context.Context, id uuid.UUID) (*models.User, error) {
+	if s.cache != nil {
+		if user, err := s.cache.Get(ctx, id); err == nil {
+			return cloneUser(user), nil
+		}
+	}
+
+	value, err, _ := s.profileGroup.Do(id.String(), func() (any, error) {
+		// The load outlives the request that happened to win the race: if
+		// that client disconnects, the remaining waiters still get their
+		// result and the cache still gets filled.
+		loadCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+		defer cancel()
+
+		// A previous winner may have populated the cache between this
+		// caller's miss and its entry into the group.
+		if s.cache != nil {
+			if user, err := s.cache.Get(loadCtx, id); err == nil {
+				return cloneUser(user), nil
+			}
+		}
+
+		user, err := s.userRepo.GetById(loadCtx, id)
+		if err != nil {
+			return nil, err
+		}
+		user.Password = ""
+		if s.cache != nil {
+			_ = s.cache.Set(loadCtx, user, s.cacheTTL)
+		}
+		return user, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	user, ok := value.(*models.User)
+	if !ok || user == nil {
+		return nil, models.ErrUserNotFound
+	}
+	// singleflight hands the same pointer to every waiter; return a copy so
+	// one caller cannot mutate another caller's response.
+	return cloneUser(user), nil
+}
+
+func cloneUser(user *models.User) *models.User {
+	if user == nil {
+		return nil
+	}
+	copied := *user
+	copied.Password = ""
+	return &copied
 }
 
 func (s *userService) GetByEmail(ctx context.Context, email string) (*models.User, error) {
@@ -267,6 +354,10 @@ func (s *userService) GetByUsername(ctx context.Context, username string) (*mode
 // GetByIds validates and de-duplicates ids before issuing a single query.
 // Unknown or malformed ids are skipped rather than failing the whole batch:
 // a deleted user must not break a feed page.
+//
+// The cache absorbs the steady state (every feed page hydrates the same
+// authors). Only ids that missed are fetched, and those are written back as a
+// batch so the next page is a pure cache read.
 func (s *userService) GetByIds(ctx context.Context, ids []string) ([]models.User, error) {
 	unique := make([]uuid.UUID, 0, len(ids))
 	seen := make(map[uuid.UUID]struct{}, len(ids))
@@ -282,12 +373,47 @@ func (s *userService) GetByIds(ctx context.Context, ids []string) ([]models.User
 		unique = append(unique, id)
 	}
 
-	users, err := s.userRepo.GetByIds(ctx, unique)
-	if err != nil {
-		return nil, err
+	if len(unique) == 0 {
+		return []models.User{}, nil
 	}
-	for i := range users {
-		users[i].Password = ""
+
+	cached := make(map[uuid.UUID]*models.User, len(unique))
+	if s.cache != nil {
+		if found, err := s.cache.GetMany(ctx, unique); err == nil {
+			cached = found
+		}
+	}
+
+	missing := make([]uuid.UUID, 0, len(unique))
+	for _, id := range unique {
+		if _, ok := cached[id]; !ok {
+			missing = append(missing, id)
+		}
+	}
+
+	if len(missing) > 0 {
+		loadCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+		defer cancel()
+
+		loaded, err := s.userRepo.GetByIds(loadCtx, missing)
+		if err != nil {
+			return nil, err
+		}
+		for i := range loaded {
+			loaded[i].Password = ""
+			cached[loaded[i].ID] = &loaded[i]
+		}
+		if s.cache != nil && len(loaded) > 0 {
+			_ = s.cache.SetMany(loadCtx, loaded, s.cacheTTL)
+		}
+	}
+
+	// Preserve the caller's id order; the repository does not guarantee one.
+	users := make([]models.User, 0, len(unique))
+	for _, id := range unique {
+		if user, ok := cached[id]; ok && user != nil {
+			users = append(users, *cloneUser(user))
+		}
 	}
 	return users, nil
 }
@@ -454,6 +580,8 @@ func (s *userService) UpdateUser(ctx context.Context, input models.UpdateUserInp
 		return nil, fmt.Errorf("failed to update user: %w", err)
 	}
 
+	s.invalidateProfile(ctx, userid)
+
 	updatedUser.Password = ""
 
 	return updatedUser, nil
@@ -469,9 +597,23 @@ func (s *userService) DeleteUser(ctx context.Context, id string) (*models.Delete
 		return &models.DeleteUserRespose{}, fmt.Errorf("Error Deleting User: %v", err)
 	}
 
+	s.invalidateProfile(ctx, userId)
+
 	return &models.DeleteUserRespose{
 		Message: "User Deleted Successfuly",
 	}, nil
+}
+
+// invalidateProfile drops a cached profile after a write. It uses a bounded
+// context detached from the request so a client disconnecting mid-response
+// cannot leave a stale entry behind.
+func (s *userService) invalidateProfile(ctx context.Context, id uuid.UUID) {
+	if s.cache == nil {
+		return
+	}
+	cacheCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
+	defer cancel()
+	_ = s.cache.Delete(cacheCtx, id)
 }
 
 // validatePasswordComplexity requires both a letter and a digit. The rule is

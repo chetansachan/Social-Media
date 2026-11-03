@@ -5,9 +5,11 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/chetansachan/socialflow/user-service/internal/cache"
 	"github.com/chetansachan/socialflow/user-service/internal/models"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -26,6 +28,12 @@ type fakeUserRepo struct {
 	updated    *models.UpdateUserInput
 	updatedID  uuid.UUID
 	deleted    uuid.UUID
+
+	mu           sync.Mutex
+	getByIDCalls int
+	getByIDsCall int
+	lastBatch    []uuid.UUID
+	getByIDHook  func()
 }
 
 func newFakeUserRepo() *fakeUserRepo {
@@ -71,6 +79,15 @@ func (r *fakeUserRepo) GetByUsername(ctx context.Context, username string) (*mod
 }
 
 func (r *fakeUserRepo) GetById(ctx context.Context, id uuid.UUID) (*models.User, error) {
+	r.mu.Lock()
+	r.getByIDCalls++
+	hook := r.getByIDHook
+	r.mu.Unlock()
+
+	if hook != nil {
+		hook()
+	}
+
 	user, ok := r.byID[id]
 	if !ok {
 		return nil, models.ErrUserNotFound
@@ -80,6 +97,11 @@ func (r *fakeUserRepo) GetById(ctx context.Context, id uuid.UUID) (*models.User,
 }
 
 func (r *fakeUserRepo) GetByIds(ctx context.Context, ids []uuid.UUID) ([]models.User, error) {
+	r.mu.Lock()
+	r.getByIDsCall++
+	r.lastBatch = append([]uuid.UUID(nil), ids...)
+	r.mu.Unlock()
+
 	users := make([]models.User, 0, len(ids))
 	for _, id := range ids {
 		if user, ok := r.byID[id]; ok {
@@ -87,6 +109,18 @@ func (r *fakeUserRepo) GetByIds(ctx context.Context, ids []uuid.UUID) ([]models.
 		}
 	}
 	return users, nil
+}
+
+func (r *fakeUserRepo) getByIDCallCount() int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.getByIDCalls
+}
+
+func (r *fakeUserRepo) getByIDsBatch() []uuid.UUID {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return append([]uuid.UUID(nil), r.lastBatch...)
 }
 
 func (r *fakeUserRepo) SaveToken(ctx context.Context, data *models.RefreshTkn) error {
@@ -559,5 +593,249 @@ func TestDeleteUserRejectsMalformedID(t *testing.T) {
 
 	if _, err := svc.DeleteUser(context.Background(), "not-a-uuid"); err == nil {
 		t.Fatal("expected a malformed id to be rejected")
+	}
+}
+
+type fakeUserCache struct {
+	mu      sync.Mutex
+	users   map[uuid.UUID]models.User
+	getErr  error
+	sets    int
+	deleted []uuid.UUID
+}
+
+func newFakeUserCache() *fakeUserCache {
+	return &fakeUserCache{users: make(map[uuid.UUID]models.User)}
+}
+
+func (c *fakeUserCache) Get(ctx context.Context, id uuid.UUID) (*models.User, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.getErr != nil {
+		return nil, c.getErr
+	}
+	user, ok := c.users[id]
+	if !ok {
+		return nil, cache.ErrMiss
+	}
+	copied := user
+	return &copied, nil
+}
+
+func (c *fakeUserCache) GetMany(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]*models.User, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.getErr != nil {
+		return nil, c.getErr
+	}
+	found := make(map[uuid.UUID]*models.User, len(ids))
+	for _, id := range ids {
+		if user, ok := c.users[id]; ok {
+			copied := user
+			found[id] = &copied
+		}
+	}
+	return found, nil
+}
+
+func (c *fakeUserCache) Set(ctx context.Context, user *models.User, ttl time.Duration) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	copied := *user
+	copied.Password = ""
+	c.users[user.ID] = copied
+	c.sets++
+	return nil
+}
+
+func (c *fakeUserCache) SetMany(ctx context.Context, users []models.User, ttl time.Duration) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for i := range users {
+		copied := users[i]
+		copied.Password = ""
+		c.users[users[i].ID] = copied
+		c.sets++
+	}
+	return nil
+}
+
+func (c *fakeUserCache) Delete(ctx context.Context, id uuid.UUID) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.users, id)
+	c.deleted = append(c.deleted, id)
+	return nil
+}
+
+func (c *fakeUserCache) contains(id uuid.UUID) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	_, ok := c.users[id]
+	return ok
+}
+
+func (c *fakeUserCache) wasDeleted(id uuid.UUID) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for _, deleted := range c.deleted {
+		if deleted == id {
+			return true
+		}
+	}
+	return false
+}
+
+func newCachedService(t *testing.T) (*userService, *fakeUserRepo, *fakeUserCache) {
+	t.Helper()
+	t.Setenv("MYSECRETKEY", "test-secret")
+
+	repo := newFakeUserRepo()
+	userCache := newFakeUserCache()
+	svc := NewUserService(repo, WithUserCache(userCache, time.Minute)).(*userService)
+	return svc, repo, userCache
+}
+
+func TestGetByIdServesCachedProfileWithoutHittingTheRepository(t *testing.T) {
+	svc, repo, userCache := newCachedService(t)
+	user := &models.User{
+		Username: "chetan", Name: "Chetan", Email: "chetan@example.com",
+		Password: hashPassword(t, "str0ngpass"), IsPublic: true,
+	}
+	repo.seed(t, user)
+	userCache.users[user.ID] = *user
+
+	found, err := svc.GetById(context.Background(), user.ID.String())
+	if err != nil {
+		t.Fatalf("GetById: %v", err)
+	}
+	if found.Username != user.Username {
+		t.Fatalf("username = %q", found.Username)
+	}
+	if found.Password != "" {
+		t.Fatal("a cached profile leaked the password hash")
+	}
+	if calls := repo.getByIDCallCount(); calls != 0 {
+		t.Fatalf("repository was queried %d times, want a cache hit", calls)
+	}
+}
+
+func TestGetByIdCollapsesConcurrentMisses(t *testing.T) {
+	svc, repo, userCache := newCachedService(t)
+	user := &models.User{
+		Username: "hot", Name: "Hot Profile", Email: "hot@example.com",
+		Password: hashPassword(t, "str0ngpass"), IsPublic: true,
+	}
+	repo.seed(t, user)
+
+	// Hold the first query long enough for every caller to join the group.
+	repo.getByIDHook = func() { time.Sleep(50 * time.Millisecond) }
+
+	const callers = 64
+	var wg sync.WaitGroup
+	errs := make(chan error, callers)
+	for i := 0; i < callers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if _, err := svc.GetById(context.Background(), user.ID.String()); err != nil {
+				errs <- err
+			}
+		}()
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		t.Fatalf("GetById: %v", err)
+	}
+
+	if calls := repo.getByIDCallCount(); calls != 1 {
+		t.Fatalf("repository was queried %d times, want a single shared load", calls)
+	}
+	if !userCache.contains(user.ID) {
+		t.Fatal("the shared load did not populate the cache")
+	}
+}
+
+func TestGetByIdFallsBackWhenCacheIsUnavailable(t *testing.T) {
+	svc, repo, userCache := newCachedService(t)
+	user := &models.User{
+		Username: "chetan", Name: "Chetan", Email: "chetan@example.com",
+		Password: hashPassword(t, "str0ngpass"), IsPublic: true,
+	}
+	repo.seed(t, user)
+	userCache.getErr = errors.New("redis down")
+
+	found, err := svc.GetById(context.Background(), user.ID.String())
+	if err != nil {
+		t.Fatalf("GetById: %v", err)
+	}
+	if found.ID != user.ID {
+		t.Fatal("did not fall back to the repository")
+	}
+}
+
+func TestGetByIdsOnlyLoadsMissingProfiles(t *testing.T) {
+	svc, repo, userCache := newCachedService(t)
+	first := &models.User{
+		Username: "first", Name: "First", Email: "first@example.com",
+		Password: hashPassword(t, "str0ngpass"), IsPublic: true,
+	}
+	second := &models.User{
+		Username: "second", Name: "Second", Email: "second@example.com",
+		Password: hashPassword(t, "str0ngpass"), IsPublic: true,
+	}
+	repo.seed(t, first)
+	repo.seed(t, second)
+	userCache.users[first.ID] = *first
+
+	users, err := svc.GetByIds(context.Background(), []string{first.ID.String(), second.ID.String()})
+	if err != nil {
+		t.Fatalf("GetByIds: %v", err)
+	}
+	if len(users) != 2 {
+		t.Fatalf("users = %d, want 2", len(users))
+	}
+	batch := repo.getByIDsBatch()
+	if len(batch) != 1 || batch[0] != second.ID {
+		t.Fatalf("repository batch = %v, want only the uncached id", batch)
+	}
+	if !userCache.contains(second.ID) {
+		t.Fatal("the loaded profile was not written back to the cache")
+	}
+}
+
+func TestUpdateUserInvalidatesCachedProfile(t *testing.T) {
+	svc, repo, userCache := newCachedService(t)
+	user := &models.User{
+		Username: "chetan", Name: "Chetan", Email: "chetan@example.com",
+		Password: hashPassword(t, "str0ngpass"), IsPublic: true,
+	}
+	repo.seed(t, user)
+	userCache.users[user.ID] = *user
+
+	name := "New Name"
+	if _, err := svc.UpdateUser(context.Background(), models.UpdateUserInput{Name: &name}, user.ID.String()); err != nil {
+		t.Fatalf("UpdateUser: %v", err)
+	}
+	if !userCache.wasDeleted(user.ID) {
+		t.Fatal("update left a stale profile in the cache")
+	}
+}
+
+func TestDeleteUserInvalidatesCachedProfile(t *testing.T) {
+	svc, repo, userCache := newCachedService(t)
+	user := &models.User{
+		Username: "chetan", Name: "Chetan", Email: "chetan@example.com",
+		Password: hashPassword(t, "str0ngpass"), IsPublic: true,
+	}
+	repo.seed(t, user)
+	userCache.users[user.ID] = *user
+
+	if _, err := svc.DeleteUser(context.Background(), user.ID.String()); err != nil {
+		t.Fatalf("DeleteUser: %v", err)
+	}
+	if !userCache.wasDeleted(user.ID) {
+		t.Fatal("delete left the profile in the cache")
 	}
 }
