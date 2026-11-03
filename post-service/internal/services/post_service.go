@@ -10,6 +10,7 @@ import (
 	"path"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/chetansachan/socialflow/post-service/internal/config"
 	"github.com/chetansachan/socialflow/post-service/internal/models"
@@ -25,8 +26,8 @@ type PostService interface {
 	GetAllPost(ctx context.Context, authorId string) ([]models.Post, error)
 	CreatePost(ctx context.Context, input models.CreatePostInput) (*models.Post, error)
 	UpdatePost(ctx context.Context, input models.UpdatePostInput, postId string, authorId string) (*models.Post, error)
-	DeletePost(ctx context.Context, postid string) (*models.Response, error)
-	MovePostToArchive(ctx context.Context, postid string) (*models.Response, error)
+	DeletePost(ctx context.Context, postId string, authorId string) (*models.Response, error)
+	MovePostToArchive(ctx context.Context, postId string, authorId string) (*models.Response, error)
 	GetAllArchivedPost(ctx context.Context, authorId string) ([]models.Post, error)
 	GetArchivedPostById(ctx context.Context, id string) (*models.Post, error)
 	LikePost(ctx context.Context, postId string, userId string) (bool, error)
@@ -36,6 +37,10 @@ type PostService interface {
 	Upload(ctx context.Context, base64 string) (string, error)
 	CreateUploadSignature(ctx context.Context, userId, resourceType, folder string) (*models.UploadSignature, error)
 }
+
+// maxPostLength bounds the text of a single post. Media travels separately, so
+// this only limits the caption.
+const maxPostLength = 1000
 
 type postService struct {
 	postRepo repository.PostRepository
@@ -84,8 +89,12 @@ func (s *postService) CreatePost(ctx context.Context, input models.CreatePostInp
 		return nil, models.ErrInvalidInput
 	}
 
-	if strings.TrimSpace(input.Content) == "" {
+	content := strings.TrimSpace(input.Content)
+	if content == "" {
 		return nil, models.ErrInvalidInput
+	}
+	if utf8.RuneCountInString(content) > maxPostLength {
+		return nil, fmt.Errorf("%w: post content must be at most %d characters", models.ErrInvalidInput, maxPostLength)
 	}
 
 	mediaURL := input.MediaURL
@@ -104,7 +113,7 @@ func (s *postService) CreatePost(ctx context.Context, input models.CreatePostInp
 
 	postinput := &models.CreatePostInput{
 		AuthorID: input.AuthorID,
-		Content:  input.Content,
+		Content:  content,
 		MediaURL: mediaURL,
 		IsPublic: &isPublic,
 	}
@@ -119,25 +128,28 @@ func (s *postService) CreatePost(ctx context.Context, input models.CreatePostInp
 func (s *postService) UpdatePost(ctx context.Context, input models.UpdatePostInput, postid string, authorid string) (*models.Post, error) {
 	postId, err := uuid.Parse(postid)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to parse the id: %v", err)
+		return nil, fmt.Errorf("%w: invalid post id", models.ErrInvalidInput)
 	}
 
 	authorId, err := uuid.Parse(authorid)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to parse the id: %v", err)
+		return nil, fmt.Errorf("%w: invalid author id", models.ErrInvalidInput)
 	}
 
-	post, err := s.postRepo.GetPostById(ctx, postId)
+	post, err := s.requirePostOwner(ctx, postId, authorId)
 	if err != nil {
-		if errors.Is(err, models.ErrPostNotFound) {
-			return nil, fmt.Errorf("Post Not Found: %w", err)
-		}
-		return nil, fmt.Errorf("Internal Server Error: %w", err)
+		return nil, err
 	}
 
 	content := post.Content
 	if input.Content != nil {
-		content = *input.Content
+		content = strings.TrimSpace(*input.Content)
+		if utf8.RuneCountInString(content) > maxPostLength {
+			return nil, fmt.Errorf("%w: post content must be at most %d characters", models.ErrInvalidInput, maxPostLength)
+		}
+		if content == "" && strings.TrimSpace(post.MediaURL) == "" {
+			return nil, fmt.Errorf("%w: post must keep text or media", models.ErrInvalidInput)
+		}
 	}
 
 	isPublic := post.IsPublic
@@ -161,13 +173,25 @@ func (s *postService) UpdatePost(ctx context.Context, input models.UpdatePostInp
 	return updatedPost, nil
 }
 
-func (s *postService) DeletePost(ctx context.Context, postid string) (*models.Response, error) {
+func (s *postService) DeletePost(ctx context.Context, postid string, authorid string) (*models.Response, error) {
 	postId, err := uuid.Parse(postid)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to parse the id: %v", err)
+		return nil, fmt.Errorf("%w: invalid post id", models.ErrInvalidInput)
 	}
 
-	if err := s.postRepo.DeletePost(ctx, postId); err != nil {
+	authorId, err := uuid.Parse(authorid)
+	if err != nil {
+		return nil, fmt.Errorf("%w: invalid author id", models.ErrInvalidInput)
+	}
+
+	if _, err := s.requirePostOwner(ctx, postId, authorId); err != nil {
+		return nil, err
+	}
+
+	if err := s.postRepo.DeletePost(ctx, postId, authorId); err != nil {
+		if errors.Is(err, models.ErrPostNotFound) {
+			return nil, models.ErrPostNotFound
+		}
 		return nil, fmt.Errorf("Error Deleting Post: %v", err)
 	}
 
@@ -176,13 +200,25 @@ func (s *postService) DeletePost(ctx context.Context, postid string) (*models.Re
 	}, nil
 }
 
-func (s *postService) MovePostToArchive(ctx context.Context, postid string) (*models.Response, error) {
+func (s *postService) MovePostToArchive(ctx context.Context, postid string, authorid string) (*models.Response, error) {
 	postId, err := uuid.Parse(postid)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to parse the id: %v", err)
+		return nil, fmt.Errorf("%w: invalid post id", models.ErrInvalidInput)
 	}
 
-	if err := s.postRepo.MovePostToArchive(ctx, postId); err != nil {
+	authorId, err := uuid.Parse(authorid)
+	if err != nil {
+		return nil, fmt.Errorf("%w: invalid author id", models.ErrInvalidInput)
+	}
+
+	if _, err := s.requirePostOwner(ctx, postId, authorId); err != nil {
+		return nil, err
+	}
+
+	if err := s.postRepo.MovePostToArchive(ctx, postId, authorId); err != nil {
+		if errors.Is(err, models.ErrPostNotFound) {
+			return nil, models.ErrPostNotFound
+		}
 		return nil, fmt.Errorf("Error Moving Post to archive: %v", err)
 	}
 
@@ -350,6 +386,23 @@ func (s *postService) CreateUploadSignature(ctx context.Context, userId, resourc
 		UploadURL: fmt.Sprintf("https://api.cloudinary.com/v1_1/%s/%s/upload", parsed.Host, resource),
 		ExpiresAt: timestamp + 600,
 	}, nil
+}
+
+// requirePostOwner loads the post and confirms the caller owns it. The check
+// lives in the service so every transport (GraphQL today, anything else
+// tomorrow) gets the same rule.
+func (s *postService) requirePostOwner(ctx context.Context, postID, authorID uuid.UUID) (*models.Post, error) {
+	post, err := s.postRepo.GetPostById(ctx, postID)
+	if err != nil {
+		if errors.Is(err, models.ErrPostNotFound) {
+			return nil, models.ErrPostNotFound
+		}
+		return nil, fmt.Errorf("Internal Server Error: %w", err)
+	}
+	if post.AuthorID != authorID {
+		return nil, models.ErrUnauthorized
+	}
+	return post, nil
 }
 
 func inferMimeType(ext string) string {

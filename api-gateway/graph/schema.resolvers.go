@@ -517,7 +517,10 @@ func (r *queryResolver) DeletePost(ctx context.Context, id string) (*model.Delet
 		return nil, err
 	}
 
-	if _, err := r.PostClient.DeletePost(ctx, &socialflowpb.DeletePostRequest{PostId: id}); err != nil {
+	if _, err := r.PostClient.DeletePost(ctx, &socialflowpb.DeletePostRequest{
+		PostId:   id,
+		AuthorId: principal.UserID,
+	}); err != nil {
 		return nil, err
 	}
 
@@ -536,7 +539,10 @@ func (r *queryResolver) MoveToArchive(ctx context.Context, id string) (*model.Mo
 		return nil, err
 	}
 
-	if _, err := r.PostClient.MovePostToArchived(ctx, &socialflowpb.MovePostToArchivedRequest{PostId: id}); err != nil {
+	if _, err := r.PostClient.MovePostToArchived(ctx, &socialflowpb.MovePostToArchivedRequest{
+		PostId:   id,
+		AuthorId: principal.UserID,
+	}); err != nil {
 		return nil, err
 	}
 

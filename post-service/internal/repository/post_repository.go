@@ -16,10 +16,10 @@ type PostRepository interface {
 	CreatePost(ctx context.Context, input *models.CreatePostInput) (*models.Post, error)
 	GetPostById(ctx context.Context, id uuid.UUID) (*models.Post, error)
 	UpdatePost(ctx context.Context, input *models.UpdatePostInput, postId uuid.UUID, authorId uuid.UUID) (*models.Post, error)
-	DeletePost(ctx context.Context, postId uuid.UUID) error
+	DeletePost(ctx context.Context, postId uuid.UUID, authorId uuid.UUID) error
 	GetAllArchivedPost(ctx context.Context, authorId uuid.UUID) ([]models.Post, error)
 	GetArchivedPostById(ctx context.Context, id uuid.UUID) (*models.Post, error)
-	MovePostToArchive(ctx context.Context, postId uuid.UUID) error
+	MovePostToArchive(ctx context.Context, postId uuid.UUID, authorId uuid.UUID) error
 	GetAllPost(ctx context.Context, authorId uuid.UUID) ([]models.Post, error)
 	LikePost(ctx context.Context, postId, userId uuid.UUID) (bool, error)
 	GetAllPostLikers(ctx context.Context, postId uuid.UUID) ([]string, error)
@@ -206,7 +206,7 @@ func (r *postRepository) UpdatePost(ctx context.Context, input *models.UpdatePos
 	return post, nil
 }
 
-func (r *postRepository) DeletePost(ctx context.Context, postId uuid.UUID) error {
+func (r *postRepository) DeletePost(ctx context.Context, postId uuid.UUID, authorId uuid.UUID) error {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin delete post transaction: %w", err)
@@ -215,12 +215,12 @@ func (r *postRepository) DeletePost(ctx context.Context, postId uuid.UUID) error
 
 	const query = `
 		DELETE FROM posts
-		WHERE id = $1
+		WHERE id = $1 AND author_id = $2
 		RETURNING author_id
 	`
 
-	var authorID uuid.UUID
-	if err := tx.QueryRow(ctx, query, postId).Scan(&authorID); err != nil {
+	var deletedAuthorID uuid.UUID
+	if err := tx.QueryRow(ctx, query, postId, authorId).Scan(&deletedAuthorID); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return models.ErrPostNotFound
 		}
@@ -229,7 +229,7 @@ func (r *postRepository) DeletePost(ctx context.Context, postId uuid.UUID) error
 
 	if err := enqueueOutbox(ctx, tx, "post.deleted", postId, models.PostDeletedEvent{
 		PostID:   postId.String(),
-		AuthorID: authorID.String(),
+		AuthorID: deletedAuthorID.String(),
 	}); err != nil {
 		return err
 	}
@@ -240,7 +240,7 @@ func (r *postRepository) DeletePost(ctx context.Context, postId uuid.UUID) error
 	return nil
 }
 
-func (r *postRepository) MovePostToArchive(ctx context.Context, postId uuid.UUID) error {
+func (r *postRepository) MovePostToArchive(ctx context.Context, postId uuid.UUID, authorId uuid.UUID) error {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin archive transaction: %w", err)
@@ -250,12 +250,12 @@ func (r *postRepository) MovePostToArchive(ctx context.Context, postId uuid.UUID
 	const query = `
 		UPDATE posts
 		SET deleted_at = CURRENT_TIMESTAMP
-		WHERE id = $1 AND deleted_at IS NULL
+		WHERE id = $1 AND author_id = $2 AND deleted_at IS NULL
 		RETURNING author_id
 	`
 
-	var authorID uuid.UUID
-	if err := tx.QueryRow(ctx, query, postId).Scan(&authorID); err != nil {
+	var archivedAuthorID uuid.UUID
+	if err := tx.QueryRow(ctx, query, postId, authorId).Scan(&archivedAuthorID); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return models.ErrPostNotFound
 		}
@@ -264,7 +264,7 @@ func (r *postRepository) MovePostToArchive(ctx context.Context, postId uuid.UUID
 
 	if err := enqueueOutbox(ctx, tx, "post.deleted", postId, models.PostDeletedEvent{
 		PostID:   postId.String(),
-		AuthorID: authorID.String(),
+		AuthorID: archivedAuthorID.String(),
 	}); err != nil {
 		return err
 	}

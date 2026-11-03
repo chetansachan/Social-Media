@@ -212,6 +212,7 @@ func (x *PostByIdResponse) GetPost() *Post {
 type DeletePostRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	PostId        string                 `protobuf:"bytes,1,opt,name=post_id,json=postId,proto3" json:"post_id,omitempty"`
+	AuthorId      string                 `protobuf:"bytes,2,opt,name=author_id,json=authorId,proto3" json:"author_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -249,6 +250,13 @@ func (*DeletePostRequest) Descriptor() ([]byte, []int) {
 func (x *DeletePostRequest) GetPostId() string {
 	if x != nil {
 		return x.PostId
+	}
+	return ""
+}
+
+func (x *DeletePostRequest) GetAuthorId() string {
+	if x != nil {
+		return x.AuthorId
 	}
 	return ""
 }
@@ -612,6 +620,7 @@ func (x *ArchivedPostByIdResponse) GetPost() *Post {
 type MovePostToArchivedRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	PostId        string                 `protobuf:"bytes,1,opt,name=post_id,json=postId,proto3" json:"post_id,omitempty"`
+	AuthorId      string                 `protobuf:"bytes,2,opt,name=author_id,json=authorId,proto3" json:"author_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -649,6 +658,13 @@ func (*MovePostToArchivedRequest) Descriptor() ([]byte, []int) {
 func (x *MovePostToArchivedRequest) GetPostId() string {
 	if x != nil {
 		return x.PostId
+	}
+	return ""
+}
+
+func (x *MovePostToArchivedRequest) GetAuthorId() string {
+	if x != nil {
+		return x.AuthorId
 	}
 	return ""
 }
@@ -1431,9 +1447,10 @@ const file_post_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"2\n" +
 	"\x10PostByIdResponse\x12\x1e\n" +
 	"\x04post\x18\x01 \x01(\v2\n" +
-	".post.PostR\x04post\",\n" +
+	".post.PostR\x04post\"I\n" +
 	"\x11DeletePostRequest\x12\x17\n" +
-	"\apost_id\x18\x01 \x01(\tR\x06postId\".\n" +
+	"\apost_id\x18\x01 \x01(\tR\x06postId\x12\x1b\n" +
+	"\tauthor_id\x18\x02 \x01(\tR\bauthorId\".\n" +
 	"\x12DeletePostResponse\x12\x18\n" +
 	"\amessage\x18\x01 \x01(\tR\amessage\"\x97\x01\n" +
 	"\x11CreatePostRequest\x12\x1b\n" +
@@ -1462,9 +1479,10 @@ const file_post_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\":\n" +
 	"\x18ArchivedPostByIdResponse\x12\x1e\n" +
 	"\x04post\x18\x01 \x01(\v2\n" +
-	".post.PostR\x04post\"4\n" +
+	".post.PostR\x04post\"Q\n" +
 	"\x19MovePostToArchivedRequest\x12\x17\n" +
-	"\apost_id\x18\x01 \x01(\tR\x06postId\"6\n" +
+	"\apost_id\x18\x01 \x01(\tR\x06postId\x12\x1b\n" +
+	"\tauthor_id\x18\x02 \x01(\tR\bauthorId\"6\n" +
 	"\x1aMovePostToArchivedResponse\x12\x18\n" +
 	"\amessage\x18\x01 \x01(\tR\amessage\"5\n" +
 	"\x16AllArchivedPostRequest\x12\x1b\n" +

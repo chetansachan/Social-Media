@@ -118,10 +118,15 @@ func (h *PostHandler) GetAllPosts(ctx context.Context, input *postpb.AllPostRequ
 }
 
 func (h *PostHandler) DeletePost(ctx context.Context, input *postpb.DeletePostRequest) (*postpb.DeletePostResponse, error) {
-	_, err := h.postService.DeletePost(ctx, input.PostId)
+	_, err := h.postService.DeletePost(ctx, input.PostId, input.AuthorId)
 	if err != nil {
-		if errors.Is(err, models.ErrPostNotFound) {
+		switch {
+		case errors.Is(err, models.ErrPostNotFound):
 			return nil, status.Error(codes.NotFound, "Post Not Found")
+		case errors.Is(err, models.ErrUnauthorized):
+			return nil, status.Error(codes.PermissionDenied, "not authorized to delete this post")
+		case errors.Is(err, models.ErrInvalidInput):
+			return nil, status.Errorf(codes.InvalidArgument, "%v", err)
 		}
 
 		return &postpb.DeletePostResponse{}, status.Errorf(codes.Internal, "Error Deleting Post: %v", err)
@@ -140,8 +145,13 @@ func (h *PostHandler) UpdatePost(ctx context.Context, req *postpb.UpdatePostRequ
 
 	post, err := h.postService.UpdatePost(ctx, input, req.PostId, req.AuthorId)
 	if err != nil {
-		if errors.Is(err, models.ErrPostNotFound) {
+		switch {
+		case errors.Is(err, models.ErrPostNotFound):
 			return nil, status.Error(codes.NotFound, "Post Not Found")
+		case errors.Is(err, models.ErrUnauthorized):
+			return nil, status.Error(codes.PermissionDenied, "not authorized to update this post")
+		case errors.Is(err, models.ErrInvalidInput):
+			return nil, status.Errorf(codes.InvalidArgument, "%v", err)
 		}
 
 		return nil, status.Errorf(codes.Internal, "failed to update post: %v", err)
@@ -214,10 +224,15 @@ func (h *PostHandler) GetArchivedPostById(ctx context.Context, input *postpb.Arc
 }
 
 func (h *PostHandler) MovePostToArchived(ctx context.Context, input *postpb.MovePostToArchivedRequest) (*postpb.MovePostToArchivedResponse, error) {
-	_, err := h.postService.MovePostToArchive(ctx, input.PostId)
+	_, err := h.postService.MovePostToArchive(ctx, input.PostId, input.AuthorId)
 	if err != nil {
-		if errors.Is(err, models.ErrPostNotFound) {
+		switch {
+		case errors.Is(err, models.ErrPostNotFound):
 			return nil, status.Error(codes.NotFound, "Post Not Found")
+		case errors.Is(err, models.ErrUnauthorized):
+			return nil, status.Error(codes.PermissionDenied, "not authorized to archive this post")
+		case errors.Is(err, models.ErrInvalidInput):
+			return nil, status.Errorf(codes.InvalidArgument, "%v", err)
 		}
 
 		return &postpb.MovePostToArchivedResponse{}, status.Errorf(codes.Internal, "Error Moving Post to Archive: %v", err)
