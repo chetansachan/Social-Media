@@ -5,6 +5,7 @@ use (
 	./feed-service
 	./follow-service
 	./notification-service
+	./platform/observability
 	./post-service
 	./proto
 	./user-service
