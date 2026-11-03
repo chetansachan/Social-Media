@@ -170,6 +170,13 @@ func (m *Metrics) HTTPMiddleware(next http.Handler) http.Handler {
 			handler = r.URL.Path
 		}
 		m.httpRequests.WithLabelValues(m.service, handler, strconv.Itoa(recorder.status)).Inc()
+
+		// An upgraded connection lives for as long as the client keeps it
+		// open. Recording that as HTTP latency would swamp the histogram with
+		// multi-minute samples and hide real request slowdowns.
+		if recorder.hijacked {
+			return
+		}
 		m.httpDuration.WithLabelValues(m.service, handler).Observe(time.Since(start).Seconds())
 	})
 }
@@ -212,6 +219,7 @@ type statusRecorder struct {
 	http.ResponseWriter
 	status      int
 	wroteHeader bool
+	hijacked    bool
 }
 
 func (r *statusRecorder) WriteHeader(status int) {
@@ -241,7 +249,12 @@ func (r *statusRecorder) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	if !ok {
 		return nil, nil, fmt.Errorf("response writer does not support hijacking")
 	}
-	return hijacker.Hijack()
+	conn, buffer, err := hijacker.Hijack()
+	if err == nil {
+		r.hijacked = true
+		r.status = http.StatusSwitchingProtocols
+	}
+	return conn, buffer, err
 }
 
 func (r *statusRecorder) Push(target string, opts *http.PushOptions) error {

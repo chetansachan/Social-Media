@@ -125,6 +125,55 @@ func (w hijackableWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	return nil, nil, errors.New("not used")
 }
 
+type successfulHijacker struct {
+	*httptest.ResponseRecorder
+}
+
+func (h successfulHijacker) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	server, client := net.Pipe()
+	_ = client.Close()
+	return server, bufio.NewReadWriter(bufio.NewReader(server), bufio.NewWriter(server)), nil
+}
+
+func TestHTTPMiddlewareSkipsUpgradedConnectionDuration(t *testing.T) {
+	metrics := NewMetrics("api-gateway")
+	handler := metrics.HTTPMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		conn, _, err := w.(http.Hijacker).Hijack()
+		if err != nil {
+			t.Fatalf("Hijack: %v", err)
+		}
+		_ = conn.Close()
+	}))
+
+	recorder := &successfulHijacker{ResponseRecorder: httptest.NewRecorder()}
+	handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/query", nil))
+
+	// The connection was upgraded, so the upgrade is counted as a 101 but its
+	// lifetime must not be recorded as HTTP latency.
+	families, err := metrics.registry.Gather()
+	if err != nil {
+		t.Fatalf("Gather: %v", err)
+	}
+	sawDuration := false
+	for _, family := range families {
+		if family.GetName() == "http_request_duration_seconds" {
+			sawDuration = true
+		}
+	}
+	if sawDuration {
+		t.Fatal("an upgraded connection recorded an HTTP duration sample")
+	}
+
+	requests := gatherMetric(t, metrics.registry, "http_requests_total")
+	labels := map[string]string{}
+	for _, label := range requests.GetMetric()[0].GetLabel() {
+		labels[label.GetName()] = label.GetValue()
+	}
+	if labels["status"] != "101" {
+		t.Fatalf("status label = %q, want 101", labels["status"])
+	}
+}
+
 func TestStatusRecorderPreservesHijacking(t *testing.T) {
 	recorder := &statusRecorder{ResponseWriter: hijackableWriter{ResponseRecorder: httptest.NewRecorder()}}
 
