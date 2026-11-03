@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             v7.36.0
-// source: proto/user.proto
+// source: user.proto
 
 package proto
 
@@ -23,6 +23,7 @@ const (
 	UserService_GetUserById_FullMethodName       = "/user.UserService/GetUserById"
 	UserService_GetUserByEmail_FullMethodName    = "/user.UserService/GetUserByEmail"
 	UserService_GetUserByUsername_FullMethodName = "/user.UserService/GetUserByUsername"
+	UserService_BatchGetUsers_FullMethodName     = "/user.UserService/BatchGetUsers"
 	UserService_Login_FullMethodName             = "/user.UserService/Login"
 	UserService_Refresh_FullMethodName           = "/user.UserService/Refresh"
 	UserService_UpdateUser_FullMethodName        = "/user.UserService/UpdateUser"
@@ -37,6 +38,7 @@ type UserServiceClient interface {
 	GetUserById(ctx context.Context, in *GetUserByIdRequest, opts ...grpc.CallOption) (*GetUserByIdResponse, error)
 	GetUserByEmail(ctx context.Context, in *GetUserByEmailRequest, opts ...grpc.CallOption) (*GetUserByEmailResponse, error)
 	GetUserByUsername(ctx context.Context, in *GetUserByUsernameRequest, opts ...grpc.CallOption) (*GetUserByUsernameResponse, error)
+	BatchGetUsers(ctx context.Context, in *BatchGetUsersRequest, opts ...grpc.CallOption) (*BatchGetUsersResponse, error)
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
 	Refresh(ctx context.Context, in *RefreshTknRequest, opts ...grpc.CallOption) (*RefreshTknResponse, error)
 	UpdateUser(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*UpdateUserResponse, error)
@@ -91,6 +93,16 @@ func (c *userServiceClient) GetUserByUsername(ctx context.Context, in *GetUserBy
 	return out, nil
 }
 
+func (c *userServiceClient) BatchGetUsers(ctx context.Context, in *BatchGetUsersRequest, opts ...grpc.CallOption) (*BatchGetUsersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BatchGetUsersResponse)
+	err := c.cc.Invoke(ctx, UserService_BatchGetUsers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *userServiceClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(LoginResponse)
@@ -139,6 +151,7 @@ type UserServiceServer interface {
 	GetUserById(context.Context, *GetUserByIdRequest) (*GetUserByIdResponse, error)
 	GetUserByEmail(context.Context, *GetUserByEmailRequest) (*GetUserByEmailResponse, error)
 	GetUserByUsername(context.Context, *GetUserByUsernameRequest) (*GetUserByUsernameResponse, error)
+	BatchGetUsers(context.Context, *BatchGetUsersRequest) (*BatchGetUsersResponse, error)
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 	Refresh(context.Context, *RefreshTknRequest) (*RefreshTknResponse, error)
 	UpdateUser(context.Context, *UpdateUserRequest) (*UpdateUserResponse, error)
@@ -164,6 +177,9 @@ func (UnimplementedUserServiceServer) GetUserByEmail(context.Context, *GetUserBy
 }
 func (UnimplementedUserServiceServer) GetUserByUsername(context.Context, *GetUserByUsernameRequest) (*GetUserByUsernameResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetUserByUsername not implemented")
+}
+func (UnimplementedUserServiceServer) BatchGetUsers(context.Context, *BatchGetUsersRequest) (*BatchGetUsersResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method BatchGetUsers not implemented")
 }
 func (UnimplementedUserServiceServer) Login(context.Context, *LoginRequest) (*LoginResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Login not implemented")
@@ -270,6 +286,24 @@ func _UserService_GetUserByUsername_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_BatchGetUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchGetUsersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).BatchGetUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_BatchGetUsers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).BatchGetUsers(ctx, req.(*BatchGetUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _UserService_Login_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(LoginRequest)
 	if err := dec(in); err != nil {
@@ -366,6 +400,10 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _UserService_GetUserByUsername_Handler,
 		},
 		{
+			MethodName: "BatchGetUsers",
+			Handler:    _UserService_BatchGetUsers_Handler,
+		},
+		{
 			MethodName: "Login",
 			Handler:    _UserService_Login_Handler,
 		},
@@ -383,5 +421,5 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "proto/user.proto",
+	Metadata: "user.proto",
 }

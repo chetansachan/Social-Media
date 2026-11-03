@@ -21,7 +21,7 @@ func Load() *Config {
 	config := Config{
 		DatabaseUrl: os.Getenv("DATABASE_URL"),
 		Port:        os.Getenv("PORT"),
-		SecretKey: os.Getenv("MYSECRETKEY"),
+		SecretKey:   os.Getenv("MYSECRETKEY"),
 	}
 
 	return &config

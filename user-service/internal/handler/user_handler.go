@@ -153,6 +153,30 @@ func (h *UserHandler) GetUserByUsername(ctx context.Context, req *userpb.GetUser
 	}, nil
 }
 
+// BatchGetUsers powers GraphQL dataloaders: one RPC resolves every author on a
+// feed page instead of one request per post.
+func (h *UserHandler) BatchGetUsers(ctx context.Context, req *userpb.BatchGetUsersRequest) (*userpb.BatchGetUsersResponse, error) {
+	users, err := h.userService.GetByIds(ctx, req.GetIds())
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to batch get users: %v", err)
+	}
+
+	result := make([]*userpb.User, 0, len(users))
+	for _, user := range users {
+		result = append(result, &userpb.User{
+			Id:        user.ID.String(),
+			Username:  user.Username,
+			Name:      user.Name,
+			Email:     user.Email,
+			IsPublic:  user.IsPublic,
+			CreatedAt: user.CreatedAt.Format(time.RFC3339),
+			UpdatedAt: formatTimestamp(user.UpdatedAt),
+		})
+	}
+
+	return &userpb.BatchGetUsersResponse{Users: result}, nil
+}
+
 func (h *UserHandler) Refresh(ctx context.Context, req *userpb.RefreshTknRequest) (*userpb.RefreshTknResponse, error) {
 	res, err := h.userService.Refresh(ctx, req.Refreshtkn)
 	if err != nil {
@@ -189,11 +213,11 @@ func (h *UserHandler) UpdateUser(ctx context.Context, req *userpb.UpdateUserRequ
 
 	return &userpb.UpdateUserResponse{
 		User: &userpb.User{
-			Id: res.ID.String(),
-			Username: res.Username,
-			Name: res.Name,
-			Email: res.Email,
-			IsPublic: res.IsPublic,
+			Id:        res.ID.String(),
+			Username:  res.Username,
+			Name:      res.Name,
+			Email:     res.Email,
+			IsPublic:  res.IsPublic,
 			CreatedAt: res.CreatedAt.Format(time.RFC3339),
 			UpdatedAt: formatTimestamp(res.UpdatedAt),
 		},

@@ -17,6 +17,7 @@ type UserRepository interface {
 	GetByEmail(ctx context.Context, email string) (*models.User, error)
 	GetByUsername(ctx context.Context, username string) (*models.User, error)
 	GetById(ctx context.Context, id uuid.UUID) (*models.User, error)
+	GetByIds(ctx context.Context, ids []uuid.UUID) ([]models.User, error)
 	SaveToken(ctx context.Context, data *models.RefreshTkn) error
 	GetRefreshTk(ctx context.Context, tkn string) (*models.RefreshTkn, error)
 	RotateToken(ctx context.Context, oldtkn string, newtkn string, data *models.RefreshTkn) error
@@ -153,6 +154,48 @@ func (r *userRepository) GetById(ctx context.Context, id uuid.UUID) (*models.Use
 	return user, nil
 }
 
+// GetByIds performs one indexed lookup for a batch of ids. Missing ids are
+// simply absent from the result, which lets dataloaders resolve partial pages.
+func (r *userRepository) GetByIds(ctx context.Context, ids []uuid.UUID) ([]models.User, error) {
+	if len(ids) == 0 {
+		return []models.User{}, nil
+	}
+
+	query := `
+		SELECT id, username, name, email, password, is_public, created_at, updated_at
+		FROM users
+		WHERE id = ANY($1)
+	`
+
+	rows, err := r.db.Query(ctx, query, ids)
+	if err != nil {
+		return nil, fmt.Errorf("failed to batch get users: %w", err)
+	}
+	defer rows.Close()
+
+	users := make([]models.User, 0, len(ids))
+	for rows.Next() {
+		var user models.User
+		if err := rows.Scan(
+			&user.ID,
+			&user.Username,
+			&user.Name,
+			&user.Email,
+			&user.Password,
+			&user.IsPublic,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan batch user: %w", err)
+		}
+		users = append(users, user)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating batch users: %w", err)
+	}
+	return users, nil
+}
+
 func (r *userRepository) SaveToken(ctx context.Context, data *models.RefreshTkn) error {
 	query := `
 		INSERT INTO refreshtkn (userid, token, expired_at)
@@ -246,7 +289,7 @@ func (r *userRepository) UpdateUser(ctx context.Context, input *models.UpdateUse
 }
 
 func (r *userRepository) DeleteUser(ctx context.Context, id uuid.UUID) error {
-	query :=  `
+	query := `
 		DELETE FROM users
 		WHERE id = $1
 	`

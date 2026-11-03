@@ -8,13 +8,13 @@ import (
 )
 
 type User struct {
-	ID        uuid.UUID `json:"id"`
-	Username  string    `json:"username"`
-	Name      string    `json:"name"`
-	Email     string    `json:"email"`
-	Password  string    `json:"-"`
-	IsPublic  bool      `json:"is_public"`
-	CreatedAt time.Time `json:"created_at"`
+	ID        uuid.UUID  `json:"id"`
+	Username  string     `json:"username"`
+	Name      string     `json:"name"`
+	Email     string     `json:"email"`
+	Password  string     `json:"-"`
+	IsPublic  bool       `json:"is_public"`
+	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt *time.Time `json:"updated_at"`
 }
 
@@ -47,17 +47,17 @@ type UpdateUserInput struct {
 
 type MyCustomClaims struct {
 	UserId uuid.UUID `json:"user_id"`
-	Email  string `json:"email"`
+	Email  string    `json:"email"`
 	jwt.RegisteredClaims
 }
 
 type RefreshTkn struct {
-	Id        uuid.UUID `json:"id"`
-	UserId    uuid.UUID    `json:"userid"`
-	Token     string    `json:"token"`
-	IsRevoked bool     `json:"is_revoked,omitempty"`
-	ExpiresAt time.Time `json:"expires_at"`
-	CreatedAt time.Time `json:"created_at"`
+	Id        uuid.UUID  `json:"id"`
+	UserId    uuid.UUID  `json:"userid"`
+	Token     string     `json:"token"`
+	IsRevoked bool       `json:"is_revoked,omitempty"`
+	ExpiresAt time.Time  `json:"expires_at"`
+	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt *time.Time `json:"updated_at"`
 }
 

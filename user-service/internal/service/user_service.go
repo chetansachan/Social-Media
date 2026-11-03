@@ -24,6 +24,7 @@ type UserService interface {
 	GetById(ctx context.Context, id string) (*models.User, error)
 	GetByEmail(ctx context.Context, email string) (*models.User, error)
 	GetByUsername(ctx context.Context, username string) (*models.User, error)
+	GetByIds(ctx context.Context, ids []string) ([]models.User, error)
 	Refresh(ctx context.Context, tkn string) (*models.RotationResponse, error)
 	UpdateUser(ctx context.Context, input models.UpdateUserInput, id string) (*models.User, error)
 	DeleteUser(ctx context.Context, id string) (*models.DeleteUserRespose, error)
@@ -243,6 +244,34 @@ func (s *userService) GetByUsername(ctx context.Context, username string) (*mode
 	user.Password = ""
 
 	return user, nil
+}
+
+// GetByIds validates and de-duplicates ids before issuing a single query.
+// Unknown or malformed ids are skipped rather than failing the whole batch:
+// a deleted user must not break a feed page.
+func (s *userService) GetByIds(ctx context.Context, ids []string) ([]models.User, error) {
+	unique := make([]uuid.UUID, 0, len(ids))
+	seen := make(map[uuid.UUID]struct{}, len(ids))
+	for _, raw := range ids {
+		id, err := uuid.Parse(strings.TrimSpace(raw))
+		if err != nil {
+			continue
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		unique = append(unique, id)
+	}
+
+	users, err := s.userRepo.GetByIds(ctx, unique)
+	if err != nil {
+		return nil, err
+	}
+	for i := range users {
+		users[i].Password = ""
+	}
+	return users, nil
 }
 
 func (s *userService) Refresh(ctx context.Context, tkn string) (*models.RotationResponse, error) {
