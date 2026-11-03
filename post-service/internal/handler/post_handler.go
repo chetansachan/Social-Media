@@ -191,7 +191,7 @@ func (h *PostHandler) GetAllArchivedPosts(ctx context.Context, input *postpb.All
 }
 
 func (h *PostHandler) GetArchivedPostById(ctx context.Context, input *postpb.ArchivedPostByIdRequest) (*postpb.ArchivedPostByIdResponse, error) {
-	post, err := h.postService.GetArchivedPostById(ctx, input.Id) 
+	post, err := h.postService.GetArchivedPostById(ctx, input.Id)
 	if err != nil {
 		if errors.Is(err, models.ErrPostNotFound) {
 			return &postpb.ArchivedPostByIdResponse{}, status.Error(codes.NotFound, "Post Not Found")

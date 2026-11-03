@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/chetansachan/socialflow/post-service/internal/models"
 	"github.com/google/uuid"
@@ -105,6 +106,12 @@ func (r *postRepository) GetAllPost(ctx context.Context, authorId uuid.UUID) ([]
 }
 
 func (r *postRepository) CreatePost(ctx context.Context, input *models.CreatePostInput) (*models.Post, error) {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin create post transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
 	query := `
 		INSERT INTO posts(author_id, content, media_url, is_public)
 		VALUES ($1, $2, $3, $4)
@@ -112,7 +119,7 @@ func (r *postRepository) CreatePost(ctx context.Context, input *models.CreatePos
 	`
 
 	post := &models.Post{}
-	if err := r.db.QueryRow(ctx, query,
+	if err := tx.QueryRow(ctx, query,
 		input.AuthorID,
 		input.Content,
 		input.MediaURL,
@@ -131,7 +138,37 @@ func (r *postRepository) CreatePost(ctx context.Context, input *models.CreatePos
 		return nil, fmt.Errorf("failed to insert post: %w", err)
 	}
 
+	// The event and the post commit together. If the relay cannot reach Redis
+	// yet, the row stays PENDING and is retried after the outage.
+	if err := enqueueOutbox(ctx, tx, "post.created", post.ID, models.PostCreatedEvent{
+		PostID:      post.ID.String(),
+		AuthorID:    post.AuthorID.String(),
+		CreatedAt:   post.CreatedAt.UnixNano(),
+		IsPublic:    post.IsPublic,
+		PostPreview: preview(post.Content, 140),
+	}); err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("failed to commit create post transaction: %w", err)
+	}
+
 	return post, nil
+}
+
+// preview trims user content to a short, rune-safe snippet for notifications
+// and push payloads.
+func preview(content string, limit int) string {
+	trimmed := strings.TrimSpace(content)
+	if limit <= 0 {
+		return ""
+	}
+	runes := []rune(trimmed)
+	if len(runes) <= limit {
+		return trimmed
+	}
+	return string(runes[:limit]) + "…"
 }
 
 func (r *postRepository) UpdatePost(ctx context.Context, input *models.UpdatePostInput, postId uuid.UUID, authorId uuid.UUID) (*models.Post, error) {
@@ -169,37 +206,71 @@ func (r *postRepository) UpdatePost(ctx context.Context, input *models.UpdatePos
 }
 
 func (r *postRepository) DeletePost(ctx context.Context, postId uuid.UUID) error {
-	query := `
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin delete post transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	const query = `
 		DELETE FROM posts
 		WHERE id = $1
+		RETURNING author_id
 	`
 
-	tag, err := r.db.Exec(ctx, query, postId)
-	if err != nil {
-		return fmt.Errorf("Error deleting Post: %v", err)
-	}
-	if tag.RowsAffected() == 0 {
-		return models.ErrPostNotFound
+	var authorID uuid.UUID
+	if err := tx.QueryRow(ctx, query, postId).Scan(&authorID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return models.ErrPostNotFound
+		}
+		return fmt.Errorf("error deleting post: %w", err)
 	}
 
+	if err := enqueueOutbox(ctx, tx, "post.deleted", postId, models.PostDeletedEvent{
+		PostID:   postId.String(),
+		AuthorID: authorID.String(),
+	}); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit delete post transaction: %w", err)
+	}
 	return nil
 }
 
 func (r *postRepository) MovePostToArchive(ctx context.Context, postId uuid.UUID) error {
-	query := `
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin archive transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	const query = `
 		UPDATE posts
 		SET deleted_at = CURRENT_TIMESTAMP
 		WHERE id = $1 AND deleted_at IS NULL
+		RETURNING author_id
 	`
 
-	tag, err := r.db.Exec(ctx, query, postId)
-	if err != nil {
-		return fmt.Errorf("Error deleting Post: %v", err)
-	}
-	if tag.RowsAffected() == 0 {
-		return models.ErrPostNotFound
+	var authorID uuid.UUID
+	if err := tx.QueryRow(ctx, query, postId).Scan(&authorID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return models.ErrPostNotFound
+		}
+		return fmt.Errorf("error archiving post: %w", err)
 	}
 
+	if err := enqueueOutbox(ctx, tx, "post.deleted", postId, models.PostDeletedEvent{
+		PostID:   postId.String(),
+		AuthorID: authorID.String(),
+	}); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit archive transaction: %w", err)
+	}
 	return nil
 }
 
@@ -282,9 +353,18 @@ func (r *postRepository) LikePost(ctx context.Context, postId, userId uuid.UUID)
 	}
 	defer tx.Rollback(ctx)
 
-	_, err2 := r.GetPostById(ctx, postId)
-	if err2 != nil {
-		return false, fmt.Errorf("Post NotFound %w", err2)
+	// Read the author and a short preview inside the same transaction so the
+	// emitted event always describes the post state the like was applied to.
+	var postAuthorID uuid.UUID
+	var postContent string
+	if err := tx.QueryRow(ctx, `
+		SELECT author_id, content FROM posts
+		WHERE id = $1 AND deleted_at IS NULL
+	`, postId).Scan(&postAuthorID, &postContent); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, models.ErrPostNotFound
+		}
+		return false, fmt.Errorf("failed to load post for like: %w", err)
 	}
 
 	toggleQuery := `
@@ -320,6 +400,23 @@ func (r *postRepository) LikePost(ctx context.Context, postId, userId uuid.UUID)
 	_, err = tx.Exec(ctx, updateCounterQuery, counterChange, postId)
 	if err != nil {
 		return false, fmt.Errorf("failed to update post like counter: %w", err)
+	}
+
+	// Self-likes never notify; suppressing them at the producer keeps the
+	// notification stream clean and saves consumer work.
+	if userId != postAuthorID {
+		eventType := "post.unliked"
+		if isCurrentlyLiked {
+			eventType = "post.liked"
+		}
+		if err := enqueueOutbox(ctx, tx, eventType, postId, models.PostReactionEvent{
+			PostID:       postId.String(),
+			PostAuthorID: postAuthorID.String(),
+			ActorID:      userId.String(),
+			PostPreview:  preview(postContent, 140),
+		}); err != nil {
+			return false, err
+		}
 	}
 
 	if err := tx.Commit(ctx); err != nil {
