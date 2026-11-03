@@ -23,6 +23,7 @@ type PostRepository interface {
 	LikePost(ctx context.Context, postId, userId uuid.UUID) (bool, error)
 	GetAllPostLikers(ctx context.Context, postId uuid.UUID) ([]string, error)
 	GetAllLikedPosts(ctx context.Context, userId uuid.UUID) ([]models.Post, error)
+	SaveFiles(ctx context.Context, name string, ext string, mimeType string) error
 }
 
 type postRepository struct {
@@ -398,4 +399,26 @@ func (r *postRepository) GetAllLikedPosts(ctx context.Context, userId uuid.UUID)
 	}
 
 	return posts, nil
+}
+
+func (r *postRepository) SaveFiles(ctx context.Context, name string, ext string, mimeType string) error {
+	if len(name) > 180 {
+		name = name[:180]
+	}
+	if len(ext) > 80 {
+		ext = ext[:80]
+	}
+	if len(mimeType) > 100 {
+		mimeType = mimeType[:100]
+	}
+	query := `
+		INSERT INTO files (file_name, file_ext, file_mimetype)
+		VALUES ($1, $2, $3)
+	`
+
+	if _, err := r.db.Exec(ctx, query, name, ext, mimeType); err != nil {
+		return fmt.Errorf("database error: %w", err)
+	}
+
+	return nil
 }

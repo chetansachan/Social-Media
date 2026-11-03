@@ -4,9 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path"
+	"strings"
 
+	"github.com/chetansachan/socialflow/post-service/internal/config"
 	"github.com/chetansachan/socialflow/post-service/internal/models"
 	"github.com/chetansachan/socialflow/post-service/internal/repository"
+	"github.com/cloudinary/cloudinary-go/v2"
+	"github.com/cloudinary/cloudinary-go/v2/api"
+	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
 	"github.com/google/uuid"
 )
 
@@ -22,6 +28,7 @@ type PostService interface {
 	LikePost(ctx context.Context, postId string, userId string) (bool, error)
 	GetAllPostLikers(ctx context.Context, postId string) ([]string, error)
 	GetAllLikedPosts(ctx context.Context, userId string) ([]models.Post, error)
+	Upload(ctx context.Context, base64 string) (string, error)
 }
 
 type postService struct {
@@ -71,12 +78,17 @@ func (s *postService) CreatePost(ctx context.Context, input models.CreatePostInp
 		return nil, models.ErrInvalidInput
 	}
 
-	if input.Content == "" {
+	if strings.TrimSpace(input.Content) == "" {
 		return nil, models.ErrInvalidInput
 	}
 
-	if input.MediaURL == "" {
-		return nil, models.ErrInvalidInput
+	mediaURL := input.MediaURL
+	if mediaURL != "" {
+		uploadedURL, err := s.Upload(ctx, mediaURL)
+		if err != nil {
+			return nil, fmt.Errorf("failed to upload media: %w", err)
+		}
+		mediaURL = uploadedURL
 	}
 
 	isPublic := true
@@ -87,7 +99,7 @@ func (s *postService) CreatePost(ctx context.Context, input models.CreatePostInp
 	postinput := &models.CreatePostInput{
 		AuthorID: input.AuthorID,
 		Content:  input.Content,
-		MediaURL: input.MediaURL,
+		MediaURL: mediaURL,
 		IsPublic: &isPublic,
 	}
 	post, err := s.postRepo.CreatePost(ctx, postinput)
@@ -257,3 +269,142 @@ func (s *postService) GetAllLikedPosts(ctx context.Context, userId string) ([]mo
 	return posts, nil
 }
 
+func inferMimeType(ext string) string {
+	ext = strings.ToLower(strings.TrimPrefix(ext, "."))
+	switch ext {
+	case "mp4", "mov", "webm", "avi", "mkv", "ogv", "m4v":
+		return "video/" + ext
+	case "mp3", "wav", "ogg", "m4a", "aac":
+		return "audio/" + ext
+	case "jpg", "jpeg":
+		return "image/jpeg"
+	case "png":
+		return "image/png"
+	case "gif":
+		return "image/gif"
+	case "webp":
+		return "image/webp"
+	case "svg":
+		return "image/svg+xml"
+	default:
+		return "image/" + ext
+	}
+}
+
+func (s *postService) Upload(ctx context.Context, base64 string) (string, error) {
+	mediaData := strings.TrimSpace(base64)
+	if mediaData == "" {
+		return "", fmt.Errorf("media data is empty")
+	}
+
+	var mimeType string
+	var ext string
+	payload := mediaData
+
+	if strings.HasPrefix(mediaData, "data:") {
+		commaIdx := strings.Index(mediaData, ",")
+		if commaIdx != -1 {
+			header := mediaData[len("data:"):commaIdx]
+			parts := strings.Split(header, ";")
+			if len(parts) > 0 {
+				mimeType = strings.TrimSpace(parts[0])
+			}
+		}
+
+		if mimeType != "" {
+			parts := strings.SplitN(mimeType, "/", 2)
+			if len(parts) == 2 {
+				ext = parts[1]
+				if plusIdx := strings.Index(ext, "+"); plusIdx != -1 {
+					ext = ext[:plusIdx]
+				}
+			}
+		}
+		payload = mediaData
+	} else if strings.HasPrefix(mediaData, "http://") || strings.HasPrefix(mediaData, "https://") {
+		if strings.Contains(mediaData, "res.cloudinary.com") {
+			ext = strings.TrimPrefix(path.Ext(mediaData), ".")
+			if ext == "" {
+				ext = "jpg"
+			}
+			mimeType = inferMimeType(ext)
+			_ = s.postRepo.SaveFiles(ctx, mediaData, ext, mimeType)
+			return mediaData, nil
+		}
+		ext = strings.TrimPrefix(path.Ext(mediaData), ".")
+		if ext == "" {
+			ext = "jpg"
+		}
+		mimeType = inferMimeType(ext)
+		payload = mediaData
+	} else {
+		// Raw base64 data without data: URI header
+		if strings.HasPrefix(mediaData, "/9j/") {
+			mimeType = "image/jpeg"
+			ext = "jpeg"
+		} else if strings.HasPrefix(mediaData, "iVBORw") {
+			mimeType = "image/png"
+			ext = "png"
+		} else if strings.HasPrefix(mediaData, "R0lGOD") {
+			mimeType = "image/gif"
+			ext = "gif"
+		} else if strings.HasPrefix(mediaData, "UklGR") {
+			mimeType = "image/webp"
+			ext = "webp"
+		} else if strings.HasPrefix(mediaData, "AAAA") {
+			mimeType = "video/mp4"
+			ext = "mp4"
+		} else {
+			mimeType = "application/octet-stream"
+			ext = "bin"
+		}
+		payload = fmt.Sprintf("data:%s;base64,%s", mimeType, mediaData)
+	}
+
+	url, err := s.UploadFile(ctx, payload)
+	if err != nil {
+		return "", fmt.Errorf("error uploading file: %w", err)
+	}
+
+	if ext == "" {
+		ext = strings.TrimPrefix(path.Ext(url), ".")
+		if ext == "" {
+			ext = "bin"
+		}
+	}
+	if mimeType == "" {
+		mimeType = inferMimeType(ext)
+	}
+
+	if err := s.postRepo.SaveFiles(ctx, url, ext, mimeType); err != nil {
+		return "", fmt.Errorf("error saving file record: %w", err)
+	}
+
+	return url, nil
+}
+
+func (s *postService) UploadFile(ctx context.Context, payload string) (string, error) {
+	cfg := config.Load()
+	if cfg.CloudinaryUrl == "" {
+		return "", fmt.Errorf("cloudinary URL is not configured")
+	}
+
+	cld, err := cloudinary.NewFromURL(cfg.CloudinaryUrl)
+	if err != nil {
+		return "", fmt.Errorf("error initializing cloudinary: %w", err)
+	}
+
+	resp, err := cld.Upload.Upload(ctx, payload, uploader.UploadParams{
+		ResourceType:   "auto",
+		UniqueFilename: api.Bool(true),
+		Overwrite:      api.Bool(true),
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to upload file: %w", err)
+	}
+
+	if resp.SecureURL != "" {
+		return resp.SecureURL, nil
+	}
+	return resp.URL, nil
+}

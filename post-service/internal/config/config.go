@@ -10,6 +10,7 @@ import (
 type Config struct {
 	DatabaseUrl string
 	Port        string
+	CloudinaryUrl string
 }
 
 func Load() *Config {
@@ -20,6 +21,7 @@ func Load() *Config {
 	config := &Config{
 		DatabaseUrl: os.Getenv("DATABASE_URL"),
 		Port: os.Getenv("PORT"),
+		CloudinaryUrl: os.Getenv("CLOUDINARY_URL"),
 	}
 
 	return config
