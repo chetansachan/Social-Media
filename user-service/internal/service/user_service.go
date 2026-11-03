@@ -9,6 +9,7 @@ import (
 	"net/mail"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/chetansachan/socialflow/user-service/internal/config"
 	"github.com/chetansachan/socialflow/user-service/internal/models"
@@ -33,6 +34,15 @@ type UserService interface {
 type userService struct {
 	userRepo repository.UserRepository
 }
+
+// bcryptCost is above the library default so a leaked password table stays
+// expensive to brute-force; bcrypt records the cost inside each hash, so
+// previously issued hashes keep verifying.
+const bcryptCost = 12
+
+// minPasswordLength is the shortest password accepted at registration and
+// during a password change.
+const minPasswordLength = 8
 
 func NewUserService(userRepo repository.UserRepository) UserService {
 	return &userService{userRepo: userRepo}
@@ -74,12 +84,15 @@ func (s *userService) Register(ctx context.Context, input models.CreateUserInput
 		return nil, fmt.Errorf("%w: invalid email address format", models.ErrInvalidInput)
 	}
 
-	if len(password) < 6 {
-		return nil, fmt.Errorf("%w: password must be at least 6 characters long", models.ErrInvalidInput)
+	if len(password) < minPasswordLength {
+		return nil, fmt.Errorf("%w: password must be at least %d characters long", models.ErrInvalidInput, minPasswordLength)
+	}
+	if err := validatePasswordComplexity(password); err != nil {
+		return nil, err
 	}
 
 	// Parse / hash the password
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcryptCost)
 	if err != nil {
 		return nil, fmt.Errorf("failed to hash password: %w", err)
 	}
@@ -128,13 +141,13 @@ func (s *userService) Login(ctx context.Context, input models.LoginRequest) (*mo
 	user, err := s.userRepo.GetByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, models.ErrUserNotFound) {
-			return nil, fmt.Errorf("User not found %w", err)
+			return nil, models.ErrInvalidCredentials
 		}
-		return nil, fmt.Errorf("Internal Server error %w", err)
+		return nil, fmt.Errorf("internal server error: %w", err)
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		return nil, fmt.Errorf("Invalid Password %w", err)
+		return nil, models.ErrInvalidCredentials
 	}
 
 	cfg := config.Load()
@@ -144,6 +157,10 @@ func (s *userService) Login(ctx context.Context, input models.LoginRequest) (*mo
 		UserId: user.ID,
 		Email:  user.Email,
 		RegisteredClaims: jwt.RegisteredClaims{
+			// A unique jti makes every rotation observably distinct even when
+			// two tokens are minted inside the same second, and gives the
+			// gateway a handle for revocation.
+			ID:        uuid.NewString(),
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
@@ -152,6 +169,7 @@ func (s *userService) Login(ctx context.Context, input models.LoginRequest) (*mo
 		UserId: user.ID,
 		Email:  user.Email,
 		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        uuid.NewString(),
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * 7 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
@@ -308,6 +326,7 @@ func (s *userService) Refresh(ctx context.Context, tkn string) (*models.Rotation
 		UserId: claims.UserId,
 		Email:  claims.Email,
 		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        uuid.NewString(),
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
@@ -317,6 +336,7 @@ func (s *userService) Refresh(ctx context.Context, tkn string) (*models.Rotation
 		UserId: claims.UserId,
 		Email:  claims.Email,
 		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        uuid.NewString(),
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * 7 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
@@ -400,10 +420,13 @@ func (s *userService) UpdateUser(ctx context.Context, input models.UpdateUserInp
 
 	password := user.Password
 	if input.Password != nil && *input.Password != "" {
-		if len(*input.Password) < 6 {
-			return nil, fmt.Errorf("%w: password must be at least 6 characters long", models.ErrInvalidInput)
+		if len(*input.Password) < minPasswordLength {
+			return nil, fmt.Errorf("%w: password must be at least %d characters long", models.ErrInvalidInput, minPasswordLength)
 		}
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*input.Password), bcrypt.DefaultCost)
+		if err := validatePasswordComplexity(*input.Password); err != nil {
+			return nil, err
+		}
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*input.Password), bcryptCost)
 		if err != nil {
 			return nil, fmt.Errorf("failed to hash password: %w", err)
 		}
@@ -449,4 +472,23 @@ func (s *userService) DeleteUser(ctx context.Context, id string) (*models.Delete
 	return &models.DeleteUserRespose{
 		Message: "User Deleted Successfuly",
 	}, nil
+}
+
+// validatePasswordComplexity requires both a letter and a digit. The rule is
+// intentionally predictable rather than blocking symbols, and it mirrors the
+// client-side hint in the auth screens.
+func validatePasswordComplexity(password string) error {
+	var hasLetter, hasDigit bool
+	for _, r := range password {
+		switch {
+		case unicode.IsLetter(r):
+			hasLetter = true
+		case unicode.IsDigit(r):
+			hasDigit = true
+		}
+	}
+	if !hasLetter || !hasDigit {
+		return fmt.Errorf("%w: password must contain at least one letter and one number", models.ErrInvalidInput)
+	}
+	return nil
 }

@@ -73,10 +73,10 @@ func (h *UserHandler) Login(ctx context.Context, req *userpb.LoginRequest) (*use
 		switch {
 		case errors.Is(err, models.ErrInvalidInput):
 			return nil, status.Errorf(codes.InvalidArgument, "%v", err)
-		case errors.Is(err, models.ErrUserNotFound):
-			return nil, status.Errorf(codes.NotFound, "%v", err)
+		case errors.Is(err, models.ErrInvalidCredentials):
+			return nil, status.Errorf(codes.Unauthenticated, "%v", err)
 		default:
-			return nil, status.Errorf(codes.Internal, "failed to register user: %v", err)
+			return nil, status.Errorf(codes.Internal, "failed to login user: %v", err)
 		}
 	}
 
