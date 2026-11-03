@@ -3,6 +3,9 @@ package observability
 import (
 	"context"
 	"fmt"
+	"os"
+	"strconv"
+	"strings"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -67,6 +70,40 @@ func SetupTracing(ctx context.Context, cfg TracingConfig) (func(context.Context)
 	otel.SetTracerProvider(provider)
 
 	return provider.Shutdown, nil
+}
+
+// TracingConfigFromEnv reads the standard OTLP variables used by every
+// service:
+//
+//	OTEL_EXPORTER_OTLP_ENDPOINT   collector host:port (scheme is stripped)
+//	OTEL_EXPORTER_OTLP_INSECURE   "false" enables TLS (default true)
+//	OTEL_TRACES_SAMPLE_RATIO      0..1, default 0.1
+func TracingConfigFromEnv(serviceName string) TracingConfig {
+	endpoint := strings.TrimSpace(os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
+	endpoint = strings.TrimPrefix(endpoint, "https://")
+	endpoint = strings.TrimPrefix(endpoint, "http://")
+	endpoint = strings.TrimSuffix(endpoint, "/")
+
+	insecure := true
+	if raw := strings.TrimSpace(os.Getenv("OTEL_EXPORTER_OTLP_INSECURE")); raw != "" {
+		if parsed, err := strconv.ParseBool(raw); err == nil {
+			insecure = parsed
+		}
+	}
+
+	ratio := 0.1
+	if raw := strings.TrimSpace(os.Getenv("OTEL_TRACES_SAMPLE_RATIO")); raw != "" {
+		if parsed, err := strconv.ParseFloat(raw, 64); err == nil && parsed >= 0 && parsed <= 1 {
+			ratio = parsed
+		}
+	}
+
+	return TracingConfig{
+		ServiceName: serviceName,
+		Endpoint:    endpoint,
+		Insecure:    insecure,
+		SampleRatio: ratio,
+	}
 }
 
 // Tracer returns a tracer scoped to this module. Services may call it directly
