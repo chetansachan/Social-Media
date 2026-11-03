@@ -16,6 +16,8 @@ type Config struct {
 	DatabaseMaxConns int32
 	DatabaseMinConns int32
 	Port             string
+	// AdminPort serves /metrics, /healthz, and /readyz.
+	AdminPort string
 
 	RedisAddr     string
 	RedisPassword string
@@ -43,6 +45,7 @@ func Load() *Config {
 		DatabaseMaxConns: int32(getEnvAsInt("DB_MAX_CONNS", 20)),
 		DatabaseMinConns: int32(getEnvAsInt("DB_MIN_CONNS", 2)),
 		Port:             os.Getenv("PORT"),
+		AdminPort:        getEnv("ADMIN_PORT", "9093"),
 
 		RedisAddr:     getEnv("REDIS_ADDR", "localhost:6379"),
 		RedisPassword: os.Getenv("REDIS_PASSWORD"),
