@@ -14,18 +14,23 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/chetansachan/socialflow/api-gateway/auth"
 	"github.com/chetansachan/socialflow/api-gateway/graph"
+	"github.com/chetansachan/socialflow/api-gateway/graph/dataloader"
 	socialflowpb "github.com/chetansachan/socialflow/proto"
 	"github.com/joho/godotenv"
+	"github.com/redis/go-redis/v9"
 	"github.com/vektah/gqlparser/v2/ast"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
 const (
-	defaultPort              = "8080"
-	defaultUserServiceAddr   = "localhost:50051"
-	defaultPostServiceAddr   = "localhost:50052"
-	defaultFollowServiceAddr = "localhost:50053"
+	defaultPort                    = "8080"
+	defaultUserServiceAddr         = "localhost:50051"
+	defaultPostServiceAddr         = "localhost:50052"
+	defaultFollowServiceAddr       = "localhost:50053"
+	defaultFeedServiceAddr         = "localhost:50054"
+	defaultNotificationServiceAddr = "localhost:50055"
+	defaultRedisAddr               = "localhost:6379"
 )
 
 func main() {
@@ -42,15 +47,38 @@ func main() {
 	defer postConn.Close()
 	followConn := dial(envOr("FOLLOW_SERVICE_ADDR", defaultFollowServiceAddr))
 	defer followConn.Close()
+	feedConn := dial(envOr("FEED_SERVICE_ADDR", defaultFeedServiceAddr))
+	defer feedConn.Close()
+	notificationConn := dial(envOr("NOTIFICATION_SERVICE_ADDR", defaultNotificationServiceAddr))
+	defer notificationConn.Close()
+
+	userClient := socialflowpb.NewUserServiceClient(userConn)
+	postClient := socialflowpb.NewPostServiceClient(postConn)
+
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     envOr("REDIS_ADDR", defaultRedisAddr),
+		Password: os.Getenv("REDIS_PASSWORD"),
+		DB:       0,
+	})
+	defer redisClient.Close()
+
+	resolver := &graph.Resolver{
+		UserClient:         userClient,
+		PostClient:         postClient,
+		FollowClient:       socialflowpb.NewFollowServiceClient(followConn),
+		FeedClient:         socialflowpb.NewFeedServiceClient(feedConn),
+		NotificationClient: socialflowpb.NewNotificationServiceClient(notificationConn),
+		Redis:              redisClient,
+		NewLoaders: func() *dataloader.Loaders {
+			return dataloader.New(userClient, postClient)
+		},
+	}
 
 	srv := handler.New(
 		graph.NewExecutableSchema(
 			graph.Config{
-				Resolvers: &graph.Resolver{
-					UserClient:   socialflowpb.NewUserServiceClient(userConn),
-					PostClient:   socialflowpb.NewPostServiceClient(postConn),
-					FollowClient: socialflowpb.NewFollowServiceClient(followConn),
-				},
+				Resolvers:  resolver,
+				Directives: graph.DirectiveRoot{Auth: auth.AuthDirective},
 			},
 		),
 	)
@@ -73,7 +101,8 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	// Playground stays public; the @auth directive protects individual fields.
-	mux.Handle("/query", auth.Middleware(secret, srv))
+	// The loader middleware wraps the executing handler, not the playground.
+	mux.Handle("/query", auth.Middleware(secret, dataloader.Middleware(resolver.NewLoaders)(srv)))
 
 	server := &http.Server{
 		Addr:              ":" + port,

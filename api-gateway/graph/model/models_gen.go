@@ -2,6 +2,13 @@
 
 package model
 
+import (
+	"bytes"
+	"fmt"
+	"io"
+	"strconv"
+)
+
 type CreatePostInput struct {
 	AuthorID string `json:"authorId"`
 	Content  string `json:"content"`
@@ -15,6 +22,24 @@ type DeletePostResponse struct {
 
 type DeleteUserResponse struct {
 	Message string `json:"message"`
+}
+
+type FeedPost struct {
+	ID        string `json:"id"`
+	AuthorID  string `json:"authorId"`
+	Content   string `json:"content"`
+	MediaURL  string `json:"mediaUrl"`
+	IsPublic  bool   `json:"isPublic"`
+	LikeCount int32  `json:"likeCount"`
+	HasLiked  bool   `json:"hasLiked"`
+	CreatedAt string `json:"createdAt"`
+	Author    *User  `json:"author"`
+}
+
+type FeedResponse struct {
+	Posts      []*FeedPost `json:"posts"`
+	NextCursor *string     `json:"nextCursor,omitempty"`
+	HasMore    bool        `json:"hasMore"`
 }
 
 type FollowCountsResponse struct {
@@ -63,6 +88,53 @@ type MovePostToArchivedResponse struct {
 type Mutation struct {
 }
 
+type NotificationActor struct {
+	ID          string `json:"id"`
+	Username    string `json:"username"`
+	DisplayName string `json:"displayName"`
+	AvatarURL   string `json:"avatarUrl"`
+}
+
+type NotificationItem struct {
+	ID               string               `json:"id"`
+	Type             NotificationType     `json:"type"`
+	EntityID         string               `json:"entityId"`
+	EntityType       string               `json:"entityType"`
+	Actors           []*NotificationActor `json:"actors"`
+	TotalActorsCount int32                `json:"totalActorsCount"`
+	Title            string               `json:"title"`
+	ContentPreview   *string              `json:"contentPreview,omitempty"`
+	ActionURL        string               `json:"actionUrl"`
+	IsRead           bool                 `json:"isRead"`
+	CreatedAt        string               `json:"createdAt"`
+}
+
+type NotificationResponse struct {
+	Notifications []*NotificationItem `json:"notifications"`
+	NextCursor    *string             `json:"nextCursor,omitempty"`
+	HasMore       bool                `json:"hasMore"`
+	UnreadCount   int32               `json:"unreadCount"`
+}
+
+type NotificationSettings struct {
+	InappLikes          bool   `json:"inappLikes"`
+	InappComments       bool   `json:"inappComments"`
+	InappFollows        bool   `json:"inappFollows"`
+	InappMentions       bool   `json:"inappMentions"`
+	PushEnabled         bool   `json:"pushEnabled"`
+	PushLikes           bool   `json:"pushLikes"`
+	PushComments        bool   `json:"pushComments"`
+	PushFollows         bool   `json:"pushFollows"`
+	PushMentions        bool   `json:"pushMentions"`
+	EmailEnabled        bool   `json:"emailEnabled"`
+	EmailWeeklyDigest   bool   `json:"emailWeeklyDigest"`
+	EmailSecurityAlerts bool   `json:"emailSecurityAlerts"`
+	QuietHoursEnabled   bool   `json:"quietHoursEnabled"`
+	QuietHoursStart     string `json:"quietHoursStart"`
+	QuietHoursEnd       string `json:"quietHoursEnd"`
+	Timezone            string `json:"timezone"`
+}
+
 type Post struct {
 	ID        string `json:"id"`
 	AuthorID  string `json:"authorId"`
@@ -70,8 +142,10 @@ type Post struct {
 	MediaURL  string `json:"mediaUrl"`
 	IsPublic  bool   `json:"isPublic"`
 	LikeCount int32  `json:"likeCount"`
+	HasLiked  bool   `json:"hasLiked"`
 	CreatedAt string `json:"createdAt"`
 	UpdatedAt string `json:"updatedAt"`
+	Author    *User  `json:"author"`
 }
 
 type Query struct {
@@ -94,6 +168,9 @@ type RemoveFollowerResponse struct {
 	Message string `json:"message"`
 }
 
+type Subscription struct {
+}
+
 type UnfollowUserInput struct {
 	FollowerID  string `json:"followerId"`
 	FollowingID string `json:"followingId"`
@@ -101,6 +178,25 @@ type UnfollowUserInput struct {
 
 type UnfollowUserResponse struct {
 	Message string `json:"message"`
+}
+
+type UpdateNotificationSettingsInput struct {
+	InappLikes          *bool   `json:"inappLikes,omitempty"`
+	InappComments       *bool   `json:"inappComments,omitempty"`
+	InappFollows        *bool   `json:"inappFollows,omitempty"`
+	InappMentions       *bool   `json:"inappMentions,omitempty"`
+	PushEnabled         *bool   `json:"pushEnabled,omitempty"`
+	PushLikes           *bool   `json:"pushLikes,omitempty"`
+	PushComments        *bool   `json:"pushComments,omitempty"`
+	PushFollows         *bool   `json:"pushFollows,omitempty"`
+	PushMentions        *bool   `json:"pushMentions,omitempty"`
+	EmailEnabled        *bool   `json:"emailEnabled,omitempty"`
+	EmailWeeklyDigest   *bool   `json:"emailWeeklyDigest,omitempty"`
+	EmailSecurityAlerts *bool   `json:"emailSecurityAlerts,omitempty"`
+	QuietHoursEnabled   *bool   `json:"quietHoursEnabled,omitempty"`
+	QuietHoursStart     *string `json:"quietHoursStart,omitempty"`
+	QuietHoursEnd       *string `json:"quietHoursEnd,omitempty"`
+	Timezone            *string `json:"timezone,omitempty"`
 }
 
 type UpdatePostInput struct {
@@ -132,4 +228,69 @@ type User struct {
 type NewTokens struct {
 	AccessToken  string `json:"accessToken"`
 	RefressToken string `json:"refressToken"`
+}
+
+type NotificationType string
+
+const (
+	NotificationTypeFollow       NotificationType = "FOLLOW"
+	NotificationTypePostLike     NotificationType = "POST_LIKE"
+	NotificationTypeComment      NotificationType = "COMMENT"
+	NotificationTypeCommentReply NotificationType = "COMMENT_REPLY"
+	NotificationTypeMention      NotificationType = "MENTION"
+	NotificationTypeCreatorPost  NotificationType = "CREATOR_POST"
+	NotificationTypeSystemAlert  NotificationType = "SYSTEM_ALERT"
+)
+
+var AllNotificationType = []NotificationType{
+	NotificationTypeFollow,
+	NotificationTypePostLike,
+	NotificationTypeComment,
+	NotificationTypeCommentReply,
+	NotificationTypeMention,
+	NotificationTypeCreatorPost,
+	NotificationTypeSystemAlert,
+}
+
+func (e NotificationType) IsValid() bool {
+	switch e {
+	case NotificationTypeFollow, NotificationTypePostLike, NotificationTypeComment, NotificationTypeCommentReply, NotificationTypeMention, NotificationTypeCreatorPost, NotificationTypeSystemAlert:
+		return true
+	}
+	return false
+}
+
+func (e NotificationType) String() string {
+	return string(e)
+}
+
+func (e *NotificationType) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = NotificationType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid NotificationType", str)
+	}
+	return nil
+}
+
+func (e NotificationType) MarshalGQL(w io.Writer) {
+	_, _ = fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *NotificationType) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e NotificationType) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
 }

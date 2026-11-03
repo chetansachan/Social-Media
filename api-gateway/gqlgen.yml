@@ -169,6 +169,21 @@ autobind:
 # modelgen, the others will be allowed when binding to fields. Configure them to
 # your liking
 models:
+  Post:
+    fields:
+      # Resolve author and viewer like state through request-scoped dataloaders
+      # instead of embedding another gRPC call per post in each query resolver.
+      author:
+        resolver: true
+      hasLiked:
+        resolver: true
+  FeedPost:
+    fields:
+      author:
+        resolver: true
+      hasLiked:
+        resolver: true
+
   ID:
     model:
       - github.com/99designs/gqlgen/graphql.ID

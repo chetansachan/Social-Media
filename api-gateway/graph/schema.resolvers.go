@@ -7,14 +7,25 @@ package graph
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/chetansachan/socialflow/api-gateway/graph/model"
-	userpb "github.com/chetansachan/socialflow/proto"
+	socialflowpb "github.com/chetansachan/socialflow/proto"
 )
+
+// HasLiked is the resolver for the hasLiked field.
+func (r *feedPostResolver) HasLiked(ctx context.Context, obj *model.FeedPost) (bool, error) {
+	return loadLikeState(ctx, obj.ID)
+}
+
+// Author is the resolver for the author field.
+func (r *feedPostResolver) Author(ctx context.Context, obj *model.FeedPost) (*model.User, error) {
+	return loadAuthor(ctx, obj.AuthorID)
+}
 
 // Register is the resolver for the register field.
 func (r *mutationResolver) Register(ctx context.Context, input model.RegisterUserInput) (*model.User, error) {
-	res, err := r.UserClient.Register(ctx, &userpb.RegisterUserRequest{
+	res, err := r.UserClient.Register(ctx, &socialflowpb.RegisterUserRequest{
 		Username: input.Username,
 		Name:     input.Name,
 		Email:    input.Email,
@@ -39,7 +50,7 @@ func (r *mutationResolver) Register(ctx context.Context, input model.RegisterUse
 
 // Login is the resolver for the Login field.
 func (r *mutationResolver) Login(ctx context.Context, input model.LoginInput) (*model.LoginResponse, error) {
-	res, err := r.UserClient.Login(ctx, &userpb.LoginRequest{
+	res, err := r.UserClient.Login(ctx, &socialflowpb.LoginRequest{
 		Email:    input.Email,
 		Password: input.Password,
 	})
@@ -56,8 +67,16 @@ func (r *mutationResolver) Login(ctx context.Context, input model.LoginInput) (*
 
 // UpdateUser is the resolver for the UpdateUser field.
 func (r *mutationResolver) UpdateUser(ctx context.Context, input model.UpdateUserInput) (*model.User, error) {
-	res, err := r.UserClient.UpdateUser(ctx, &userpb.UpdateUserRequest{
-		Id:       input.ID,
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := requireSelf(principal, input.ID); err != nil {
+		return nil, err
+	}
+
+	res, err := r.UserClient.UpdateUser(ctx, &socialflowpb.UpdateUserRequest{
+		Id:       principal.UserID,
 		Username: input.Username,
 		Name:     input.Name,
 		Email:    input.Email,
@@ -68,22 +87,21 @@ func (r *mutationResolver) UpdateUser(ctx context.Context, input model.UpdateUse
 		return nil, err
 	}
 
-	u := res.GetUser()
-	return &model.User{
-		ID:        u.GetId(),
-		Username:  u.GetUsername(),
-		Name:      u.GetName(),
-		Email:     u.GetEmail(),
-		IsPublic:  u.GetIsPublic(),
-		CreatedAt: u.GetCreatedAt(),
-		UpdatedAt: u.GetUpdatedAt(),
-	}, nil
+	return toModelUser(res.GetUser()), nil
 }
 
 // CreatePost is the resolver for the CreatePost field.
 func (r *mutationResolver) CreatePost(ctx context.Context, input model.CreatePostInput) (*model.Post, error) {
-	res, err := r.PostClient.CreatePost(ctx, &userpb.CreatePostRequest{
-		AuthorId: input.AuthorID,
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := requireSelf(principal, input.AuthorID); err != nil {
+		return nil, err
+	}
+
+	res, err := r.PostClient.CreatePost(ctx, &socialflowpb.CreatePostRequest{
+		AuthorId: principal.UserID,
 		Content:  input.Content,
 		MediaUrl: input.MediaURL,
 		IsPublic: input.IsPublic,
@@ -92,24 +110,30 @@ func (r *mutationResolver) CreatePost(ctx context.Context, input model.CreatePos
 		return nil, err
 	}
 
-	p := res.GetPost()
-	return &model.Post{
-		ID:        p.Id,
-		AuthorID:  p.AuthorId,
-		Content:   p.Content,
-		MediaURL:  p.MediaUrl,
-		IsPublic:  p.IsPublic,
-		LikeCount: p.LikeCount,
-		CreatedAt: p.CreatedAt,
-		UpdatedAt: p.UpdatedAt,
-	}, nil
+	return toModelPost(res.GetPost()), nil
 }
 
 // UpdatePost is the resolver for the UpdatePost field.
 func (r *mutationResolver) UpdatePost(ctx context.Context, input model.UpdatePostInput) (*model.Post, error) {
-	res, err := r.PostClient.UpdatePost(ctx, &userpb.UpdatePostRequest{
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := requireSelf(principal, input.AuthorID); err != nil {
+		return nil, err
+	}
+
+	existing, err := r.PostClient.GetPostById(ctx, &socialflowpb.PostByIdRequest{Id: input.ID})
+	if err != nil {
+		return nil, err
+	}
+	if err := requirePostOwner(principal, existing.GetPost().GetAuthorId()); err != nil {
+		return nil, err
+	}
+
+	res, err := r.PostClient.UpdatePost(ctx, &socialflowpb.UpdatePostRequest{
 		PostId:   input.ID,
-		AuthorId: input.AuthorID,
+		AuthorId: principal.UserID,
 		Content:  input.Content,
 		IsPublic: input.IsPublic,
 	})
@@ -117,24 +141,22 @@ func (r *mutationResolver) UpdatePost(ctx context.Context, input model.UpdatePos
 		return nil, err
 	}
 
-	p := res.GetPost()
-	return &model.Post{
-		ID:        p.Id,
-		AuthorID:  p.AuthorId,
-		Content:   p.Content,
-		MediaURL:  p.MediaUrl,
-		IsPublic:  p.IsPublic,
-		LikeCount: p.LikeCount,
-		CreatedAt: p.CreatedAt,
-		UpdatedAt: p.UpdatedAt,
-	}, nil
+	return toModelPost(res.GetPost()), nil
 }
 
 // LikePost is the resolver for the likePost field.
 func (r *mutationResolver) LikePost(ctx context.Context, input model.LikePostInput) (*model.LikePostResponse, error) {
-	res, err := r.PostClient.LikePost(ctx, &userpb.LikePostRequest{
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := requireSelf(principal, input.UserID); err != nil {
+		return nil, err
+	}
+
+	res, err := r.PostClient.LikePost(ctx, &socialflowpb.LikePostRequest{
 		PostId: input.PostID,
-		UserId: input.UserID,
+		UserId: principal.UserID,
 	})
 	if err != nil {
 		return nil, err
@@ -148,8 +170,16 @@ func (r *mutationResolver) LikePost(ctx context.Context, input model.LikePostInp
 
 // FollowUser is the resolver for the followUser field.
 func (r *mutationResolver) FollowUser(ctx context.Context, input model.FollowUserInput) (*model.FollowUserResponse, error) {
-	res, err := r.FollowClient.FollowUser(ctx, &userpb.FollowUserRequest{
-		FollowerId:  input.FollowerID,
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := requireSelf(principal, input.FollowerID); err != nil {
+		return nil, err
+	}
+
+	res, err := r.FollowClient.FollowUser(ctx, &socialflowpb.FollowUserRequest{
+		FollowerId:  principal.UserID,
 		FollowingId: input.FollowingID,
 	})
 	if err != nil {
@@ -163,8 +193,16 @@ func (r *mutationResolver) FollowUser(ctx context.Context, input model.FollowUse
 
 // UnfollowUser is the resolver for the unfollowUser field.
 func (r *mutationResolver) UnfollowUser(ctx context.Context, input model.UnfollowUserInput) (*model.UnfollowUserResponse, error) {
-	res, err := r.FollowClient.UnfollowUser(ctx, &userpb.UnfollowUserRequest{
-		FollowerId:  input.FollowerID,
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := requireSelf(principal, input.FollowerID); err != nil {
+		return nil, err
+	}
+
+	res, err := r.FollowClient.UnfollowUser(ctx, &socialflowpb.UnfollowUserRequest{
+		FollowerId:  principal.UserID,
 		FollowingId: input.FollowingID,
 	})
 	if err != nil {
@@ -178,8 +216,16 @@ func (r *mutationResolver) UnfollowUser(ctx context.Context, input model.Unfollo
 
 // RemoveFollower is the resolver for the removeFollower field.
 func (r *mutationResolver) RemoveFollower(ctx context.Context, input model.RemoveFollowerInput) (*model.RemoveFollowerResponse, error) {
-	res, err := r.FollowClient.RemoveFollower(ctx, &userpb.RemoveFollowerRequest{
-		UserId:     input.UserID,
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := requireSelf(principal, input.UserID); err != nil {
+		return nil, err
+	}
+
+	res, err := r.FollowClient.RemoveFollower(ctx, &socialflowpb.RemoveFollowerRequest{
+		UserId:     principal.UserID,
 		FollowerId: input.FollowerID,
 	})
 	if err != nil {
@@ -191,72 +237,171 @@ func (r *mutationResolver) RemoveFollower(ctx context.Context, input model.Remov
 	}, nil
 }
 
+// MarkNotificationAsRead is the resolver for the markNotificationAsRead field.
+func (r *mutationResolver) MarkNotificationAsRead(ctx context.Context, notificationIds []string) (bool, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return false, err
+	}
+	if len(notificationIds) == 0 {
+		return false, fmt.Errorf("notificationIds must not be empty")
+	}
+
+	res, err := r.NotificationClient.MarkAsRead(ctx, &socialflowpb.MarkAsReadRequest{
+		UserId:          principal.UserID,
+		NotificationIds: notificationIds,
+	})
+	if err != nil {
+		return false, err
+	}
+	return res.GetSuccess(), nil
+}
+
+// MarkAllNotificationsAsRead is the resolver for the markAllNotificationsAsRead field.
+func (r *mutationResolver) MarkAllNotificationsAsRead(ctx context.Context) (bool, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	res, err := r.NotificationClient.MarkAllAsRead(ctx, &socialflowpb.MarkAllAsReadRequest{
+		UserId: principal.UserID,
+	})
+	if err != nil {
+		return false, err
+	}
+	return res.GetSuccess(), nil
+}
+
+// DeleteNotification is the resolver for the deleteNotification field.
+func (r *mutationResolver) DeleteNotification(ctx context.Context, id string) (bool, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	res, err := r.NotificationClient.DeleteNotification(ctx, &socialflowpb.DeleteNotificationRequest{
+		UserId:         principal.UserID,
+		NotificationId: id,
+	})
+	if err != nil {
+		return false, err
+	}
+	return res.GetSuccess(), nil
+}
+
+// UpdateNotificationSettings is the resolver for the updateNotificationSettings field.
+func (r *mutationResolver) UpdateNotificationSettings(ctx context.Context, input model.UpdateNotificationSettingsInput) (*model.NotificationSettings, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	current, err := r.NotificationClient.GetSettings(ctx, &socialflowpb.GetSettingsRequest{
+		UserId: principal.UserID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	next := applySettings(toModelNotificationSettings(current.GetSettings()), input)
+	res, err := r.NotificationClient.UpdateSettings(ctx, &socialflowpb.UpdateSettingsRequest{
+		UserId:   principal.UserID,
+		Settings: toProtoSettings(next),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return toModelNotificationSettings(res.GetSettings()), nil
+}
+
+// RegisterDeviceToken is the resolver for the registerDeviceToken field.
+func (r *mutationResolver) RegisterDeviceToken(ctx context.Context, token string, platform string, deviceName *string, appVersion *string) (bool, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	res, err := r.NotificationClient.RegisterDeviceToken(ctx, &socialflowpb.RegisterDeviceTokenRequest{
+		UserId:     principal.UserID,
+		Token:      token,
+		Platform:   platform,
+		DeviceName: derefString(deviceName),
+		AppVersion: derefString(appVersion),
+	})
+	if err != nil {
+		return false, err
+	}
+	return res.GetSuccess(), nil
+}
+
+// RevokeDeviceToken is the resolver for the revokeDeviceToken field.
+func (r *mutationResolver) RevokeDeviceToken(ctx context.Context, token string) (bool, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	res, err := r.NotificationClient.RevokeDeviceToken(ctx, &socialflowpb.RevokeDeviceTokenRequest{
+		UserId: principal.UserID,
+		Token:  token,
+	})
+	if err != nil {
+		return false, err
+	}
+	return res.GetSuccess(), nil
+}
+
+// HasLiked is the resolver for the hasLiked field.
+func (r *postResolver) HasLiked(ctx context.Context, obj *model.Post) (bool, error) {
+	return loadLikeState(ctx, obj.ID)
+}
+
+// Author is the resolver for the author field.
+func (r *postResolver) Author(ctx context.Context, obj *model.Post) (*model.User, error) {
+	return loadAuthor(ctx, obj.AuthorID)
+}
+
 // GetUserByID is the resolver for the GetUserById field.
 func (r *queryResolver) GetUserByID(ctx context.Context, id string) (*model.User, error) {
-	res, err := r.UserClient.GetUserById(ctx, &userpb.GetUserByIdRequest{
+	res, err := r.UserClient.GetUserById(ctx, &socialflowpb.GetUserByIdRequest{
 		Id: id,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	u := res.GetUser()
-	return &model.User{
-		ID:        u.GetId(),
-		Username:  u.GetUsername(),
-		Name:      u.GetName(),
-		Email:     u.GetEmail(),
-		IsPublic:  u.GetIsPublic(),
-		CreatedAt: u.GetCreatedAt(),
-		UpdatedAt: u.GetUpdatedAt(),
-	}, nil
+	return toModelUser(res.GetUser()), nil
 }
 
 // GetUserByEmail is the resolver for the GetUserByEmail field.
 func (r *queryResolver) GetUserByEmail(ctx context.Context, email string) (*model.User, error) {
-	res, err := r.UserClient.GetUserByEmail(ctx, &userpb.GetUserByEmailRequest{
+	res, err := r.UserClient.GetUserByEmail(ctx, &socialflowpb.GetUserByEmailRequest{
 		Email: email,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	u := res.GetUser()
-	return &model.User{
-		ID:        u.GetId(),
-		Username:  u.GetUsername(),
-		Name:      u.GetName(),
-		Email:     u.GetEmail(),
-		IsPublic:  u.GetIsPublic(),
-		CreatedAt: u.GetCreatedAt(),
-		UpdatedAt: u.GetUpdatedAt(),
-	}, nil
+	return toModelUser(res.GetUser()), nil
 }
 
 // GetUserByUsername is the resolver for the GetUserByUsername field.
 func (r *queryResolver) GetUserByUsername(ctx context.Context, username string) (*model.User, error) {
-	res, err := r.UserClient.GetUserByUsername(ctx, &userpb.GetUserByUsernameRequest{
+	res, err := r.UserClient.GetUserByUsername(ctx, &socialflowpb.GetUserByUsernameRequest{
 		Username: username,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	u := res.GetUser()
-	return &model.User{
-		ID:        u.GetId(),
-		Username:  u.GetUsername(),
-		Name:      u.GetName(),
-		Email:     u.GetEmail(),
-		IsPublic:  u.GetIsPublic(),
-		CreatedAt: u.GetCreatedAt(),
-		UpdatedAt: u.GetUpdatedAt(),
-	}, nil
+	return toModelUser(res.GetUser()), nil
 }
 
 // TokenGenration is the resolver for the tokenGenration field.
 func (r *queryResolver) TokenGenration(ctx context.Context, refressToken string) (*model.NewTokens, error) {
-	res, err := r.UserClient.Refresh(ctx, &userpb.RefreshTknRequest{
+	res, err := r.UserClient.Refresh(ctx, &socialflowpb.RefreshTknRequest{
 		Refreshtkn: refressToken,
 	})
 	if err != nil {
@@ -271,10 +416,15 @@ func (r *queryResolver) TokenGenration(ctx context.Context, refressToken string)
 
 // DeleteUser is the resolver for the deleteUser field.
 func (r *queryResolver) DeleteUser(ctx context.Context, id string) (*model.DeleteUserResponse, error) {
-	_, err := r.UserClient.DeleteUser(ctx, &userpb.DeleteUserRequest{
-		Id: id,
-	})
+	principal, err := requireViewer(ctx)
 	if err != nil {
+		return nil, err
+	}
+	if err := requireSelf(principal, id); err != nil {
+		return nil, err
+	}
+
+	if _, err := r.UserClient.DeleteUser(ctx, &socialflowpb.DeleteUserRequest{Id: principal.UserID}); err != nil {
 		return nil, err
 	}
 
@@ -285,51 +435,39 @@ func (r *queryResolver) DeleteUser(ctx context.Context, id string) (*model.Delet
 
 // GetPostByID is the resolver for the getPostById field.
 func (r *queryResolver) GetPostByID(ctx context.Context, id string) (*model.Post, error) {
-	res, err := r.PostClient.GetPostById(ctx, &userpb.PostByIdRequest{
+	res, err := r.PostClient.GetPostById(ctx, &socialflowpb.PostByIdRequest{
 		Id: id,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	p := res.GetPost()
-	return &model.Post{
-		ID:        p.Id,
-		AuthorID:  p.AuthorId,
-		Content:   p.Content,
-		MediaURL:  p.MediaUrl,
-		IsPublic:  p.IsPublic,
-		LikeCount: p.LikeCount,
-		CreatedAt: p.CreatedAt,
-		UpdatedAt: p.UpdatedAt,
-	}, nil
+	return toModelPost(res.GetPost()), nil
 }
 
 // GetArchivedPostByID is the resolver for the getArchivedPostById field.
 func (r *queryResolver) GetArchivedPostByID(ctx context.Context, id string) (*model.Post, error) {
-	res, err := r.PostClient.GetArchivedPostById(ctx, &userpb.ArchivedPostByIdRequest{
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := r.PostClient.GetArchivedPostById(ctx, &socialflowpb.ArchivedPostByIdRequest{
 		Id: id,
 	})
 	if err != nil {
 		return nil, err
 	}
+	if err := requirePostOwner(principal, res.GetPost().GetAuthorId()); err != nil {
+		return nil, err
+	}
 
-	p := res.GetPost()
-	return &model.Post{
-		ID:        p.Id,
-		AuthorID:  p.AuthorId,
-		Content:   p.Content,
-		MediaURL:  p.MediaUrl,
-		IsPublic:  p.IsPublic,
-		LikeCount: p.LikeCount,
-		CreatedAt: p.CreatedAt,
-		UpdatedAt: p.UpdatedAt,
-	}, nil
+	return toModelPost(res.GetPost()), nil
 }
 
 // GetAllPost is the resolver for the getAllPost field.
 func (r *queryResolver) GetAllPost(ctx context.Context, authorID string) ([]*model.Post, error) {
-	res, err := r.PostClient.GetAllPosts(ctx, &userpb.AllPostRequest{
+	res, err := r.PostClient.GetAllPosts(ctx, &socialflowpb.AllPostRequest{
 		AuthorId: authorID,
 	})
 	if err != nil {
@@ -338,16 +476,7 @@ func (r *queryResolver) GetAllPost(ctx context.Context, authorID string) ([]*mod
 
 	posts := make([]*model.Post, 0, len(res.GetPost()))
 	for _, p := range res.GetPost() {
-		posts = append(posts, &model.Post{
-			ID:        p.Id,
-			AuthorID:  p.AuthorId,
-			Content:   p.Content,
-			MediaURL:  p.MediaUrl,
-			IsPublic:  p.IsPublic,
-			LikeCount: p.LikeCount,
-			CreatedAt: p.CreatedAt,
-			UpdatedAt: p.UpdatedAt,
-		})
+		posts = append(posts, toModelPost(p))
 	}
 
 	return posts, nil
@@ -355,8 +484,16 @@ func (r *queryResolver) GetAllPost(ctx context.Context, authorID string) ([]*mod
 
 // GetAllArchivedPost is the resolver for the getAllArchivedPost field.
 func (r *queryResolver) GetAllArchivedPost(ctx context.Context, authorID string) ([]*model.Post, error) {
-	res, err := r.PostClient.GetAllArchivedPosts(ctx, &userpb.AllArchivedPostRequest{
-		AuthorId: authorID,
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := requireSelf(principal, authorID); err != nil {
+		return nil, err
+	}
+
+	res, err := r.PostClient.GetAllArchivedPosts(ctx, &socialflowpb.AllArchivedPostRequest{
+		AuthorId: principal.UserID,
 	})
 	if err != nil {
 		return nil, err
@@ -364,16 +501,7 @@ func (r *queryResolver) GetAllArchivedPost(ctx context.Context, authorID string)
 
 	posts := make([]*model.Post, 0, len(res.GetPost()))
 	for _, p := range res.GetPost() {
-		posts = append(posts, &model.Post{
-			ID:        p.Id,
-			AuthorID:  p.AuthorId,
-			Content:   p.Content,
-			MediaURL:  p.MediaUrl,
-			IsPublic:  p.IsPublic,
-			LikeCount: p.LikeCount,
-			CreatedAt: p.CreatedAt,
-			UpdatedAt: p.UpdatedAt,
-		})
+		posts = append(posts, toModelPost(p))
 	}
 
 	return posts, nil
@@ -381,10 +509,15 @@ func (r *queryResolver) GetAllArchivedPost(ctx context.Context, authorID string)
 
 // DeletePost is the resolver for the deletePost field.
 func (r *queryResolver) DeletePost(ctx context.Context, id string) (*model.DeletePostResponse, error) {
-	_, err := r.PostClient.DeletePost(ctx, &userpb.DeletePostRequest{
-		PostId: id,
-	})
+	principal, err := requireViewer(ctx)
 	if err != nil {
+		return nil, err
+	}
+	if err := r.requirePostOwnership(ctx, principal, id); err != nil {
+		return nil, err
+	}
+
+	if _, err := r.PostClient.DeletePost(ctx, &socialflowpb.DeletePostRequest{PostId: id}); err != nil {
 		return nil, err
 	}
 
@@ -395,10 +528,15 @@ func (r *queryResolver) DeletePost(ctx context.Context, id string) (*model.Delet
 
 // MoveToArchive is the resolver for the moveToArchive field.
 func (r *queryResolver) MoveToArchive(ctx context.Context, id string) (*model.MovePostToArchivedResponse, error) {
-	_, err := r.PostClient.MovePostToArchived(ctx, &userpb.MovePostToArchivedRequest{
-		PostId: id,
-	})
+	principal, err := requireViewer(ctx)
 	if err != nil {
+		return nil, err
+	}
+	if err := r.requirePostOwnership(ctx, principal, id); err != nil {
+		return nil, err
+	}
+
+	if _, err := r.PostClient.MovePostToArchived(ctx, &socialflowpb.MovePostToArchivedRequest{PostId: id}); err != nil {
 		return nil, err
 	}
 
@@ -409,7 +547,7 @@ func (r *queryResolver) MoveToArchive(ctx context.Context, id string) (*model.Mo
 
 // GetAllPostLikers is the resolver for the getAllPostLikers field.
 func (r *queryResolver) GetAllPostLikers(ctx context.Context, postID string) ([]string, error) {
-	res, err := r.PostClient.GetAllPostLikers(ctx, &userpb.GetAllPostLikersRequest{
+	res, err := r.PostClient.GetAllPostLikers(ctx, &socialflowpb.GetAllPostLikersRequest{
 		PostId: postID,
 	})
 	if err != nil {
@@ -421,8 +559,16 @@ func (r *queryResolver) GetAllPostLikers(ctx context.Context, postID string) ([]
 
 // GetAllLikedPosts is the resolver for the getAllLikedPosts field.
 func (r *queryResolver) GetAllLikedPosts(ctx context.Context, userID string) ([]*model.Post, error) {
-	res, err := r.PostClient.GetAllLikedPosts(ctx, &userpb.GetAllLikedPostsRequest{
-		UserId: userID,
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := requireSelf(principal, userID); err != nil {
+		return nil, err
+	}
+
+	res, err := r.PostClient.GetAllLikedPosts(ctx, &socialflowpb.GetAllLikedPostsRequest{
+		UserId: principal.UserID,
 	})
 	if err != nil {
 		return nil, err
@@ -430,16 +576,7 @@ func (r *queryResolver) GetAllLikedPosts(ctx context.Context, userID string) ([]
 
 	posts := make([]*model.Post, 0, len(res.GetPost()))
 	for _, p := range res.GetPost() {
-		posts = append(posts, &model.Post{
-			ID:        p.Id,
-			AuthorID:  p.AuthorId,
-			Content:   p.Content,
-			MediaURL:  p.MediaUrl,
-			IsPublic:  p.IsPublic,
-			LikeCount: p.LikeCount,
-			CreatedAt: p.CreatedAt,
-			UpdatedAt: p.UpdatedAt,
-		})
+		posts = append(posts, toModelPost(p))
 	}
 
 	return posts, nil
@@ -447,7 +584,7 @@ func (r *queryResolver) GetAllLikedPosts(ctx context.Context, userID string) ([]
 
 // GetFollowers is the resolver for the getFollowers field.
 func (r *queryResolver) GetFollowers(ctx context.Context, userID string) ([]string, error) {
-	res, err := r.FollowClient.GetFollowers(ctx, &userpb.GetFollowersRequest{
+	res, err := r.FollowClient.GetFollowers(ctx, &socialflowpb.GetFollowersRequest{
 		UserId: userID,
 	})
 	if err != nil {
@@ -459,7 +596,7 @@ func (r *queryResolver) GetFollowers(ctx context.Context, userID string) ([]stri
 
 // GetFollowing is the resolver for the getFollowing field.
 func (r *queryResolver) GetFollowing(ctx context.Context, userID string) ([]string, error) {
-	res, err := r.FollowClient.GetFollowing(ctx, &userpb.GetFollowingRequest{
+	res, err := r.FollowClient.GetFollowing(ctx, &socialflowpb.GetFollowingRequest{
 		UserId: userID,
 	})
 	if err != nil {
@@ -471,7 +608,7 @@ func (r *queryResolver) GetFollowing(ctx context.Context, userID string) ([]stri
 
 // GetFollowCounts is the resolver for the getFollowCounts field.
 func (r *queryResolver) GetFollowCounts(ctx context.Context, userID string) (*model.FollowCountsResponse, error) {
-	res, err := r.FollowClient.GetFollowCounts(ctx, &userpb.GetFollowCountsRequest{
+	res, err := r.FollowClient.GetFollowCounts(ctx, &socialflowpb.GetFollowCountsRequest{
 		UserId: userID,
 	})
 	if err != nil {
@@ -486,7 +623,7 @@ func (r *queryResolver) GetFollowCounts(ctx context.Context, userID string) (*mo
 
 // GetFollowStatus is the resolver for the getFollowStatus field.
 func (r *queryResolver) GetFollowStatus(ctx context.Context, followerID string, followingID string) (*model.FollowStatusResponse, error) {
-	res, err := r.FollowClient.GetFollowStatus(ctx, &userpb.GetFollowStatusRequest{
+	res, err := r.FollowClient.GetFollowStatus(ctx, &socialflowpb.GetFollowStatusRequest{
 		FollowerId:  followerID,
 		FollowingId: followingID,
 	})
@@ -499,13 +636,168 @@ func (r *queryResolver) GetFollowStatus(ctx context.Context, followerID string, 
 	}, nil
 }
 
+// GetFeed is the resolver for the getFeed field.
+func (r *queryResolver) GetFeed(ctx context.Context, limit *int32, cursor *string) (*model.FeedResponse, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := r.FeedClient.GetFeed(ctx, &socialflowpb.GetFeedRequest{
+		UserId:   principal.UserID,
+		PageSize: clampPageSize(limit, defaultFeedPageSize, maxFeedPageSize),
+		Cursor:   derefString(cursor),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	posts := make([]*model.FeedPost, 0, len(res.GetPosts()))
+	for _, post := range res.GetPosts() {
+		posts = append(posts, toModelFeedPost(post))
+	}
+
+	return &model.FeedResponse{
+		Posts:      posts,
+		NextCursor: optionalString(res.GetNextCursor()),
+		HasMore:    res.GetHasMore(),
+	}, nil
+}
+
+// GetNotifications is the resolver for the getNotifications field.
+func (r *queryResolver) GetNotifications(ctx context.Context, limit *int32, cursor *string, filter *model.NotificationType) (*model.NotificationResponse, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := r.NotificationClient.GetNotifications(ctx, &socialflowpb.GetNotificationsRequest{
+		UserId:     principal.UserID,
+		PageSize:   clampPageSize(limit, defaultNotificationPageSize, maxNotificationPageSize),
+		Cursor:     derefString(cursor),
+		FilterType: notificationTypeToProto(filter),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	notifications := make([]*model.NotificationItem, 0, len(res.GetNotifications()))
+	for _, item := range res.GetNotifications() {
+		notifications = append(notifications, toModelNotification(item))
+	}
+
+	return &model.NotificationResponse{
+		Notifications: notifications,
+		NextCursor:    optionalString(res.GetNextCursor()),
+		HasMore:       res.GetHasMore(),
+		UnreadCount:   res.GetUnreadCount(),
+	}, nil
+}
+
+// GetUnreadNotificationCount is the resolver for the getUnreadNotificationCount field.
+func (r *queryResolver) GetUnreadNotificationCount(ctx context.Context) (int32, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	res, err := r.NotificationClient.GetUnreadCount(ctx, &socialflowpb.GetUnreadCountRequest{
+		UserId: principal.UserID,
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	return res.GetUnreadCount(), nil
+}
+
+// GetNotificationSettings is the resolver for the getNotificationSettings field.
+func (r *queryResolver) GetNotificationSettings(ctx context.Context) (*model.NotificationSettings, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := r.NotificationClient.GetSettings(ctx, &socialflowpb.GetSettingsRequest{
+		UserId: principal.UserID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return toModelNotificationSettings(res.GetSettings()), nil
+}
+
+// NotificationReceived is the resolver for the notificationReceived field.
+// It relays the realtime frames notification-service publishes over Redis
+// Pub/Sub, so whichever gateway pod holds the socket can serve the stream.
+func (r *subscriptionResolver) NotificationReceived(ctx context.Context) (<-chan *model.NotificationItem, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if r.Redis == nil {
+		return nil, fmt.Errorf("realtime notifications are not configured")
+	}
+
+	pubsub := r.Redis.Subscribe(ctx, realtimeChannel(principal.UserID))
+	// Wait for the subscription to be confirmed: otherwise a notification
+	// published immediately after connect could race past this subscriber.
+	if _, err := pubsub.Receive(ctx); err != nil {
+		_ = pubsub.Close()
+		return nil, fmt.Errorf("subscribe to realtime notifications: %w", err)
+	}
+
+	items := make(chan *model.NotificationItem)
+	go func() {
+		defer close(items)
+		defer pubsub.Close()
+
+		messages := pubsub.Channel()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case message, ok := <-messages:
+				if !ok {
+					return
+				}
+				item, err := notificationItemFromFrame([]byte(message.Payload))
+				if err != nil {
+					// A malformed frame must not tear down a healthy stream.
+					continue
+				}
+				select {
+				case items <- item:
+				case <-ctx.Done():
+					return
+				}
+			}
+		}
+	}()
+
+	return items, nil
+}
+
+// FeedPost returns FeedPostResolver implementation.
+func (r *Resolver) FeedPost() FeedPostResolver { return &feedPostResolver{r} }
+
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
+
+// Post returns PostResolver implementation.
+func (r *Resolver) Post() PostResolver { return &postResolver{r} }
 
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
+// Subscription returns SubscriptionResolver implementation.
+func (r *Resolver) Subscription() SubscriptionResolver { return &subscriptionResolver{r} }
+
 type (
-	mutationResolver struct{ *Resolver }
-	queryResolver    struct{ *Resolver }
+	feedPostResolver     struct{ *Resolver }
+	mutationResolver     struct{ *Resolver }
+	postResolver         struct{ *Resolver }
+	queryResolver        struct{ *Resolver }
+	subscriptionResolver struct{ *Resolver }
 )

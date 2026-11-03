@@ -1,3 +1,5 @@
+directive @auth on FIELD_DEFINITION
+
 type User {
     id: ID!
     username: String!
@@ -15,42 +17,135 @@ type Post {
     mediaUrl: String!
     isPublic: Boolean!
     likeCount: Int!
+    hasLiked: Boolean!
     createdAt: String!
     updatedAt: String!
+    author: User!
+}
+
+type FeedPost {
+    id: ID!
+    authorId: String!
+    content: String!
+    mediaUrl: String!
+    isPublic: Boolean!
+    likeCount: Int!
+    hasLiked: Boolean!
+    createdAt: String!
+    author: User!
+}
+
+type FeedResponse {
+    posts: [FeedPost!]!
+    nextCursor: String
+    hasMore: Boolean!
+}
+
+enum NotificationType {
+    FOLLOW
+    POST_LIKE
+    COMMENT
+    COMMENT_REPLY
+    MENTION
+    CREATOR_POST
+    SYSTEM_ALERT
+}
+
+type NotificationActor {
+    id: ID!
+    username: String!
+    displayName: String!
+    avatarUrl: String!
+}
+
+type NotificationItem {
+    id: ID!
+    type: NotificationType!
+    entityId: String!
+    entityType: String!
+    actors: [NotificationActor!]!
+    totalActorsCount: Int!
+    title: String!
+    contentPreview: String
+    actionUrl: String!
+    isRead: Boolean!
+    createdAt: String!
+}
+
+type NotificationResponse {
+    notifications: [NotificationItem!]!
+    nextCursor: String
+    hasMore: Boolean!
+    unreadCount: Int!
+}
+
+type NotificationSettings {
+    inappLikes: Boolean!
+    inappComments: Boolean!
+    inappFollows: Boolean!
+    inappMentions: Boolean!
+    pushEnabled: Boolean!
+    pushLikes: Boolean!
+    pushComments: Boolean!
+    pushFollows: Boolean!
+    pushMentions: Boolean!
+    emailEnabled: Boolean!
+    emailWeeklyDigest: Boolean!
+    emailSecurityAlerts: Boolean!
+    quietHoursEnabled: Boolean!
+    quietHoursStart: String!
+    quietHoursEnd: String!
+    timezone: String!
 }
 
 type Query {
-    getUserById(id: ID!): User!
-    getUserByEmail(email: String!): User!
+    getUserById(id: ID!): User! @auth
+    getUserByEmail(email: String!): User! @auth
     getUserByUsername(username: String!): User!
     tokenGenration(refressToken: String!): newTokens!
-    deleteUser(id: ID!): DeleteUserResponse!
+    deleteUser(id: ID!): DeleteUserResponse! @auth
 
     getPostById(id: ID!): Post!
-    getArchivedPostById(id: ID!): Post!
+    getArchivedPostById(id: ID!): Post! @auth
     getAllPost(author_id: String!): [Post!]!
-    getAllArchivedPost(author_id: String!): [Post!]!
-    deletePost(id: ID!): DeletePostResponse!
-    moveToArchive(id: ID!): MovePostToArchivedResponse!
+    getAllArchivedPost(author_id: String!): [Post!]! @auth
+    deletePost(id: ID!): DeletePostResponse! @auth
+    moveToArchive(id: ID!): MovePostToArchivedResponse! @auth
     getAllPostLikers(post_id: String!): [String!]!
-    getAllLikedPosts(user_id: String!): [Post!]!
+    getAllLikedPosts(user_id: String!): [Post!]! @auth
 
     getFollowers(userId: String!): [String!]!
     getFollowing(userId: String!): [String!]!
     getFollowCounts(userId: String!): FollowCountsResponse!
-    getFollowStatus(followerId: String!, followingId: String!): FollowStatusResponse!
+    getFollowStatus(followerId: String!, followingId: String!): FollowStatusResponse! @auth
+
+    getFeed(limit: Int, cursor: String): FeedResponse! @auth
+    getNotifications(limit: Int, cursor: String, filter: NotificationType): NotificationResponse! @auth
+    getUnreadNotificationCount: Int! @auth
+    getNotificationSettings: NotificationSettings! @auth
 }
 
 type Mutation {
     register(input: RegisterUserInput!): User!
     Login(input: LoginInput!): LoginResponse!
-    UpdateUser(input: UpdateUserInput!): User!
-    CreatePost(input: CreatePostInput!): Post!
-    UpdatePost(input: UpdatePostInput!): Post!
-    likePost(input: LikePostInput!): LikePostResponse!
-    followUser(input: FollowUserInput!): FollowUserResponse!
-    unfollowUser(input: UnfollowUserInput!): UnfollowUserResponse!
-    removeFollower(input: RemoveFollowerInput!): RemoveFollowerResponse!
+    UpdateUser(input: UpdateUserInput!): User! @auth
+    CreatePost(input: CreatePostInput!): Post! @auth
+    UpdatePost(input: UpdatePostInput!): Post! @auth
+    likePost(input: LikePostInput!): LikePostResponse! @auth
+    followUser(input: FollowUserInput!): FollowUserResponse! @auth
+    unfollowUser(input: UnfollowUserInput!): UnfollowUserResponse! @auth
+    removeFollower(input: RemoveFollowerInput!): RemoveFollowerResponse! @auth
+
+    markNotificationAsRead(notificationIds: [ID!]!): Boolean! @auth
+    markAllNotificationsAsRead: Boolean! @auth
+    deleteNotification(id: ID!): Boolean! @auth
+    updateNotificationSettings(input: UpdateNotificationSettingsInput!): NotificationSettings! @auth
+    registerDeviceToken(token: String!, platform: String!, deviceName: String, appVersion: String): Boolean! @auth
+    revokeDeviceToken(token: String!): Boolean! @auth
+}
+
+type Subscription {
+    notificationReceived: NotificationItem! @auth
 }
 
 input RegisterUserInput {
@@ -116,6 +211,7 @@ input LikePostInput {
     postId: String!
     userId: String!
 }
+
 type LikePostResponse {
     isLiked: Boolean!
     message: String!
@@ -155,4 +251,23 @@ type FollowCountsResponse {
 
 type FollowStatusResponse {
     isFollowing: Boolean!
+}
+
+input UpdateNotificationSettingsInput {
+    inappLikes: Boolean
+    inappComments: Boolean
+    inappFollows: Boolean
+    inappMentions: Boolean
+    pushEnabled: Boolean
+    pushLikes: Boolean
+    pushComments: Boolean
+    pushFollows: Boolean
+    pushMentions: Boolean
+    emailEnabled: Boolean
+    emailWeeklyDigest: Boolean
+    emailSecurityAlerts: Boolean
+    quietHoursEnabled: Boolean
+    quietHoursStart: String
+    quietHoursEnd: String
+    timezone: String
 }
