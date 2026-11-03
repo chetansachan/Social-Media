@@ -35,7 +35,12 @@ func main() {
 		port = "50052"
 	}
 
-	dbPool, err := database.Connect(cfg.DatabaseUrl)
+	dbPool, err := database.Connect(database.Options{
+		WriteURL: cfg.DatabaseUrl,
+		ReadURL:  cfg.DatabaseReadUrl,
+		MaxConns: cfg.DatabaseMaxConns,
+		MinConns: cfg.DatabaseMinConns,
+	})
 	if err != nil {
 		logger.Fatalf("failed to connect to database: %v", err)
 	}

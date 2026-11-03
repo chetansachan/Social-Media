@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/chetansachan/socialflow/post-service/internal/database"
 	"github.com/chetansachan/socialflow/post-service/internal/models"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -29,11 +30,19 @@ type PostRepository interface {
 }
 
 type postRepository struct {
-	db *pgxpool.Pool
+	writer *pgxpool.Pool
+	reader *pgxpool.Pool
 }
 
-func NewPostRepository(db *pgxpool.Pool) PostRepository {
-	return &postRepository{db: db}
+// NewPostRepository builds a repository over the primary and read pools.
+// Mutations use the primary; list and detail reads use the replica. Ownership
+// can be checked from a replica because a post's author never changes, and the
+// mutating statement is still scoped by author_id on the primary.
+func NewPostRepository(db *database.DB) PostRepository {
+	return &postRepository{
+		writer: db.Writer(),
+		reader: db.Reader(),
+	}
 }
 
 func (r *postRepository) GetPostById(ctx context.Context, id uuid.UUID) (*models.Post, error) {
@@ -43,7 +52,7 @@ func (r *postRepository) GetPostById(ctx context.Context, id uuid.UUID) (*models
 		WHERE id = $1 AND deleted_at IS NULL 
 	`
 	Post := &models.Post{}
-	if err := r.db.QueryRow(ctx, query, id).Scan(
+	if err := r.reader.QueryRow(ctx, query, id).Scan(
 		&Post.ID,
 		&Post.AuthorID,
 		&Post.Content,
@@ -69,7 +78,7 @@ func (r *postRepository) GetAllPost(ctx context.Context, authorId uuid.UUID) ([]
 		FROM posts
 		WHERE author_id = $1 AND deleted_at IS NULL 
 	`
-	rows, err := r.db.Query(ctx, query, authorId)
+	rows, err := r.reader.Query(ctx, query, authorId)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, models.ErrPostNotFound
@@ -107,7 +116,7 @@ func (r *postRepository) GetAllPost(ctx context.Context, authorId uuid.UUID) ([]
 }
 
 func (r *postRepository) CreatePost(ctx context.Context, input *models.CreatePostInput) (*models.Post, error) {
-	tx, err := r.db.Begin(ctx)
+	tx, err := r.writer.Begin(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin create post transaction: %w", err)
 	}
@@ -181,7 +190,7 @@ func (r *postRepository) UpdatePost(ctx context.Context, input *models.UpdatePos
 	`
 
 	post := &models.Post{}
-	if err := r.db.QueryRow(ctx, query,
+	if err := r.writer.QueryRow(ctx, query,
 		input.Content,
 		input.IsPublic,
 		postId,
@@ -207,7 +216,7 @@ func (r *postRepository) UpdatePost(ctx context.Context, input *models.UpdatePos
 }
 
 func (r *postRepository) DeletePost(ctx context.Context, postId uuid.UUID, authorId uuid.UUID) error {
-	tx, err := r.db.Begin(ctx)
+	tx, err := r.writer.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin delete post transaction: %w", err)
 	}
@@ -241,7 +250,7 @@ func (r *postRepository) DeletePost(ctx context.Context, postId uuid.UUID, autho
 }
 
 func (r *postRepository) MovePostToArchive(ctx context.Context, postId uuid.UUID, authorId uuid.UUID) error {
-	tx, err := r.db.Begin(ctx)
+	tx, err := r.writer.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin archive transaction: %w", err)
 	}
@@ -282,7 +291,7 @@ func (r *postRepository) GetArchivedPostById(ctx context.Context, id uuid.UUID) 
 		WHERE id = $1 AND deleted_at IS NOT NULL 
 	`
 	Post := &models.Post{}
-	if err := r.db.QueryRow(ctx, query, id).Scan(
+	if err := r.reader.QueryRow(ctx, query, id).Scan(
 		&Post.ID,
 		&Post.AuthorID,
 		&Post.Content,
@@ -308,7 +317,7 @@ func (r *postRepository) GetAllArchivedPost(ctx context.Context, authorId uuid.U
 		FROM posts
 		WHERE author_id = $1 AND deleted_at IS NOT NULL 
 	`
-	rows, err := r.db.Query(ctx, query, authorId)
+	rows, err := r.reader.Query(ctx, query, authorId)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, models.ErrPostNotFound
@@ -346,7 +355,7 @@ func (r *postRepository) GetAllArchivedPost(ctx context.Context, authorId uuid.U
 }
 
 func (r *postRepository) LikePost(ctx context.Context, postId, userId uuid.UUID) (bool, error) {
-	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{
+	tx, err := r.writer.BeginTx(ctx, pgx.TxOptions{
 		IsoLevel: pgx.RepeatableRead,
 	})
 	if err != nil {
@@ -435,7 +444,7 @@ func (r *postRepository) GetAllPostLikers(ctx context.Context, postId uuid.UUID)
 		ORDER BY liked_at DESC
 	`
 
-	rows, err := r.db.Query(ctx, query, postId)
+	rows, err := r.reader.Query(ctx, query, postId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query post likers: %w", err)
 	}
@@ -466,7 +475,7 @@ func (r *postRepository) GetAllLikedPosts(ctx context.Context, userId uuid.UUID)
 		ORDER BY pl.liked_at DESC
 	`
 
-	rows, err := r.db.Query(ctx, query, userId)
+	rows, err := r.reader.Query(ctx, query, userId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query liked posts: %w", err)
 	}
@@ -512,7 +521,7 @@ func (r *postRepository) GetLikeStates(ctx context.Context, userId uuid.UUID, po
 		FROM post_likes
 		WHERE user_id = $1 AND is_liked = TRUE AND post_id = ANY($2)
 	`
-	rows, err := r.db.Query(ctx, query, userId, postIds)
+	rows, err := r.reader.Query(ctx, query, userId, postIds)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query like states: %w", err)
 	}
@@ -546,7 +555,7 @@ func (r *postRepository) SaveFiles(ctx context.Context, name string, ext string,
 		VALUES ($1, $2, $3)
 	`
 
-	if _, err := r.db.Exec(ctx, query, name, ext, mimeType); err != nil {
+	if _, err := r.writer.Exec(ctx, query, name, ext, mimeType); err != nil {
 		return fmt.Errorf("database error: %w", err)
 	}
 

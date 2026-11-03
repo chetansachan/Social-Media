@@ -11,9 +11,12 @@ import (
 )
 
 type Config struct {
-	DatabaseUrl   string
-	Port          string
-	CloudinaryUrl string
+	DatabaseUrl      string
+	DatabaseReadUrl  string
+	DatabaseMaxConns int32
+	DatabaseMinConns int32
+	Port             string
+	CloudinaryUrl    string
 
 	RedisAddr     string
 	RedisPassword string
@@ -36,9 +39,12 @@ func Load() *Config {
 	}
 
 	return &Config{
-		DatabaseUrl:   os.Getenv("DATABASE_URL"),
-		Port:          os.Getenv("PORT"),
-		CloudinaryUrl: os.Getenv("CLOUDINARY_URL"),
+		DatabaseUrl:      os.Getenv("DATABASE_URL"),
+		DatabaseReadUrl:  os.Getenv("DATABASE_READ_URL"),
+		DatabaseMaxConns: int32(getEnvAsInt("DB_MAX_CONNS", 20)),
+		DatabaseMinConns: int32(getEnvAsInt("DB_MIN_CONNS", 2)),
+		Port:             os.Getenv("PORT"),
+		CloudinaryUrl:    os.Getenv("CLOUDINARY_URL"),
 
 		RedisAddr:     getEnv("REDIS_ADDR", "localhost:6379"),
 		RedisPassword: os.Getenv("REDIS_PASSWORD"),

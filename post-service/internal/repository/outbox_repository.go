@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/chetansachan/socialflow/post-service/internal/database"
 	"github.com/chetansachan/socialflow/post-service/internal/models"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -26,8 +27,10 @@ type outboxRepository struct {
 	db *pgxpool.Pool
 }
 
-func NewOutboxRepository(db *pgxpool.Pool) OutboxRepository {
-	return &outboxRepository{db: db}
+// NewOutboxRepository always uses the primary: claiming, settling, and pruning
+// outbox rows are write operations, and the relay must see its own updates.
+func NewOutboxRepository(db *database.DB) OutboxRepository {
+	return &outboxRepository{db: db.Writer()}
 }
 
 // enqueueOutbox writes one event inside the caller's transaction. The event is
