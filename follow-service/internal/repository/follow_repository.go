@@ -28,39 +28,73 @@ func NewFollowRepository(db *pgxpool.Pool) FollowRepository {
 }
 
 func (r *followRepository) FollowUser(ctx context.Context, followerID, followingID uuid.UUID) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin follow transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
 	query := `
 		INSERT INTO follows (follower_id, following_id)
 		VALUES ($1, $2)
 		ON CONFLICT (follower_id, following_id) DO NOTHING
 	`
 
-	tag, err := r.db.Exec(ctx, query, followerID, followingID)
+	tag, err := tx.Exec(ctx, query, followerID, followingID)
 	if err != nil {
 		return fmt.Errorf("failed to follow user: %w", err)
 	}
 
+	// Following is idempotent: a repeated request is a no-op and emits no
+	// duplicate event.
 	if tag.RowsAffected() == 0 {
-		return models.ErrAlreadyFollowing
+		return tx.Commit(ctx)
 	}
 
+	if err := enqueueOutbox(ctx, tx, "user.followed", followingID, models.UserFollowedEvent{
+		FollowerID:  followerID.String(),
+		FollowingID: followingID.String(),
+	}); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit follow transaction: %w", err)
+	}
 	return nil
 }
 
 func (r *followRepository) UnfollowUser(ctx context.Context, followerID, followingID uuid.UUID) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin unfollow transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
 	query := `
 		DELETE FROM follows
 		WHERE follower_id = $1 AND following_id = $2
 	`
 
-	tag, err := r.db.Exec(ctx, query, followerID, followingID)
+	tag, err := tx.Exec(ctx, query, followerID, followingID)
 	if err != nil {
 		return fmt.Errorf("failed to unfollow user: %w", err)
 	}
-
 	if tag.RowsAffected() == 0 {
-		return models.ErrRelationNotFound
+		// Unfollowing twice is a no-op, not an error.
+		return tx.Commit(ctx)
 	}
 
+	if err := enqueueOutbox(ctx, tx, "user.unfollowed", followingID, models.UserUnfollowedEvent{
+		FollowerID:  followerID.String(),
+		FollowingID: followingID.String(),
+	}); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit unfollow transaction: %w", err)
+	}
 	return nil
 }
 
@@ -158,19 +192,34 @@ func (r *followRepository) GetFollowStatus(ctx context.Context, followerID, foll
 }
 
 func (r *followRepository) RemoveFollower(ctx context.Context, userID, followerID uuid.UUID) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin remove follower transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
 	query := `
 		DELETE FROM follows
 		WHERE following_id = $1 AND follower_id = $2
 	`
 
-	tag, err := r.db.Exec(ctx, query, userID, followerID)
+	tag, err := tx.Exec(ctx, query, userID, followerID)
 	if err != nil {
 		return fmt.Errorf("failed to remove follower: %w", err)
 	}
-
 	if tag.RowsAffected() == 0 {
-		return models.ErrRelationNotFound
+		return tx.Commit(ctx)
 	}
 
+	if err := enqueueOutbox(ctx, tx, "user.unfollowed", userID, models.UserUnfollowedEvent{
+		FollowerID:  followerID.String(),
+		FollowingID: userID.String(),
+	}); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit remove follower transaction: %w", err)
+	}
 	return nil
 }
