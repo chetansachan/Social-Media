@@ -21,12 +21,17 @@ func main() {
 		port = "50051"
 	}
 
-	listener, err := net.Listen("tcp", ":" + port)
+	listener, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	dbPool, err := database.Connect(cfg.DatabaseUrl)
+	dbPool, err := database.Connect(database.Options{
+		WriteURL: cfg.DatabaseUrl,
+		ReadURL:  cfg.DatabaseReadUrl,
+		MaxConns: cfg.DatabaseMaxConns,
+		MinConns: cfg.DatabaseMinConns,
+	})
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
 	}

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/chetansachan/socialflow/user-service/internal/database"
 	"github.com/chetansachan/socialflow/user-service/internal/models"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -26,11 +27,19 @@ type UserRepository interface {
 }
 
 type userRepository struct {
-	db *pgxpool.Pool
+	writer *pgxpool.Pool
+	reader *pgxpool.Pool
 }
 
-func NewUserRepository(db *pgxpool.Pool) UserRepository {
-	return &userRepository{db: db}
+// NewUserRepository builds a repository over a primary pool and, optionally, a
+// read replica. Auth-critical reads stay on the primary: a replication lag of
+// even a second would make a freshly registered account look missing at login,
+// or resurrect a refresh token that was just rotated.
+func NewUserRepository(db *database.DB) UserRepository {
+	return &userRepository{
+		writer: db.Writer(),
+		reader: db.Reader(),
+	}
 }
 
 func (r *userRepository) Create(ctx context.Context, user *models.User) (*models.User, error) {
@@ -41,7 +50,7 @@ func (r *userRepository) Create(ctx context.Context, user *models.User) (*models
 	`
 
 	createdUser := &models.User{}
-	err := r.db.QueryRow(
+	err := r.writer.QueryRow(
 		ctx,
 		query,
 		user.Username,
@@ -79,7 +88,7 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.
 	`
 
 	user := &models.User{}
-	err := r.db.QueryRow(ctx, query, email).Scan(
+	err := r.writer.QueryRow(ctx, query, email).Scan(
 		&user.ID,
 		&user.Username,
 		&user.Name,
@@ -107,7 +116,7 @@ func (r *userRepository) GetByUsername(ctx context.Context, username string) (*m
 	`
 
 	user := &models.User{}
-	err := r.db.QueryRow(ctx, query, username).Scan(
+	err := r.reader.QueryRow(ctx, query, username).Scan(
 		&user.ID,
 		&user.Username,
 		&user.Name,
@@ -135,7 +144,7 @@ func (r *userRepository) GetById(ctx context.Context, id uuid.UUID) (*models.Use
 	`
 
 	user := &models.User{}
-	if err := r.db.QueryRow(ctx, query, id).Scan(
+	if err := r.reader.QueryRow(ctx, query, id).Scan(
 		&user.ID,
 		&user.Username,
 		&user.Name,
@@ -167,7 +176,7 @@ func (r *userRepository) GetByIds(ctx context.Context, ids []uuid.UUID) ([]model
 		WHERE id = ANY($1)
 	`
 
-	rows, err := r.db.Query(ctx, query, ids)
+	rows, err := r.reader.Query(ctx, query, ids)
 	if err != nil {
 		return nil, fmt.Errorf("failed to batch get users: %w", err)
 	}
@@ -202,7 +211,7 @@ func (r *userRepository) SaveToken(ctx context.Context, data *models.RefreshTkn)
 		VALUES ($1, $2, $3)
 	`
 
-	_, err := r.db.Exec(ctx, query, data.UserId, data.Token, data.ExpiresAt)
+	_, err := r.writer.Exec(ctx, query, data.UserId, data.Token, data.ExpiresAt)
 	if err != nil {
 		return fmt.Errorf("Error saving token %w", err)
 	}
@@ -218,7 +227,7 @@ func (r *userRepository) GetRefreshTk(ctx context.Context, tkn string) (*models.
 	`
 
 	Token := &models.RefreshTkn{}
-	if err := r.db.QueryRow(ctx, query, tkn).Scan(
+	if err := r.writer.QueryRow(ctx, query, tkn).Scan(
 		&Token.Id,
 		&Token.UserId,
 		&Token.Token,
@@ -243,7 +252,7 @@ func (r *userRepository) RotateToken(ctx context.Context, oldtkn string, newtkn 
 		WHERE token = $2;
 	`
 
-	res, err := r.db.Exec(ctx, query, newtkn, oldtkn, data.ExpiresAt, data.UpdatedAt)
+	res, err := r.writer.Exec(ctx, query, newtkn, oldtkn, data.ExpiresAt, data.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("Error saving token %w", err)
 	}
@@ -264,7 +273,7 @@ func (r *userRepository) UpdateUser(ctx context.Context, input *models.UpdateUse
 	`
 
 	user := &models.User{}
-	err := r.db.QueryRow(ctx, query, input.Username, input.Name, input.Email, input.Password, input.IsPublic, id).Scan(
+	err := r.writer.QueryRow(ctx, query, input.Username, input.Name, input.Email, input.Password, input.IsPublic, id).Scan(
 		&user.ID,
 		&user.Username,
 		&user.Name,
@@ -294,7 +303,7 @@ func (r *userRepository) DeleteUser(ctx context.Context, id uuid.UUID) error {
 		WHERE id = $1
 	`
 
-	_, err := r.db.Exec(ctx, query, id)
+	_, err := r.writer.Exec(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("Error deleting User: %v", err)
 	}
