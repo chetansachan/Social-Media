@@ -1,0 +1,10 @@
+; Reader pooler: the same databases, pointed at the streaming replica.
+;
+; Set DATABASE_READ_URL to this pooler. Requests that must observe their own
+; writes (login, refresh-token rotation, post ownership checks, device-token
+; dispatch) stay on DATABASE_URL and never reach this instance.
+
+socialflow_users = host=postgres-replica port=5432 dbname=socialflow_users
+socialflow_posts = host=postgres-replica port=5432 dbname=socialflow_posts
+socialflow_follows = host=postgres-replica port=5432 dbname=socialflow_follows
+socialflow_notifications = host=postgres-replica port=5432 dbname=socialflow_notifications

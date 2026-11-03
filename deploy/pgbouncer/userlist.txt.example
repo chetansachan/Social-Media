@@ -1,0 +1,19 @@
+; PgBouncer authentication file.
+;
+; Each line is: "user" "password-or-verifier"
+;
+; For auth_type = scram-sha-256 the second column must be the same SCRAM
+; verifier PostgreSQL stores, not the plaintext password. Copy it from the
+; primary:
+;
+;   SELECT rolname, rolpassword
+;   FROM pg_authid
+;   WHERE rolname IN ('socialflow', 'pgbouncer_admin', 'pgbouncer_stats');
+;
+; The verifier starts with SCRAM-SHA-256$ and is safe to distribute to the
+; pooler, but this file must still be readable only by the pgbouncer user
+; (chmod 600). Never commit a real userlist.txt.
+
+"socialflow" "SCRAM-SHA-256$4096:REPLACE_WITH_SALT$REPLACE_WITH_STORED_KEY:REPLACE_WITH_SERVER_KEY"
+"pgbouncer_admin" "SCRAM-SHA-256$4096:REPLACE_WITH_SALT$REPLACE_WITH_STORED_KEY:REPLACE_WITH_SERVER_KEY"
+"pgbouncer_stats" "SCRAM-SHA-256$4096:REPLACE_WITH_SALT$REPLACE_WITH_STORED_KEY:REPLACE_WITH_SERVER_KEY"

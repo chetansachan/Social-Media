@@ -1,0 +1,18 @@
+; Writer pooler: every database maps to the PostgreSQL primary.
+;
+; Deploy this file alongside the writer PgBouncer instance and reference it from
+; pgbouncer.ini with:
+;
+;   [databases]
+;   %include /etc/pgbouncer/databases.ini
+;
+; Services use the same database name in DATABASE_URL, only the host differs.
+
+socialflow_users = host=postgres-primary port=5432 dbname=socialflow_users
+socialflow_posts = host=postgres-primary port=5432 dbname=socialflow_posts
+socialflow_follows = host=postgres-primary port=5432 dbname=socialflow_follows
+socialflow_notifications = host=postgres-primary port=5432 dbname=socialflow_notifications
+
+; Optional: give the pooler a second name so a read-only client cannot
+; accidentally write through it.
+socialflow_users_ro = host=postgres-primary port=5432 dbname=socialflow_users
