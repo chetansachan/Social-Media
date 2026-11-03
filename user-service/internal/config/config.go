@@ -25,7 +25,9 @@ type Config struct {
 	// without consulting PostgreSQL.
 	UserCacheTTL time.Duration
 
-	Port      string
+	Port string
+	// AdminPort serves /metrics, /healthz, and /readyz on the pod network.
+	AdminPort string
 	SecretKey string
 }
 
@@ -46,6 +48,7 @@ func Load() *Config {
 		UserCacheTTL:  envAsDuration("USER_CACHE_TTL", 10*time.Minute),
 
 		Port:      os.Getenv("PORT"),
+		AdminPort: envOr("ADMIN_PORT", "9091"),
 		SecretKey: os.Getenv("MYSECRETKEY"),
 	}
 
