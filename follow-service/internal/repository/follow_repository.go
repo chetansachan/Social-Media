@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/chetansachan/socialflow/follow-service/internal/database"
 	"github.com/chetansachan/socialflow/follow-service/internal/models"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -20,15 +21,23 @@ type FollowRepository interface {
 }
 
 type followRepository struct {
-	db *pgxpool.Pool
+	writer *pgxpool.Pool
+	reader *pgxpool.Pool
 }
 
-func NewFollowRepository(db *pgxpool.Pool) FollowRepository {
-	return &followRepository{db: db}
+// NewFollowRepository builds a repository over the primary and read pools.
+// Follow status reads the primary because it drives the follow button and must
+// reflect the user's own last action; heavier list and count reads use the
+// replica.
+func NewFollowRepository(db *database.DB) FollowRepository {
+	return &followRepository{
+		writer: db.Writer(),
+		reader: db.Reader(),
+	}
 }
 
 func (r *followRepository) FollowUser(ctx context.Context, followerID, followingID uuid.UUID) error {
-	tx, err := r.db.Begin(ctx)
+	tx, err := r.writer.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin follow transaction: %w", err)
 	}
@@ -65,7 +74,7 @@ func (r *followRepository) FollowUser(ctx context.Context, followerID, following
 }
 
 func (r *followRepository) UnfollowUser(ctx context.Context, followerID, followingID uuid.UUID) error {
-	tx, err := r.db.Begin(ctx)
+	tx, err := r.writer.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin unfollow transaction: %w", err)
 	}
@@ -106,7 +115,7 @@ func (r *followRepository) GetFollowers(ctx context.Context, userID uuid.UUID) (
 		ORDER BY created_at DESC
 	`
 
-	rows, err := r.db.Query(ctx, query, userID)
+	rows, err := r.reader.Query(ctx, query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get followers: %w", err)
 	}
@@ -136,7 +145,7 @@ func (r *followRepository) GetFollowing(ctx context.Context, userID uuid.UUID) (
 		ORDER BY created_at DESC
 	`
 
-	rows, err := r.db.Query(ctx, query, userID)
+	rows, err := r.reader.Query(ctx, query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get following: %w", err)
 	}
@@ -166,7 +175,7 @@ func (r *followRepository) GetFollowCounts(ctx context.Context, userID uuid.UUID
 	`
 
 	counts := &models.FollowCounts{}
-	err := r.db.QueryRow(ctx, query, userID).Scan(&counts.FollowersCount, &counts.FollowingCount)
+	err := r.reader.QueryRow(ctx, query, userID).Scan(&counts.FollowersCount, &counts.FollowingCount)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get follow counts: %w", err)
 	}
@@ -183,7 +192,7 @@ func (r *followRepository) GetFollowStatus(ctx context.Context, followerID, foll
 	`
 
 	var isFollowing bool
-	err := r.db.QueryRow(ctx, query, followerID, followingID).Scan(&isFollowing)
+	err := r.writer.QueryRow(ctx, query, followerID, followingID).Scan(&isFollowing)
 	if err != nil {
 		return false, fmt.Errorf("failed to check follow status: %w", err)
 	}
@@ -192,7 +201,7 @@ func (r *followRepository) GetFollowStatus(ctx context.Context, followerID, foll
 }
 
 func (r *followRepository) RemoveFollower(ctx context.Context, userID, followerID uuid.UUID) error {
-	tx, err := r.db.Begin(ctx)
+	tx, err := r.writer.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin remove follower transaction: %w", err)
 	}
