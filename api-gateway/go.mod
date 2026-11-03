@@ -5,6 +5,8 @@ go 1.26.2
 require (
 	github.com/99designs/gqlgen v0.17.95
 	github.com/chetansachan/socialflow/proto v0.0.0
+	github.com/golang-jwt/jwt/v5 v5.3.1
+	github.com/joho/godotenv v1.5.1
 	github.com/vektah/gqlparser/v2 v2.5.37
 	google.golang.org/grpc v1.84.0
 )
