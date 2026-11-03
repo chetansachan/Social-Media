@@ -12,7 +12,9 @@ import (
 
 // Config holds every runtime knob used by the Feed Service.
 type Config struct {
-	Port              string
+	Port string
+	// AdminPort serves /metrics, /healthz, and /readyz.
+	AdminPort         string
 	FollowServiceAddr string
 	PostServiceAddr   string
 
@@ -40,6 +42,7 @@ func Load() *Config {
 
 	return &Config{
 		Port:              getEnv("PORT", "50054"),
+		AdminPort:         getEnv("ADMIN_PORT", "9094"),
 		FollowServiceAddr: getEnv("FOLLOW_SERVICE_ADDR", "localhost:50053"),
 		PostServiceAddr:   getEnv("POST_SERVICE_ADDR", "localhost:50052"),
 
