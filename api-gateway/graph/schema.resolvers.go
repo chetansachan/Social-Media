@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/chetansachan/socialflow/api-gateway/graph/model"
 	socialflowpb "github.com/chetansachan/socialflow/proto"
@@ -352,6 +353,34 @@ func (r *mutationResolver) RevokeDeviceToken(ctx context.Context, token string) 
 		return false, err
 	}
 	return res.GetSuccess(), nil
+}
+
+// Logout is the resolver for the logout field.
+// It blacklists only the caller's current access token. Refresh tokens are
+// rotated by user-service, so dropping the client's stored pair ends the
+// session everywhere the access token could still be replayed.
+func (r *mutationResolver) Logout(ctx context.Context) (bool, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return false, err
+	}
+	if r.Revocations == nil {
+		return false, fmt.Errorf("token revocation is not configured")
+	}
+	if principal.TokenID == "" {
+		return false, fmt.Errorf("this token does not support revocation")
+	}
+
+	ttl := time.Until(principal.ExpiresAt)
+	if ttl <= 0 {
+		// The token is already unusable; there is nothing to blacklist.
+		return true, nil
+	}
+	if err := r.Revocations.Revoke(ctx, principal.TokenID, ttl); err != nil {
+		return false, fmt.Errorf("could not revoke the session: %w", err)
+	}
+
+	return true, nil
 }
 
 // HasLiked is the resolver for the hasLiked field.

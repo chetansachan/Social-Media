@@ -101,6 +101,7 @@ type ComplexityRoot struct {
 		FollowUser                 func(childComplexity int, input model.FollowUserInput) int
 		LikePost                   func(childComplexity int, input model.LikePostInput) int
 		Login                      func(childComplexity int, input model.LoginInput) int
+		Logout                     func(childComplexity int) int
 		MarkAllNotificationsAsRead func(childComplexity int) int
 		MarkNotificationAsRead     func(childComplexity int, notificationIds []string) int
 		Register                   func(childComplexity int, input model.RegisterUserInput) int
@@ -262,6 +263,7 @@ type MutationResolver interface {
 	UpdateNotificationSettings(ctx context.Context, input model.UpdateNotificationSettingsInput) (*model.NotificationSettings, error)
 	RegisterDeviceToken(ctx context.Context, token string, platform string, deviceName *string, appVersion *string) (bool, error)
 	RevokeDeviceToken(ctx context.Context, token string) (bool, error)
+	Logout(ctx context.Context) (bool, error)
 }
 type PostResolver interface {
 	HasLiked(ctx context.Context, obj *model.Post) (bool, error)
@@ -523,6 +525,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.Login(childComplexity, args["input"].(model.LoginInput)), true
+	case "Mutation.logout":
+		if e.ComplexityRoot.Mutation.Logout == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Mutation.Logout(childComplexity), true
 	case "Mutation.markAllNotificationsAsRead":
 		if e.ComplexityRoot.Mutation.MarkAllNotificationsAsRead == nil {
 			break
@@ -3795,6 +3803,42 @@ func (ec *executionContext) fieldContext_Mutation_revokeDeviceToken(ctx context.
 		return fc, err
 	}
 	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_logout(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_logout(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Mutation().Logout(ctx)
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				if ec.Directives.Auth == nil {
+					var zeroVal bool
+					return zeroVal, errors.New("directive auth is not implemented")
+				}
+				return ec.Directives.Auth(ctx, nil, directive0)
+			}
+
+			next = directive1
+			return next
+		},
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_logout(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Mutation", field, true, true, errors.New("field of type Boolean does not have child fields"))
 }
 
 func (ec *executionContext) _NotificationActor_id(ctx context.Context, field graphql.CollectedField, obj *model.NotificationActor) (ret graphql.Marshaler) {
@@ -8783,6 +8827,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "revokeDeviceToken":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_revokeDeviceToken(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "logout":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_logout(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++

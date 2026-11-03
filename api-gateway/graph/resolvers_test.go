@@ -2,8 +2,10 @@ package graph
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/chetansachan/socialflow/api-gateway/auth"
 	"github.com/chetansachan/socialflow/api-gateway/graph/model"
@@ -125,6 +127,33 @@ func (c *fakeNotificationClient) MarkAsRead(ctx context.Context, req *socialflow
 
 func viewerContext(userID string) context.Context {
 	return auth.WithPrincipal(context.Background(), auth.Principal{UserID: userID, Role: "user"})
+}
+
+func sessionContext(userID, tokenID string, expiresAt time.Time) context.Context {
+	return auth.WithPrincipal(context.Background(), auth.Principal{
+		UserID:    userID,
+		Role:      "user",
+		TokenID:   tokenID,
+		ExpiresAt: expiresAt,
+	})
+}
+
+type fakeRevocations struct {
+	revoked bool
+	err     error
+
+	revokeID  string
+	revokeTTL time.Duration
+}
+
+func (s *fakeRevocations) Revoke(ctx context.Context, tokenID string, ttl time.Duration) error {
+	s.revokeID = tokenID
+	s.revokeTTL = ttl
+	return s.err
+}
+
+func (s *fakeRevocations) IsRevoked(ctx context.Context, tokenID string) (bool, error) {
+	return s.revoked, s.err
 }
 
 func TestGetFeedScopesRequestToAuthenticatedUser(t *testing.T) {
@@ -351,6 +380,67 @@ func TestUpdateUserScopesRequestToPrincipal(t *testing.T) {
 	}
 	if len(users.updateRequests) != 1 || users.updateRequests[0].GetId() != "u1" {
 		t.Fatalf("requests = %+v", users.updateRequests)
+	}
+}
+
+func TestLogoutBlacklistsTheCurrentToken(t *testing.T) {
+	store := &fakeRevocations{}
+	resolver := &mutationResolver{&Resolver{Revocations: store}}
+
+	expiresAt := time.Now().Add(10 * time.Minute)
+	ok, err := resolver.Logout(sessionContext("u1", "jti-1", expiresAt))
+	if err != nil {
+		t.Fatalf("Logout: %v", err)
+	}
+	if !ok {
+		t.Fatal("Logout should confirm the session ended")
+	}
+	if store.revokeID != "jti-1" {
+		t.Fatalf("revoked %q, want the caller's jti", store.revokeID)
+	}
+	// The blacklist entry only has to outlive the token, not persist forever.
+	if store.revokeTTL <= 0 || store.revokeTTL > 10*time.Minute {
+		t.Fatalf("ttl = %v, want the token's remaining lifetime", store.revokeTTL)
+	}
+}
+
+func TestLogoutRequiresAuthentication(t *testing.T) {
+	resolver := &mutationResolver{&Resolver{Revocations: &fakeRevocations{}}}
+
+	if _, err := resolver.Logout(context.Background()); err == nil {
+		t.Fatal("expected an anonymous logout to fail")
+	}
+}
+
+func TestLogoutRequiresRevocationStore(t *testing.T) {
+	resolver := &mutationResolver{&Resolver{}}
+
+	if _, err := resolver.Logout(sessionContext("u1", "jti-1", time.Now().Add(time.Minute))); err == nil {
+		t.Fatal("expected a configuration error without a revocation store")
+	}
+}
+
+func TestLogoutSkipsExpiredToken(t *testing.T) {
+	store := &fakeRevocations{}
+	resolver := &mutationResolver{&Resolver{Revocations: store}}
+
+	ok, err := resolver.Logout(sessionContext("u1", "jti-1", time.Now().Add(-time.Minute)))
+	if err != nil {
+		t.Fatalf("Logout: %v", err)
+	}
+	if !ok {
+		t.Fatal("an expired token is already unusable")
+	}
+	if store.revokeID != "" {
+		t.Fatalf("revoked %q, want no write", store.revokeID)
+	}
+}
+
+func TestLogoutSurfacesStoreFailure(t *testing.T) {
+	resolver := &mutationResolver{&Resolver{Revocations: &fakeRevocations{err: errors.New("redis down")}}}
+
+	if _, err := resolver.Logout(sessionContext("u1", "jti-1", time.Now().Add(time.Minute))); err == nil {
+		t.Fatal("expected a store failure to be surfaced")
 	}
 }
 

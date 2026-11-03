@@ -62,6 +62,8 @@ func main() {
 	})
 	defer redisClient.Close()
 
+	revocations := auth.NewRedisRevocations(redisClient)
+
 	resolver := &graph.Resolver{
 		UserClient:         userClient,
 		PostClient:         postClient,
@@ -69,6 +71,7 @@ func main() {
 		FeedClient:         socialflowpb.NewFeedServiceClient(feedConn),
 		NotificationClient: socialflowpb.NewNotificationServiceClient(notificationConn),
 		Redis:              redisClient,
+		Revocations:        revocations,
 		NewLoaders: func() *dataloader.Loaders {
 			return dataloader.New(userClient, postClient)
 		},
@@ -88,7 +91,7 @@ func main() {
 	srv.AddTransport(transport.POST{})
 	srv.AddTransport(transport.Websocket{
 		KeepAlivePingInterval: 30 * time.Second,
-		InitFunc:              auth.WebsocketInit(secret),
+		InitFunc:              auth.WebsocketInit(secret, revocations),
 	})
 
 	srv.SetQueryCache(lru.New[*ast.QueryDocument](1000))
@@ -102,7 +105,9 @@ func main() {
 	mux.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	// Playground stays public; the @auth directive protects individual fields.
 	// The loader middleware wraps the executing handler, not the playground.
-	mux.Handle("/query", auth.Middleware(secret, dataloader.Middleware(resolver.NewLoaders)(srv)))
+	// Revocations run inside the auth middleware because they need the parsed
+	// principal (and its jti) to decide whether the session was logged out.
+	mux.Handle("/query", auth.Middleware(secret, auth.RejectRevoked(revocations, dataloader.Middleware(resolver.NewLoaders)(srv))))
 
 	server := &http.Server{
 		Addr:              ":" + port,

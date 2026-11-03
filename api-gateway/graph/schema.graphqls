@@ -157,6 +157,8 @@ type Mutation {
     updateNotificationSettings(input: UpdateNotificationSettingsInput!): NotificationSettings! @auth
     registerDeviceToken(token: String!, platform: String!, deviceName: String, appVersion: String): Boolean! @auth
     revokeDeviceToken(token: String!): Boolean! @auth
+    # Blacklists the caller's current access token for its remaining lifetime.
+    logout: Boolean! @auth
 }
 
 type Subscription {

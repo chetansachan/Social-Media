@@ -17,10 +17,16 @@ const testSecret = "test-secret"
 
 func signToken(t *testing.T, secret string, expires time.Time) string {
 	t.Helper()
+	return signTokenWithID(t, secret, expires, "test-jti")
+}
+
+func signTokenWithID(t *testing.T, secret string, expires time.Time, tokenID string) string {
+	t.Helper()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
 		UserID: "11111111-1111-1111-1111-111111111111",
 		Email:  "alice@example.com",
 		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        tokenID,
 			ExpiresAt: jwt.NewNumericDate(expires),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
@@ -47,6 +53,12 @@ func TestParseToken_Valid(t *testing.T) {
 	}
 	if principal.Token != raw {
 		t.Error("raw token was not retained")
+	}
+	if principal.TokenID != "test-jti" {
+		t.Errorf("token id = %q, want the jti claim", principal.TokenID)
+	}
+	if principal.ExpiresAt.IsZero() {
+		t.Error("expiry was not captured")
 	}
 }
 

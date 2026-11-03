@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
@@ -32,6 +33,12 @@ type Principal struct {
 	Email  string
 	Role   string
 	Token  string
+
+	// TokenID is the token's jti claim. It is the handle used to revoke this
+	// exact access token on logout, and ExpiresAt is when it would otherwise
+	// stop being accepted, which bounds how long the revocation must live.
+	TokenID   string
+	ExpiresAt time.Time
 }
 
 type principalKey struct{}
@@ -76,12 +83,19 @@ func ParseToken(raw, secret string) (Principal, error) {
 	if role == "" {
 		role = "user"
 	}
-	return Principal{
-		UserID: claims.UserID,
-		Email:  claims.Email,
-		Role:   role,
-		Token:  raw,
-	}, nil
+
+	principal := Principal{
+		UserID:  claims.UserID,
+		Email:   claims.Email,
+		Role:    role,
+		Token:   raw,
+		TokenID: strings.TrimSpace(claims.ID),
+	}
+	if claims.ExpiresAt != nil {
+		principal.ExpiresAt = claims.ExpiresAt.Time
+	}
+
+	return principal, nil
 }
 
 // Middleware extracts a bearer token from the Authorization header (or the
@@ -98,9 +112,7 @@ func Middleware(secret string, next http.Handler) http.Handler {
 		if token != "" {
 			principal, err := ParseToken(token, secret)
 			if err != nil {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusUnauthorized)
-				_, _ = w.Write([]byte(`{"errors":[{"message":"unauthorized","extensions":{"code":"UNAUTHENTICATED"}}]}`))
+				writeAuthError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "unauthorized")
 				return
 			}
 			r = r.WithContext(WithPrincipal(r.Context(), principal))
@@ -171,7 +183,11 @@ func UnaryClientInterceptor() grpc.UnaryClientInterceptor {
 // WebsocketInit parses the connection_init payload used by GraphQL
 // subscriptions. Missing tokens are allowed here so the @auth directive can
 // produce a protocol-level UNAUTHENTICATED error on the subscription field.
-func WebsocketInit(secret string) transport.WebsocketInitFunc {
+// When a revocation store is supplied, a logged-out token is refused during the
+// handshake instead of opening a stream.
+func WebsocketInit(secret string, revocations ...RevocationStore) transport.WebsocketInitFunc {
+	store := firstStore(revocations)
+
 	return func(ctx context.Context, payload transport.InitPayload) (context.Context, *transport.InitPayload, error) {
 		raw := payload.Authorization()
 		if raw == "" {
@@ -186,8 +202,28 @@ func WebsocketInit(secret string) transport.WebsocketInitFunc {
 		if err != nil {
 			return ctx, nil, err
 		}
+
+		if store != nil {
+			revoked, err := store.IsRevoked(ctx, principal.TokenID)
+			if err != nil {
+				return ctx, nil, fmt.Errorf("could not verify the session: %w", err)
+			}
+			if revoked {
+				return ctx, nil, errors.New("session has been revoked")
+			}
+		}
+
 		return WithPrincipal(ctx, principal), nil, nil
 	}
+}
+
+func firstStore(stores []RevocationStore) RevocationStore {
+	for _, store := range stores {
+		if store != nil {
+			return store
+		}
+	}
+	return nil
 }
 
 // TokenFromMetadata extracts a bearer token forwarded by an upstream caller.
