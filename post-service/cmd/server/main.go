@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/chetansachan/socialflow/post-service/internal/cache"
 	"github.com/chetansachan/socialflow/post-service/internal/config"
 	"github.com/chetansachan/socialflow/post-service/internal/database"
 	"github.com/chetansachan/socialflow/post-service/internal/events"
@@ -57,7 +58,12 @@ func main() {
 	}
 
 	postRepo := repository.NewPostRepository(dbPool)
-	postService := services.NewPostService(postRepo)
+
+	postOptions := make([]services.Option, 0, 1)
+	if redisClient != nil {
+		postOptions = append(postOptions, services.WithPostCache(cache.NewRedisPostCache(redisClient), cfg.PostCacheTTL))
+	}
+	postService := services.NewPostService(postRepo, postOptions...)
 	postHandler := handler.NewPostHandler(postService)
 
 	// -------------------------------------------------------------------------

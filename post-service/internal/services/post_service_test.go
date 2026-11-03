@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/chetansachan/socialflow/post-service/internal/cache"
 	"github.com/chetansachan/socialflow/post-service/internal/models"
 	"github.com/google/uuid"
 )
@@ -21,6 +23,10 @@ type fakePostRepo struct {
 	likes       map[likeKey]bool
 	savedFiles  []string
 	forceGetErr error
+
+	mu           sync.Mutex
+	getByIDCalls int
+	getByIDHook  func()
 }
 
 func newFakePostRepo() *fakePostRepo {
@@ -49,6 +55,15 @@ func (r *fakePostRepo) CreatePost(ctx context.Context, input *models.CreatePostI
 }
 
 func (r *fakePostRepo) GetPostById(ctx context.Context, id uuid.UUID) (*models.Post, error) {
+	r.mu.Lock()
+	r.getByIDCalls++
+	hook := r.getByIDHook
+	r.mu.Unlock()
+
+	if hook != nil {
+		hook()
+	}
+
 	if r.forceGetErr != nil {
 		return nil, r.forceGetErr
 	}
@@ -58,6 +73,12 @@ func (r *fakePostRepo) GetPostById(ctx context.Context, id uuid.UUID) (*models.P
 	}
 	copy := *post
 	return &copy, nil
+}
+
+func (r *fakePostRepo) getByIDCallCount() int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.getByIDCalls
 }
 
 func (r *fakePostRepo) UpdatePost(ctx context.Context, input *models.UpdatePostInput, postID uuid.UUID, authorID uuid.UUID) (*models.Post, error) {
@@ -513,5 +534,192 @@ func TestGetLikeStatesSkipsMalformedIDs(t *testing.T) {
 	}
 	if len(states) != 1 || !states[post.ID.String()] {
 		t.Fatalf("states = %v", states)
+	}
+}
+
+type fakePostCache struct {
+	mu      sync.Mutex
+	posts   map[uuid.UUID]models.Post
+	getErr  error
+	deleted []uuid.UUID
+}
+
+func newFakePostCache() *fakePostCache {
+	return &fakePostCache{posts: make(map[uuid.UUID]models.Post)}
+}
+
+func (c *fakePostCache) Get(ctx context.Context, id uuid.UUID) (*models.Post, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.getErr != nil {
+		return nil, c.getErr
+	}
+	post, ok := c.posts[id]
+	if !ok {
+		return nil, cache.ErrMiss
+	}
+	copied := post
+	return &copied, nil
+}
+
+func (c *fakePostCache) Set(ctx context.Context, post *models.Post, ttl time.Duration) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.posts[post.ID] = *post
+	return nil
+}
+
+func (c *fakePostCache) Delete(ctx context.Context, id uuid.UUID) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.posts, id)
+	c.deleted = append(c.deleted, id)
+	return nil
+}
+
+func (c *fakePostCache) contains(id uuid.UUID) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	_, ok := c.posts[id]
+	return ok
+}
+
+func (c *fakePostCache) wasDeleted(id uuid.UUID) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for _, deleted := range c.deleted {
+		if deleted == id {
+			return true
+		}
+	}
+	return false
+}
+
+func newCachedPostService(t *testing.T) (*postService, *fakePostRepo, *fakePostCache) {
+	t.Helper()
+
+	repo := newFakePostRepo()
+	postCache := newFakePostCache()
+	svc := NewPostService(repo, WithPostCache(postCache, time.Minute)).(*postService)
+	return svc, repo, postCache
+}
+
+func TestGetPostByIdServesCachedPostWithoutHittingTheRepository(t *testing.T) {
+	svc, repo, postCache := newCachedPostService(t)
+	post := seedPost(repo, uuid.New(), "cached")
+	postCache.posts[post.ID] = *post
+
+	found, err := svc.GetPostById(context.Background(), post.ID.String())
+	if err != nil {
+		t.Fatalf("GetPostById: %v", err)
+	}
+	if found.ID != post.ID || found.Content != post.Content {
+		t.Fatalf("found = %+v", found)
+	}
+	if calls := repo.getByIDCallCount(); calls != 0 {
+		t.Fatalf("repository was queried %d times, want a cache hit", calls)
+	}
+}
+
+func TestGetPostByIdCollapsesConcurrentMisses(t *testing.T) {
+	svc, repo, postCache := newCachedPostService(t)
+	post := seedPost(repo, uuid.New(), "viral")
+
+	// Hold the first query long enough for every caller to join the group.
+	repo.getByIDHook = func() { time.Sleep(50 * time.Millisecond) }
+
+	const callers = 64
+	var wg sync.WaitGroup
+	errs := make(chan error, callers)
+	for i := 0; i < callers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if _, err := svc.GetPostById(context.Background(), post.ID.String()); err != nil {
+				errs <- err
+			}
+		}()
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		t.Fatalf("GetPostById: %v", err)
+	}
+
+	if calls := repo.getByIDCallCount(); calls != 1 {
+		t.Fatalf("repository was queried %d times, want a single shared load", calls)
+	}
+	if !postCache.contains(post.ID) {
+		t.Fatal("the shared load did not populate the cache")
+	}
+}
+
+func TestGetPostByIdFallsBackWhenCacheIsUnavailable(t *testing.T) {
+	svc, repo, postCache := newCachedPostService(t)
+	post := seedPost(repo, uuid.New(), "fallback")
+	postCache.getErr = errors.New("redis down")
+
+	found, err := svc.GetPostById(context.Background(), post.ID.String())
+	if err != nil {
+		t.Fatalf("GetPostById: %v", err)
+	}
+	if found.ID != post.ID {
+		t.Fatal("did not fall back to the repository")
+	}
+}
+
+func TestUpdatePostInvalidatesCachedDetail(t *testing.T) {
+	svc, repo, postCache := newCachedPostService(t)
+	authorID := uuid.New()
+	post := seedPost(repo, authorID, "before")
+	postCache.posts[post.ID] = *post
+
+	content := "after"
+	if _, err := svc.UpdatePost(context.Background(), models.UpdatePostInput{Content: &content}, post.ID.String(), authorID.String()); err != nil {
+		t.Fatalf("UpdatePost: %v", err)
+	}
+	if !postCache.wasDeleted(post.ID) {
+		t.Fatal("update left a stale post in the cache")
+	}
+}
+
+func TestDeletePostInvalidatesCachedDetail(t *testing.T) {
+	svc, repo, postCache := newCachedPostService(t)
+	authorID := uuid.New()
+	post := seedPost(repo, authorID, "delete me")
+	postCache.posts[post.ID] = *post
+
+	if _, err := svc.DeletePost(context.Background(), post.ID.String(), authorID.String()); err != nil {
+		t.Fatalf("DeletePost: %v", err)
+	}
+	if !postCache.wasDeleted(post.ID) {
+		t.Fatal("delete left the post in the cache")
+	}
+}
+
+func TestArchivePostInvalidatesCachedDetail(t *testing.T) {
+	svc, repo, postCache := newCachedPostService(t)
+	authorID := uuid.New()
+	post := seedPost(repo, authorID, "archive me")
+	postCache.posts[post.ID] = *post
+
+	if _, err := svc.MovePostToArchive(context.Background(), post.ID.String(), authorID.String()); err != nil {
+		t.Fatalf("MovePostToArchive: %v", err)
+	}
+	if !postCache.wasDeleted(post.ID) {
+		t.Fatal("archive left the post in the cache")
+	}
+}
+
+func TestLikePostInvalidatesCachedDetail(t *testing.T) {
+	svc, repo, postCache := newCachedPostService(t)
+	post := seedPost(repo, uuid.New(), "like me")
+	postCache.posts[post.ID] = *post
+
+	if _, err := svc.LikePost(context.Background(), post.ID.String(), uuid.NewString()); err != nil {
+		t.Fatalf("LikePost: %v", err)
+	}
+	if !postCache.wasDeleted(post.ID) {
+		t.Fatal("like left a stale like_count in the cache")
 	}
 }

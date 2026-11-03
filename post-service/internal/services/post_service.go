@@ -12,6 +12,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/chetansachan/socialflow/post-service/internal/cache"
 	"github.com/chetansachan/socialflow/post-service/internal/config"
 	"github.com/chetansachan/socialflow/post-service/internal/models"
 	"github.com/chetansachan/socialflow/post-service/internal/repository"
@@ -19,6 +20,7 @@ import (
 	"github.com/cloudinary/cloudinary-go/v2/api"
 	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
 	"github.com/google/uuid"
+	"golang.org/x/sync/singleflight"
 )
 
 type PostService interface {
@@ -44,19 +46,50 @@ const maxPostLength = 1000
 
 type postService struct {
 	postRepo repository.PostRepository
+
+	// cache is optional; without Redis, singleflight still coalesces concurrent
+	// reads for the same post.
+	cache    cache.PostCache
+	cacheTTL time.Duration
+
+	// detailGroup prevents a cold cache from sending one query per caller for
+	// a viral post.
+	detailGroup singleflight.Group
 }
 
-func NewPostService(postRepo repository.PostRepository) PostService {
-	return &postService{postRepo: postRepo}
+// Option customizes the service without breaking existing callers.
+type Option func(*postService)
+
+// WithPostCache enables the shared post detail cache and sets its TTL.
+func WithPostCache(postCache cache.PostCache, ttl time.Duration) Option {
+	return func(s *postService) {
+		if ttl <= 0 {
+			ttl = 5 * time.Minute
+		}
+		s.cache = postCache
+		s.cacheTTL = ttl
+	}
 }
 
+func NewPostService(postRepo repository.PostRepository, opts ...Option) PostService {
+	service := &postService{postRepo: postRepo}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(service)
+		}
+	}
+	return service
+}
+
+// GetPostById serves a hot post from Redis and coalesces concurrent misses so
+// the database sees one query instead of one per viewer.
 func (s *postService) GetPostById(ctx context.Context, id string) (*models.Post, error) {
 	postId, err := uuid.Parse(id)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to parse the id: %v", err)
 	}
 
-	post, err := s.postRepo.GetPostById(ctx, postId)
+	post, err := s.loadPost(ctx, postId)
 	if err != nil {
 		if errors.Is(err, models.ErrPostNotFound) {
 			return nil, models.ErrPostNotFound
@@ -65,6 +98,75 @@ func (s *postService) GetPostById(ctx context.Context, id string) (*models.Post,
 	}
 
 	return post, nil
+}
+
+func (s *postService) loadPost(ctx context.Context, id uuid.UUID) (*models.Post, error) {
+	if s.cache != nil {
+		if post, err := s.cache.Get(ctx, id); err == nil {
+			return clonePost(post), nil
+		}
+	}
+
+	value, err, _ := s.detailGroup.Do(id.String(), func() (any, error) {
+		// The load outlives the request that won the race, so a client that
+		// disconnects cannot fail the other waiters or skip the cache fill.
+		loadCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+		defer cancel()
+
+		// Close the gap between this caller's miss and entering the group.
+		if s.cache != nil {
+			if post, err := s.cache.Get(loadCtx, id); err == nil {
+				return clonePost(post), nil
+			}
+		}
+
+		post, err := s.postRepo.GetPostById(loadCtx, id)
+		if err != nil {
+			return nil, err
+		}
+		if s.cache != nil {
+			_ = s.cache.Set(loadCtx, post, s.cacheTTL)
+		}
+		return post, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	post, ok := value.(*models.Post)
+	if !ok || post == nil {
+		return nil, models.ErrPostNotFound
+	}
+	// singleflight shares one pointer across waiters; hand each caller a copy.
+	return clonePost(post), nil
+}
+
+func clonePost(post *models.Post) *models.Post {
+	if post == nil {
+		return nil
+	}
+	copied := *post
+	if post.UpdatedAt != nil {
+		updated := *post.UpdatedAt
+		copied.UpdatedAt = &updated
+	}
+	if post.DeletedAt != nil {
+		deleted := *post.DeletedAt
+		copied.DeletedAt = &deleted
+	}
+	return &copied
+}
+
+// invalidatePost drops a cached detail after a mutation. The bounded,
+// detached context makes the invalidation happen even if the client that
+// triggered the write disconnects before the response is written.
+func (s *postService) invalidatePost(ctx context.Context, id uuid.UUID) {
+	if s.cache == nil {
+		return
+	}
+	cacheCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
+	defer cancel()
+	_ = s.cache.Delete(cacheCtx, id)
 }
 
 func (s *postService) GetAllPost(ctx context.Context, authorId string) ([]models.Post, error) {
@@ -170,6 +272,8 @@ func (s *postService) UpdatePost(ctx context.Context, input models.UpdatePostInp
 		return nil, fmt.Errorf("Internal Server Error: %v", err)
 	}
 
+	s.invalidatePost(ctx, postId)
+
 	return updatedPost, nil
 }
 
@@ -194,6 +298,8 @@ func (s *postService) DeletePost(ctx context.Context, postid string, authorid st
 		}
 		return nil, fmt.Errorf("Error Deleting Post: %v", err)
 	}
+
+	s.invalidatePost(ctx, postId)
 
 	return &models.Response{
 		Message: "Post Deleted Successfully",
@@ -221,6 +327,8 @@ func (s *postService) MovePostToArchive(ctx context.Context, postid string, auth
 		}
 		return nil, fmt.Errorf("Error Moving Post to archive: %v", err)
 	}
+
+	s.invalidatePost(ctx, postId)
 
 	return &models.Response{
 		Message: "Post Moved to archive Successfully",
@@ -279,6 +387,9 @@ func (s *postService) LikePost(ctx context.Context, postId string, userId string
 		}
 		return false, fmt.Errorf("failed to like post: %w", err)
 	}
+
+	// like_count is part of the cached detail.
+	s.invalidatePost(ctx, postUUID)
 
 	return isLiked, nil
 }

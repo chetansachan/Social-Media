@@ -21,6 +21,9 @@ type Config struct {
 	RedisAddr     string
 	RedisPassword string
 	RedisDB       int
+	// PostCacheTTL bounds how long a post detail may be served from Redis
+	// without consulting PostgreSQL.
+	PostCacheTTL time.Duration
 
 	EventStream           string
 	OutboxPollInterval    time.Duration
@@ -49,6 +52,7 @@ func Load() *Config {
 		RedisAddr:     getEnv("REDIS_ADDR", "localhost:6379"),
 		RedisPassword: os.Getenv("REDIS_PASSWORD"),
 		RedisDB:       getEnvAsInt("REDIS_DB", 0),
+		PostCacheTTL:  getEnvAsDuration("POST_CACHE_TTL", 5*time.Minute),
 
 		EventStream:           getEnv("EVENT_STREAM", "social:events"),
 		OutboxPollInterval:    getEnvAsDuration("OUTBOX_POLL_INTERVAL", 500*time.Millisecond),
