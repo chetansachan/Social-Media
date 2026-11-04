@@ -119,3 +119,137 @@ SELECT now() - pg_last_xact_replay_timestamp() AS replica_lag;
 
 Alert before lag reaches the interval in which a user expects to see their own
 write (roughly one second for this product).
+
+## Containers
+
+`docker/Dockerfile.service` builds every service from the repository root. It
+copies only the modules the service imports, regenerates `go.work` inside the
+build stage, and runs the static binary from `distroless/static` as a non-root
+user. The entrypoint defaults to `cmd/server` and falls back to the module root,
+which is where `api-gateway` keeps `main`.
+
+```bash
+docker build -f deploy/docker/Dockerfile.service \
+  --build-arg SERVICE=user-service \
+  -t socialflow/user-service:dev .
+```
+
+Replace `SERVICE` with `api-gateway`, `post-service`, `follow-service`,
+`feed-service`, or `notification-service`. The build context must be the
+repository root; `.dockerignore` keeps `.git`, local binaries, and environment
+files out of the image.
+
+The images have no shell. Liveness and readiness come from the HTTP admin
+server, never from an exec probe, and `SIGTERM` is handled by the service's own
+graceful shutdown.
+
+`docker/Dockerfile.migrate` packages `golang-migrate` with every service's
+migrations under `/migrations/<service>`.
+
+## Kubernetes
+
+`k8s/` is a kustomize base. It assumes:
+
+* a metrics server for the HPAs,
+* an ingress-nginx controller (the Ingress sets nginx annotations),
+* an image registry you can push to, and
+* secrets created from your secret manager (never from `secret.example.yaml`).
+
+Apply order:
+
+```bash
+kubectl apply -f deploy/k8s/namespace.yaml -f deploy/k8s/configmap.yaml
+
+# Create the Secret out of band, for example:
+kubectl -n socialflow create secret generic socialflow-secrets \
+  --from-literal=jwt-secret="$(openssl rand -hex 32)" \
+  --from-literal=users-database-url="postgres://..." \
+  --from-literal=posts-database-url="postgres://..." \
+  --from-literal=follows-database-url="postgres://..." \
+  --from-literal=notifications-database-url="postgres://..."
+
+# Optional read replicas:
+#   --from-literal=users-database-read-url="postgres://..."
+
+# Schema first, then the workloads.
+kubectl apply -f deploy/k8s/migrate-jobs.yaml
+kubectl -n socialflow wait --for=condition=complete job/users-migrate --timeout=120s
+kubectl -n socialflow wait --for=condition=complete job/posts-migrate --timeout=120s
+kubectl -n socialflow wait --for=condition=complete job/follows-migrate --timeout=120s
+kubectl -n socialflow wait --for=condition=complete job/notifications-migrate --timeout=120s
+
+kubectl apply -k deploy/k8s
+kubectl -n socialflow get pods,svc,hpa
+```
+
+Jobs are immutable: delete the four migration Jobs before applying a new
+revision of `migrate-jobs.yaml`.
+
+Update the placeholder host and TLS secret in `k8s/ingress.yaml` first. The
+Ingress sends `/ws` to the notification WebSocket service with one-hour proxy
+timeouts, and everything else to the GraphQL gateway. Media uploads go from the
+client directly to Cloudinary, so the gateway body limit stays at 1 MB.
+
+### Admin ports and probes
+
+Every pod listens on a private admin port that is not exposed through a
+Service. Probes and Prometheus scrape that port inside the pod network.
+
+| Service | Admin port | `/readyz` checks |
+| :--- | :--- | :--- |
+| `api-gateway` | `9090` | Redis (revocation fails closed) |
+| `user-service` | `9091` | PostgreSQL primary |
+| `post-service` | `9092` | PostgreSQL primary |
+| `follow-service` | `9093` | PostgreSQL primary |
+| `feed-service` | `9094` | None; Redis is optional and pull-model fallback stays ready |
+| `notification-service` | `9095` | PostgreSQL primary |
+
+`/healthz` is always a process-liveness check and does not touch dependencies.
+`/metrics` serves a private Prometheus registry; the OpenTelemetry collector or
+a ServiceMonitor should scrape it.
+
+### Graceful shutdown
+
+On `SIGTERM` every service:
+
+1. flips `/readyz` to 503 and marks the gRPC health service `NOT_SERVING`,
+2. lets the load balancer and kube-proxy remove the endpoint,
+3. drains in-flight HTTP requests and gRPC RPCs (15 second bound, then a forced
+   stop),
+4. closes hijacked WebSocket connections, which `net/http` cannot drain, and
+5. closes the database pool, Redis client, and trace exporter.
+
+`terminationGracePeriodSeconds` is 30 for stateless services and 45 for
+`notification-service`, leaving room above the 15 second drain bound.
+
+## Observability environment
+
+| Variable | Default | Meaning |
+| :--- | :--- | :--- |
+| `ADMIN_PORT` | per service (table above) | Private metrics and health listener. |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | empty | OTLP/gRPC collector. Empty propagates trace context without exporting. |
+| `OTEL_EXPORTER_OTLP_INSECURE` | `true` | Disable TLS to the collector (in-cluster). |
+| `OTEL_TRACES_SAMPLE_RATIO` | `0.1` | Head-based sampling ratio. |
+| `LOG_LEVEL` | `info` | `debug`, `info`, `warn`, or `error`. Logs are JSON on stdout. |
+
+## Autoscaling
+
+| Workload | Min | Max | Signal |
+| :--- | :--- | :--- | :--- |
+| `api-gateway` | 3 | 50 | CPU 70% |
+| `notification-service` | 3 | 50 | CPU 70% |
+| `user-service` | 2 | 20 | CPU 70% |
+| `post-service` | 2 | 20 | CPU 70% |
+| `follow-service` | 2 | 20 | CPU 70% |
+| `feed-service` | 2 | 20 | CPU 70% |
+
+The WebSocket gateway waits ten minutes before scaling down, because every
+removed pod closes its subscribers' connections. The API gateway scales up on
+the next 30 second window, so a traffic spike is absorbed without waiting for a
+stabilisation window.
+
+## Load tests
+
+`tests/load` contains k6 scenarios for feed reads, post writes, login, and
+WebSocket subscriptions. See `tests/load/README.md` for the environment
+variables, thresholds, and how to read the results.
