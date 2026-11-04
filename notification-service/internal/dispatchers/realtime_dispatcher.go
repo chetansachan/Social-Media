@@ -14,8 +14,9 @@ import (
 // channel watched by the WebSocket gateway that holds the recipient's socket.
 // This is what makes delivery work across multiple gateway pods.
 type RealtimeDispatcher struct {
-	client *redis.Client
-	logger *log.Logger
+	client  *redis.Client
+	logger  *log.Logger
+	metrics DispatchRecorder
 }
 
 func NewRealtimeDispatcher(client *redis.Client, logger *log.Logger) *RealtimeDispatcher {
@@ -23,6 +24,15 @@ func NewRealtimeDispatcher(client *redis.Client, logger *log.Logger) *RealtimeDi
 		logger = log.Default()
 	}
 	return &RealtimeDispatcher{client: client, logger: logger}
+}
+
+// SetMetrics wires delivery counters into the dispatcher. It is safe to call
+// with nil to disable them.
+func (d *RealtimeDispatcher) SetMetrics(recorder DispatchRecorder) {
+	if d == nil {
+		return
+	}
+	d.metrics = recorder
 }
 
 // Publish is best-effort: the durable inbox row is already committed, so a
@@ -39,7 +49,9 @@ func (d *RealtimeDispatcher) Publish(ctx context.Context, userID string, payload
 
 	channel := "notify:" + userID
 	if err := d.client.Publish(ctx, channel, encoded).Err(); err != nil {
+		recordDispatch(d.metrics, "realtime", "error")
 		return fmt.Errorf("failed to publish realtime payload: %w", err)
 	}
+	recordDispatch(d.metrics, "realtime", "success")
 	return nil
 }

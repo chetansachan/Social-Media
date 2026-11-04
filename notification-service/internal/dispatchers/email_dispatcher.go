@@ -27,6 +27,7 @@ type EmailDispatcher struct {
 	queue    chan models.EmailMessage
 	workers  int
 	logger   *log.Logger
+	metrics  DispatchRecorder
 	wg       sync.WaitGroup
 }
 
@@ -46,6 +47,15 @@ func NewEmailDispatcher(provider EmailProvider, workers, queueSize int, logger *
 		workers:  workers,
 		logger:   logger,
 	}
+}
+
+// SetMetrics wires delivery counters into the dispatcher. It is safe to call
+// with nil to disable them.
+func (d *EmailDispatcher) SetMetrics(recorder DispatchRecorder) {
+	if d == nil {
+		return
+	}
+	d.metrics = recorder
 }
 
 func (d *EmailDispatcher) Start(ctx context.Context) {
@@ -69,6 +79,7 @@ func (d *EmailDispatcher) Enqueue(ctx context.Context, message models.EmailMessa
 	case d.queue <- message:
 		return nil
 	default:
+		recordDispatch(d.metrics, "email", "queue_full")
 		return ErrQueueFull
 	}
 }
@@ -83,8 +94,11 @@ func (d *EmailDispatcher) worker(ctx context.Context) {
 			if err := retry(ctx, 2, func() error {
 				return d.provider.Send(ctx, message)
 			}); err != nil {
+				recordDispatch(d.metrics, "email", "error")
 				d.logger.Printf("email: delivery failed for user %s: %v", message.RecipientID, err)
+				continue
 			}
+			recordDispatch(d.metrics, "email", "success")
 		}
 	}
 }

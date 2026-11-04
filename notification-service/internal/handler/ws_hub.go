@@ -9,6 +9,14 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// ConnectionMetrics tracks live WebSocket connections. observability.Metrics
+// satisfies it; the interface keeps this package independent of the platform
+// module.
+type ConnectionMetrics interface {
+	WebsocketConnected()
+	WebsocketDisconnected()
+}
+
 // Hub tracks live WebSocket clients per user and bridges Redis Pub/Sub frames
 // to every connection that user has open. It is safe for concurrent use.
 type Hub struct {
@@ -18,6 +26,7 @@ type Hub struct {
 	ctx     context.Context
 	redis   *redis.Client
 	logger  *log.Logger
+	metrics ConnectionMetrics
 }
 
 func NewHub(ctx context.Context, redisClient *redis.Client, logger *log.Logger) *Hub {
@@ -36,6 +45,17 @@ func NewHub(ctx context.Context, redisClient *redis.Client, logger *log.Logger) 
 	}
 }
 
+// SetMetrics wires the live-connection gauge into the hub. It is safe to call
+// with nil to disable it.
+func (h *Hub) SetMetrics(metrics ConnectionMetrics) {
+	if h == nil {
+		return
+	}
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.metrics = metrics
+}
+
 // Register adds a connection and starts the Redis subscription on the user's
 // first connection. Multiple devices for one user share one subscription.
 func (h *Hub) Register(client *wsClient) {
@@ -48,6 +68,9 @@ func (h *Hub) Register(client *wsClient) {
 		h.clients[client.userID] = connections
 	}
 	connections[client] = struct{}{}
+	if h.metrics != nil {
+		h.metrics.WebsocketConnected()
+	}
 
 	if _, subscribed := h.subs[client.userID]; subscribed || h.redis == nil {
 		return
@@ -66,7 +89,13 @@ func (h *Hub) Unregister(client *wsClient) {
 	if !ok {
 		return
 	}
+	if _, registered := connections[client]; !registered {
+		return
+	}
 	delete(connections, client)
+	if h.metrics != nil {
+		h.metrics.WebsocketDisconnected()
+	}
 
 	if len(connections) > 0 {
 		return
@@ -109,14 +138,25 @@ func (h *Hub) broadcast(userID string, payload []byte) {
 	}
 }
 
-// Close cancels every subscription. Connections themselves are closed by the
-// HTTP server shutdown.
+// Close cancels every subscription and closes every live connection. The HTTP
+// server cannot close hijacked WebSocket connections itself, so this is what
+// makes SIGTERM actually drain them instead of waiting for a read deadline.
 func (h *Hub) Close() {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	for userID, cancel := range h.subs {
 		cancel()
 		delete(h.subs, userID)
+	}
+	for userID, connections := range h.clients {
+		for client := range connections {
+			client.close()
+			if h.metrics != nil {
+				h.metrics.WebsocketDisconnected()
+			}
+			delete(connections, client)
+		}
+		delete(h.clients, userID)
 	}
 }
 

@@ -36,6 +36,7 @@ type PushDispatcher struct {
 	queue    chan models.PushMessage
 	workers  int
 	logger   *log.Logger
+	metrics  DispatchRecorder
 	wg       sync.WaitGroup
 }
 
@@ -56,6 +57,15 @@ func NewPushDispatcher(devices DeviceTokenLister, provider PushProvider, workers
 		workers:  workers,
 		logger:   logger,
 	}
+}
+
+// SetMetrics wires delivery counters into the dispatcher. It is safe to call
+// with nil to disable them.
+func (d *PushDispatcher) SetMetrics(recorder DispatchRecorder) {
+	if d == nil {
+		return
+	}
+	d.metrics = recorder
 }
 
 func (d *PushDispatcher) Start(ctx context.Context) {
@@ -79,6 +89,7 @@ func (d *PushDispatcher) Enqueue(ctx context.Context, message models.PushMessage
 	case d.queue <- message:
 		return nil
 	default:
+		recordDispatch(d.metrics, "push", "queue_full")
 		return ErrQueueFull
 	}
 }
@@ -102,10 +113,12 @@ func (d *PushDispatcher) deliver(ctx context.Context, message models.PushMessage
 
 	tokens, err := d.devices.ListActive(ctx, message.RecipientID)
 	if err != nil {
+		recordDispatch(d.metrics, "push", "error")
 		d.logger.Printf("push: failed to list devices for %s: %v", message.RecipientID, err)
 		return
 	}
 	if len(tokens) == 0 {
+		recordDispatch(d.metrics, "push", "no_devices")
 		return
 	}
 
@@ -118,16 +131,19 @@ func (d *PushDispatcher) deliver(ctx context.Context, message models.PushMessage
 			return d.provider.Send(ctx, device, message)
 		})
 		if err == nil {
+			recordDispatch(d.metrics, "push", "success")
 			continue
 		}
 
 		if errors.Is(err, models.ErrTokenUnregistered) {
+			recordDispatch(d.metrics, "push", "token_unregistered")
 			if markErr := d.devices.MarkInactive(ctx, device.Token); markErr != nil {
 				d.logger.Printf("push: failed to deactivate stale token for user %s: %v", message.RecipientID, markErr)
 			}
 			continue
 		}
 
+		recordDispatch(d.metrics, "push", "error")
 		d.logger.Printf("push: delivery failed for user %s on %s: %v", message.RecipientID, device.Platform, err)
 	}
 }

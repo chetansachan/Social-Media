@@ -15,7 +15,9 @@ import (
 type Config struct {
 	Port   string
 	WSPort string
-	Env    string
+	// AdminPort serves /metrics, /healthz, and /readyz.
+	AdminPort string
+	Env       string
 
 	DatabaseURL       string
 	DatabaseReadURL   string
@@ -80,9 +82,10 @@ func Load() *Config {
 	env := getEnv("ENV", "development")
 
 	return &Config{
-		Port:   getEnv("PORT", "50055"),
-		WSPort: getEnv("WS_PORT", "8085"),
-		Env:    env,
+		Port:      getEnv("PORT", "50055"),
+		WSPort:    getEnv("WS_PORT", "8085"),
+		AdminPort: getEnv("ADMIN_PORT", "9095"),
+		Env:       env,
 
 		DatabaseURL:       getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/socialflow_notifications?sslmode=disable"),
 		DatabaseReadURL:   os.Getenv("DATABASE_READ_URL"),
