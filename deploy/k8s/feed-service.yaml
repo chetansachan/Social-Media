@@ -1,0 +1,134 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: feed-service
+  namespace: socialflow
+  labels:
+    app.kubernetes.io/name: feed-service
+    app.kubernetes.io/part-of: socialflow
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  progressDeadlineSeconds: 300
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: feed-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: feed-service
+        app.kubernetes.io/part-of: socialflow
+    spec:
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: feed-service
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: feed-service
+      containers:
+        - name: feed-service
+          image: socialflow/feed-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: grpc
+              containerPort: 50054
+            - name: admin
+              containerPort: 9094
+          envFrom:
+            - configMapRef:
+                name: socialflow-config
+            - secretRef:
+                name: socialflow-secrets
+                optional: true
+          env:
+            - name: PORT
+              value: "50054"
+            - name: ADMIN_PORT
+              value: "9094"
+            # Each consumer needs its own group so a rebalance in one service
+            # never steals another service's events.
+            - name: EVENT_GROUP
+              value: feed-service
+            - name: CELEBRITY_THRESHOLD
+              value: "25000"
+            - name: TIMELINE_MAX_SIZE
+              value: "800"
+            - name: TIMELINE_TTL_HOURS
+              value: "720"
+            - name: INACTIVE_THRESHOLD_DAYS
+              value: "14"
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: admin
+            periodSeconds: 2
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: admin
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          readinessProbe:
+            # Redis is optional for this service: /readyz stays green in
+            # pull-model fallback mode.
+            httpGet:
+              path: /readyz
+              port: admin
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 150m
+              memory: 192Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: feed-service
+  namespace: socialflow
+  labels:
+    app.kubernetes.io/name: feed-service
+    app.kubernetes.io/part-of: socialflow
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: feed-service
+  ports:
+    - name: grpc
+      port: 50054
+      targetPort: grpc
+      protocol: TCP
