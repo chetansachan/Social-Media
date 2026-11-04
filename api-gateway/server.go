@@ -234,11 +234,12 @@ func run() error {
 	return shutdownErr
 }
 
-// dialServices opens one lazy gRPC client per backend. otelgrpc injects the
-// active trace context into metadata, and the auth interceptor forwards the
-// authenticated caller, so downstream spans join the gateway's trace and
-// downstream handlers can authorize without trusting client input.
-func dialServices(logger *slog.Logger) (map[string]*grpc.ClientConn, error) {
+// dialServices opens a small pool of lazy gRPC client connections per backend.
+// otelgrpc injects the active trace context into metadata, and the auth
+// interceptor forwards the authenticated caller, so downstream spans join the
+// gateway's trace and downstream handlers can authorize without trusting
+// client input.
+func dialServices(logger *slog.Logger) (map[string]*connPool, error) {
 	targets := []struct {
 		name    string
 		address string
@@ -250,38 +251,59 @@ func dialServices(logger *slog.Logger) (map[string]*grpc.ClientConn, error) {
 		{"notification-service", envOr("NOTIFICATION_SERVICE_ADDR", defaultNotificationServiceAddr)},
 	}
 
-	connections := make(map[string]*grpc.ClientConn, len(targets))
+	connections := make(map[string]*connPool, len(targets))
 	for _, target := range targets {
-		conn, err := dial(target.address)
+		pool, err := dial(target.address)
 		if err != nil {
 			for _, opened := range connections {
 				_ = opened.Close()
 			}
 			return nil, fmt.Errorf("connect to %s at %s: %w", target.name, target.address, err)
 		}
-		connections[target.name] = conn
-		logger.Info("registered gRPC target", "service", target.name, "address", target.address)
+		connections[target.name] = pool
+		logger.Info("registered gRPC target",
+			"service", target.name,
+			"address", target.address,
+			"subchannels", len(pool.conns))
 	}
 	return connections, nil
 }
 
-// dial opens a lazy gRPC client connection. keepalive detects a dead backend
-// between requests instead of waiting for the next caller to time out.
-func dial(address string) (*grpc.ClientConn, error) {
-	return grpc.NewClient(
-		address,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
-		grpc.WithKeepaliveParams(keepalive.ClientParameters{
-			Time:                30 * time.Second,
-			Timeout:             10 * time.Second,
-			PermitWithoutStream: true,
-		}),
-		// A headless Kubernetes service resolves to every pod address; round
-		// robin spreads calls across them instead of pinning one subchannel.
-		grpc.WithDefaultServiceConfig(`{"loadBalancingConfig":[{"round_robin":{}}]}`),
-		grpc.WithUnaryInterceptor(auth.UnaryClientInterceptor()),
-	)
+// dial opens a pool of lazy gRPC client connections. keepalive detects a dead
+// backend between requests instead of waiting for the next caller to time out.
+func dial(address string) (*connPool, error) {
+	subchannels := envInt("GRPC_SUBCHANNELS", 4)
+	if subchannels < 1 {
+		subchannels = 1
+	}
+
+	conns := make([]rpcConn, 0, subchannels)
+	for i := 0; i < subchannels; i++ {
+		conn, err := grpc.NewClient(
+			address,
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+			grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+			grpc.WithKeepaliveParams(keepalive.ClientParameters{
+				Time:                30 * time.Second,
+				Timeout:             10 * time.Second,
+				PermitWithoutStream: true,
+			}),
+			// A headless Kubernetes service resolves to every pod address;
+			// round robin spreads calls across them instead of pinning one
+			// subchannel.
+			grpc.WithDefaultServiceConfig(`{"loadBalancingConfig":[{"round_robin":{}}]}`),
+			grpc.WithUnaryInterceptor(auth.UnaryClientInterceptor()),
+		)
+		if err != nil {
+			for _, opened := range conns {
+				_ = opened.Close()
+			}
+			return nil, err
+		}
+		conns = append(conns, conn)
+	}
+
+	return newConnPool(conns...), nil
 }
 
 func envOr(key, fallback string) string {
