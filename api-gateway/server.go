@@ -252,8 +252,10 @@ func dialServices(logger *slog.Logger) (map[string]*connPool, error) {
 	}
 
 	connections := make(map[string]*connPool, len(targets))
+	breakers := newBreakerSet(envDuration("GRPC_BREAKER_TIMEOUT", 10*time.Second))
+	rpcTimeout := envDuration("GRPC_TIMEOUT", 3*time.Second)
 	for _, target := range targets {
-		pool, err := dial(target.address)
+		pool, err := dial(target.address, rpcTimeout, breakers)
 		if err != nil {
 			for _, opened := range connections {
 				_ = opened.Close()
@@ -264,14 +266,15 @@ func dialServices(logger *slog.Logger) (map[string]*connPool, error) {
 		logger.Info("registered gRPC target",
 			"service", target.name,
 			"address", target.address,
-			"subchannels", len(pool.conns))
+			"subchannels", len(pool.conns),
+			"rpc_timeout", rpcTimeout)
 	}
 	return connections, nil
 }
 
 // dial opens a pool of lazy gRPC client connections. keepalive detects a dead
 // backend between requests instead of waiting for the next caller to time out.
-func dial(address string) (*connPool, error) {
+func dial(address string, rpcTimeout time.Duration, breakers *breakerSet) (*connPool, error) {
 	subchannels := envInt("GRPC_SUBCHANNELS", 4)
 	if subchannels < 1 {
 		subchannels = 1
@@ -292,7 +295,11 @@ func dial(address string) (*connPool, error) {
 			// round robin spreads calls across them instead of pinning one
 			// subchannel.
 			grpc.WithDefaultServiceConfig(`{"loadBalancingConfig":[{"round_robin":{}}]}`),
-			grpc.WithUnaryInterceptor(auth.UnaryClientInterceptor()),
+			grpc.WithChainUnaryInterceptor(
+				auth.UnaryClientInterceptor(),
+				timeoutInterceptor(rpcTimeout),
+				breakers.Intercept,
+			),
 		)
 		if err != nil {
 			for _, opened := range conns {
@@ -320,6 +327,18 @@ func envInt(key string, fallback int) int {
 	}
 	parsed, err := strconv.Atoi(raw)
 	if err != nil {
+		return fallback
+	}
+	return parsed
+}
+
+func envDuration(key string, fallback time.Duration) time.Duration {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return fallback
+	}
+	parsed, err := time.ParseDuration(raw)
+	if err != nil || parsed <= 0 {
 		return fallback
 	}
 	return parsed
