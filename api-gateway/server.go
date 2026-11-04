@@ -21,6 +21,7 @@ import (
 	"github.com/chetansachan/socialflow/api-gateway/auth"
 	"github.com/chetansachan/socialflow/api-gateway/graph"
 	"github.com/chetansachan/socialflow/api-gateway/graph/dataloader"
+	"github.com/chetansachan/socialflow/api-gateway/ratelimit"
 	"github.com/chetansachan/socialflow/platform/observability"
 	socialflowpb "github.com/chetansachan/socialflow/proto"
 	"github.com/joho/godotenv"
@@ -127,6 +128,22 @@ func run() error {
 
 	revocations := auth.NewRedisRevocations(redisClient)
 
+	// Field budgets are deliberately small for writes and generous for reads.
+	// The guard keys on the root schema field, so a client cannot rename a
+	// mutation to borrow a query's allowance.
+	rateGuard := ratelimit.NewGuard(
+		ratelimit.New(redisClient),
+		map[string]ratelimit.Policy{
+			"Login":      {Limit: envInt("RATE_LIMIT_LOGIN_PER_MINUTE", 5), Window: time.Minute},
+			"register":   {Limit: envInt("RATE_LIMIT_REGISTER_PER_MINUTE", 5), Window: time.Minute},
+			"CreatePost": {Limit: envInt("RATE_LIMIT_CREATE_POST_PER_MINUTE", 10), Window: time.Minute},
+			"getFeed":    {Limit: envInt("RATE_LIMIT_FEED_PER_MINUTE", 120), Window: time.Minute},
+		},
+		ratelimit.Policy{Limit: envInt("RATE_LIMIT_AUTHENTICATED_PER_MINUTE", 600), Window: time.Minute},
+		ratelimit.Policy{Limit: envInt("RATE_LIMIT_ANONYMOUS_PER_MINUTE", 120), Window: time.Minute},
+		logger,
+	)
+
 	userClient := socialflowpb.NewUserServiceClient(connections["user-service"])
 	postClient := socialflowpb.NewPostServiceClient(connections["post-service"])
 
@@ -167,6 +184,7 @@ func run() error {
 		Cache: lru.New[string](100),
 	})
 	srv.Use(graphqlTracing{})
+	srv.Use(rateGuard)
 
 	mux := http.NewServeMux()
 	mux.Handle("/", playground.Handler("GraphQL playground", "/query"))
@@ -174,10 +192,14 @@ func run() error {
 	// The loader middleware wraps the executing handler, not the playground.
 	// Revocations run inside the auth middleware because they need the parsed
 	// principal (and its jti) to decide whether the session was logged out.
+	// The client-IP middleware sits outside auth so the rate-limit guard can
+	// charge anonymous traffic even when no token was sent.
 	//
 	// Metrics wrap otelhttp so the status recorder also sees upgraded
 	// connections and can skip their multi-minute durations.
+	trustProxy := envBool("TRUST_PROXY_HEADERS", false)
 	queryHandler := auth.Middleware(secret, auth.RejectRevoked(revocations, dataloader.Middleware(resolver.NewLoaders)(srv)))
+	queryHandler = ratelimit.WithClientIP(trustProxy)(queryHandler)
 	queryHandler = metrics.HTTPMiddleware(otelhttp.NewHandler(queryHandler, "graphql"))
 	mux.Handle("/query", queryHandler)
 
@@ -339,6 +361,18 @@ func envDuration(key string, fallback time.Duration) time.Duration {
 	}
 	parsed, err := time.ParseDuration(raw)
 	if err != nil || parsed <= 0 {
+		return fallback
+	}
+	return parsed
+}
+
+func envBool(key string, fallback bool) bool {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return fallback
+	}
+	parsed, err := strconv.ParseBool(raw)
+	if err != nil {
 		return fallback
 	}
 	return parsed

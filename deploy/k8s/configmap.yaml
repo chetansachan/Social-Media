@@ -33,6 +33,18 @@ data:
   ALLOW_DEV_USER_ID: "false"
   ALLOWED_ORIGINS: "*"
 
+  # The gateway is only reachable through ingress-nginx, which overwrites the
+  # forwarded headers, so anonymous rate limits can key on the real client IP.
+  TRUST_PROXY_HEADERS: "true"
+
+  # GraphQL rate limits (sliding window per subject).
+  RATE_LIMIT_LOGIN_PER_MINUTE: "5"
+  RATE_LIMIT_REGISTER_PER_MINUTE: "5"
+  RATE_LIMIT_CREATE_POST_PER_MINUTE: "10"
+  RATE_LIMIT_FEED_PER_MINUTE: "120"
+  RATE_LIMIT_AUTHENTICATED_PER_MINUTE: "600"
+  RATE_LIMIT_ANONYMOUS_PER_MINUTE: "120"
+
   # OpenTelemetry. The endpoint is injected into every exporter; leaving it
   # empty keeps context propagation working without exporting spans.
   OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector.observability.svc.cluster.local:4317

@@ -232,6 +232,26 @@ On `SIGTERM` every service:
 | `OTEL_TRACES_SAMPLE_RATIO` | `0.1` | Head-based sampling ratio. |
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn`, or `error`. Logs are JSON on stdout. |
 
+## Rate limiting
+
+The gateway enforces a Redis sliding window before a GraphQL operation runs.
+Budgets are keyed on the root schema field (not the client-supplied operation
+name) and on the user id when authenticated, otherwise on the client IP:
+
+| Operation | Default budget |
+| :--- | :--- |
+| `Login`, `register` | 5 per minute per IP |
+| `CreatePost` | 10 per minute per user |
+| `getFeed` | 120 per minute per user |
+| any other authenticated field | 600 per minute per user |
+| any other anonymous field | 120 per minute per IP |
+
+Exceeding a budget returns a GraphQL `RATE_LIMITED` error without executing the
+operation. `TRUST_PROXY_HEADERS` must stay `"false"` unless a proxy overwrites
+`X-Forwarded-For`, otherwise anonymous clients can spoof their address. If Redis
+is unavailable the limiter fails open (requests proceed) while session
+revocation keeps failing closed.
+
 ## Autoscaling
 
 | Workload | Min | Max | Signal |
