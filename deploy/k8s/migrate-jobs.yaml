@@ -1,0 +1,173 @@
+# Schema migrations. Apply these before rolling a new application image; the
+# Deployments assume the tables and indexes already exist.
+#
+#   kubectl apply -f deploy/k8s/migrate-jobs.yaml
+#   kubectl -n socialflow wait --for=condition=complete job/users-migrate --timeout=120s
+#
+# Jobs are immutable once created, so delete the finished Job before applying a
+# new revision of this file:
+#
+#   kubectl -n socialflow delete job users-migrate posts-migrate follows-migrate notifications-migrate
+#
+# Each service owns its own database, which is why the four Jobs are
+# independent and run in parallel.
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: users-migrate
+  namespace: socialflow
+  labels:
+    app.kubernetes.io/name: users-migrate
+    app.kubernetes.io/part-of: socialflow
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: users-migrate
+        app.kubernetes.io/part-of: socialflow
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: socialflow/migrate:latest
+          imagePullPolicy: IfNotPresent
+          args:
+            - -path
+            - /migrations/users
+            - -database
+            - $(DATABASE_URL)
+            - up
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: socialflow-secrets
+                  key: users-database-url
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: posts-migrate
+  namespace: socialflow
+  labels:
+    app.kubernetes.io/name: posts-migrate
+    app.kubernetes.io/part-of: socialflow
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: posts-migrate
+        app.kubernetes.io/part-of: socialflow
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: socialflow/migrate:latest
+          imagePullPolicy: IfNotPresent
+          args:
+            - -path
+            - /migrations/posts
+            - -database
+            - $(DATABASE_URL)
+            - up
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: socialflow-secrets
+                  key: posts-database-url
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: follows-migrate
+  namespace: socialflow
+  labels:
+    app.kubernetes.io/name: follows-migrate
+    app.kubernetes.io/part-of: socialflow
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: follows-migrate
+        app.kubernetes.io/part-of: socialflow
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: socialflow/migrate:latest
+          imagePullPolicy: IfNotPresent
+          args:
+            - -path
+            - /migrations/follows
+            - -database
+            - $(DATABASE_URL)
+            - up
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: socialflow-secrets
+                  key: follows-database-url
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: notifications-migrate
+  namespace: socialflow
+  labels:
+    app.kubernetes.io/name: notifications-migrate
+    app.kubernetes.io/part-of: socialflow
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: notifications-migrate
+        app.kubernetes.io/part-of: socialflow
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: socialflow/migrate:latest
+          imagePullPolicy: IfNotPresent
+          args:
+            - -path
+            - /migrations/notifications
+            - -database
+            - $(DATABASE_URL)
+            - up
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: socialflow-secrets
+                  key: notifications-database-url
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL

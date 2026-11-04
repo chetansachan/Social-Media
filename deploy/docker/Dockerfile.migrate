@@ -1,0 +1,17 @@
+# syntax=docker/dockerfile:1.7
+#
+# Migration image: golang-migrate plus every service's migrations, laid out as
+# one directory per database. Build from the repository root:
+#
+#   docker build -f deploy/docker/Dockerfile.migrate -t socialflow/migrate:dev .
+#
+# Each service owns a separate PostgreSQL database, so the four directories are
+# independent and can be applied in parallel.
+FROM migrate/migrate:v4.18.1
+
+COPY user-service/migrations /migrations/users
+COPY post-service/migrations /migrations/posts
+COPY follow-service/migrations /migrations/follows
+COPY notification-service/migrations /migrations/notifications
+
+ENTRYPOINT ["/usr/local/bin/migrate"]
