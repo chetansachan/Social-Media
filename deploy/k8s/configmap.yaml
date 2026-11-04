@@ -1,0 +1,43 @@
+# Non-secret configuration shared by every SocialFlow pod. Service-specific
+# values (PORT, ADMIN_PORT, EVENT_GROUP, database URLs) are set on the
+# individual Deployments, because they either differ per process or come from a
+# Secret.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: socialflow-config
+  namespace: socialflow
+  labels:
+    app.kubernetes.io/part-of: socialflow
+data:
+  ENV: production
+
+  # Service discovery. These names match the Services in this directory.
+  USER_SERVICE_ADDR: user-service:50051
+  POST_SERVICE_ADDR: post-service:50052
+  FOLLOW_SERVICE_ADDR: follow-service:50053
+  FEED_SERVICE_ADDR: feed-service:50054
+  NOTIFICATION_SERVICE_ADDR: notification-service:50055
+
+  # Redis carries timelines, caches, rate limits, and Pub/Sub fan-out.
+  REDIS_ADDR: redis:6379
+  REDIS_DB: "0"
+
+  # Shared event bus. EVENT_GROUP is per service and stays on the Deployment.
+  EVENT_STREAM: social:events
+  EVENT_CLAIM_INTERVAL: 30s
+  EVENT_MAX_ATTEMPTS: "5"
+
+  # WebSocket gateway hardening. Replace ALLOWED_ORIGINS with the real clients
+  # before exposing the service; "*" is only correct behind a trusted dev edge.
+  ALLOW_DEV_USER_ID: "false"
+  ALLOWED_ORIGINS: "*"
+
+  # OpenTelemetry. The endpoint is injected into every exporter; leaving it
+  # empty keeps context propagation working without exporting spans.
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector.observability.svc.cluster.local:4317
+  OTEL_EXPORTER_OTLP_INSECURE: "true"
+  OTEL_TRACES_SAMPLE_RATIO: "0.1"
+
+  # debug | info | warn | error
+  LOG_LEVEL: info
