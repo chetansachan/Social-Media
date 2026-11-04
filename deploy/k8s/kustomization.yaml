@@ -1,0 +1,35 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: socialflow
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - user-service.yaml
+  - post-service.yaml
+  - follow-service.yaml
+  - feed-service.yaml
+  - notification-service.yaml
+  - api-gateway.yaml
+  - hpa.yaml
+  - pdb.yaml
+  - ingress.yaml
+
+# secret.example.yaml is intentionally not listed: it holds placeholders and
+# must never be applied. Create socialflow-secrets from your secret manager
+# before rolling the Deployments out.
+
+images:
+  - name: socialflow/api-gateway
+    newTag: latest
+  - name: socialflow/user-service
+    newTag: latest
+  - name: socialflow/post-service
+    newTag: latest
+  - name: socialflow/follow-service
+    newTag: latest
+  - name: socialflow/feed-service
+    newTag: latest
+  - name: socialflow/notification-service
+    newTag: latest

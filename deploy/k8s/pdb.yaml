@@ -1,0 +1,70 @@
+# Keep at least one pod of every service available during voluntary
+# disruptions (node drains, cluster upgrades). The HPAs keep a minimum replica
+# count above one, so this is a floor rather than the normal steady state.
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api-gateway
+  namespace: socialflow
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: api-gateway
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: user-service
+  namespace: socialflow
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: user-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: post-service
+  namespace: socialflow
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: post-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: follow-service
+  namespace: socialflow
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: follow-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: feed-service
+  namespace: socialflow
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: feed-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: notification-service
+  namespace: socialflow
+spec:
+  # Sockets are long-lived, so keep one pod serving while another drains.
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: notification-service

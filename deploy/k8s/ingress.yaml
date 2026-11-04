@@ -1,0 +1,51 @@
+# Public entrypoint. Replace the host and TLS secret with the real ones, or
+# terminate TLS at a cloud load balancer and delete the tls block.
+#
+# The WebSocket route has to live in the same Ingress as the GraphQL route so a
+# single hostname can serve both. nginx upgrades the connection automatically;
+# the long read/send timeouts stop an idle subscription from being cut every
+# 60 seconds.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: socialflow
+  namespace: socialflow
+  labels:
+    app.kubernetes.io/part-of: socialflow
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    # Post media goes straight from the client to Cloudinary, so request bodies
+    # stay small; this limit keeps oversized payloads off the gateway.
+    nginx.ingress.kubernetes.io/proxy-body-size: "1m"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - api.socialflow.example
+      secretName: socialflow-tls
+  rules:
+    - host: api.socialflow.example
+      http:
+        paths:
+          - path: /ws
+            pathType: Prefix
+            backend:
+              service:
+                name: notification-service
+                port:
+                  name: websocket
+          - path: /query
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  name: http
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  name: http
