@@ -1,0 +1,18 @@
+# Keep the build context small and reproducible. The Dockerfile copies modules
+# explicitly, so this list only has to exclude what must never enter a layer.
+.git
+.gitignore
+**/*.exe
+**/.env
+**/.env.*
+!**/.env.example
+tmp
+**/tmp
+ai-context
+.agents
+nginx
+deploy/k8s
+tests
+**/*_test.go
+**/SYSTEM_DESIGN.md
+**/README.md

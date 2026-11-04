@@ -1,0 +1,61 @@
+# syntax=docker/dockerfile:1.7
+#
+# One Dockerfile builds every SocialFlow service. The build context must be the
+# repository root so the workspace modules the service imports (proto and
+# platform/observability) are available.
+#
+#   docker build -f deploy/docker/Dockerfile.service \
+#     --build-arg SERVICE=api-gateway \
+#     -t socialflow/api-gateway:dev .
+#
+# SERVICE may be any module in go.work: api-gateway, user-service,
+# post-service, follow-service, feed-service, or notification-service.
+#
+# By default the entrypoint is cmd/server inside the module. api-gateway keeps
+# main at the module root, so the build step falls back to "." when cmd/server
+# does not exist. Pass --build-arg MAIN=<path> to override the detection.
+
+ARG GO_VERSION=1.26.2
+
+FROM golang:${GO_VERSION}-alpine AS build
+
+ARG SERVICE
+ARG MAIN=auto
+ENV CGO_ENABLED=0 \
+    GOOS=linux
+
+WORKDIR /src
+
+# Copy only the modules this service needs. go.work is regenerated inside the
+# image so it never references a directory that was not copied into the layer.
+COPY proto ./proto
+COPY platform ./platform
+COPY ${SERVICE} ./${SERVICE}
+RUN go work init ./proto ./platform/observability ./${SERVICE}
+
+WORKDIR /src/${SERVICE}
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go mod download
+
+# -trimpath removes local paths from the binary, and dropping the symbol table
+# keeps the image small; neither affects stack traces, which retain function
+# names and line numbers.
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    set -eux; \
+    if [ "$MAIN" = "auto" ]; then \
+        if [ -d cmd/server ]; then MAIN=./cmd/server; else MAIN=.; fi; \
+    fi; \
+    go build -trimpath -ldflags="-s -w" -o /out/service "$MAIN"
+
+# distroless/static carries CA certificates and tzdata but no shell or package
+# manager, so the runtime image has a minimal attack surface. Every service runs
+# as the non-root user and is stopped with SIGTERM, which the entrypoints handle
+# with a bounded graceful shutdown.
+FROM gcr.io/distroless/static-debian12:nonroot
+
+COPY --from=build /out/service /service
+
+USER nonroot:nonroot
+ENTRYPOINT ["/service"]
