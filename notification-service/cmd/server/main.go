@@ -205,6 +205,7 @@ func run() error {
 			MaxAttempts:   cfg.EventMaxAttempts,
 			Logger:        stdLogger,
 		})
+		consumer.SetMetrics(metrics)
 		go func() {
 			if err := consumer.Run(ctx); err != nil && ctx.Err() == nil {
 				logger.Error("event consumer stopped", "error", err)
