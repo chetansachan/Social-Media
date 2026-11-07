@@ -4,6 +4,7 @@ use (
 	./api-gateway
 	./feed-service
 	./follow-service
+	./moderation-service
 	./notification-service
 	./platform/observability
 	./post-service

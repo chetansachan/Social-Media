@@ -1,0 +1,138 @@
+syntax = "proto3";
+
+package moderation;
+
+option go_package = "github.com/chetansachan/socialflow/proto";
+
+// ModerationService owns the block/mute graph and the content report queue.
+// Blocks are directional: A blocking B hides each from the other in both
+// directions even though only A asked for it.
+service ModerationService {
+    rpc BlockUser(BlockUserRequest) returns (ModerationActionResponse);
+    rpc UnblockUser(BlockUserRequest) returns (ModerationActionResponse);
+    rpc MuteUser(MuteUserRequest) returns (ModerationActionResponse);
+    rpc UnmuteUser(MuteUserRequest) returns (ModerationActionResponse);
+    rpc GetModerationStatus(GetModerationStatusRequest) returns (GetModerationStatusResponse);
+    rpc ListBlockedUsers(ListRelationshipsRequest) returns (ListRelationshipsResponse);
+    rpc ListMutedUsers(ListRelationshipsRequest) returns (ListRelationshipsResponse);
+    rpc ReportContent(ReportContentRequest) returns (ReportContentResponse);
+    rpc ListReports(ListReportsRequest) returns (ListReportsResponse);
+    rpc ResolveReport(ResolveReportRequest) returns (ResolveReportResponse);
+}
+
+message BlockUserRequest {
+    string blocker_id = 1;
+    string blocked_id = 2;
+}
+
+message MuteUserRequest {
+    string muter_id = 1;
+    string muted_id = 2;
+}
+
+message ModerationActionResponse {
+    string message = 1;
+}
+
+message GetModerationStatusRequest {
+    // viewer is the caller whose perspective is being described.
+    string viewer_id = 1;
+    string target_id = 2;
+}
+
+message GetModerationStatusResponse {
+    // is_blocked is true when the viewer blocked the target.
+    bool is_blocked = 1;
+    // has_blocked_viewer is true when the target blocked the viewer, so the
+    // gateway can hide the target's content without revealing who blocked whom.
+    bool has_blocked_viewer = 2;
+    bool is_muted = 3;
+}
+
+message ListRelationshipsRequest {
+    string user_id = 1;
+}
+
+message ListRelationshipsResponse {
+    repeated string user_ids = 1;
+}
+
+enum ReportTargetType {
+    REPORT_TARGET_TYPE_UNSPECIFIED = 0;
+    REPORT_TARGET_TYPE_POST = 1;
+    REPORT_TARGET_TYPE_COMMENT = 2;
+    REPORT_TARGET_TYPE_USER = 3;
+}
+
+enum ReportReason {
+    REPORT_REASON_UNSPECIFIED = 0;
+    REPORT_REASON_SPAM = 1;
+    REPORT_REASON_HARASSMENT = 2;
+    REPORT_REASON_HATE = 3;
+    REPORT_REASON_VIOLENCE = 4;
+    REPORT_REASON_NSFW = 5;
+    REPORT_REASON_IMPERSONATION = 6;
+    REPORT_REASON_SELF_HARM = 7;
+    REPORT_REASON_OTHER = 8;
+}
+
+enum ReportStatus {
+    REPORT_STATUS_UNSPECIFIED = 0;
+    REPORT_STATUS_PENDING = 1;
+    REPORT_STATUS_REVIEWING = 2;
+    REPORT_STATUS_ACTIONED = 3;
+    REPORT_STATUS_DISMISSED = 4;
+}
+
+message Report {
+    string id = 1;
+    string reporter_id = 2;
+    ReportTargetType target_type = 3;
+    string target_id = 4;
+    ReportReason reason = 5;
+    string details = 6;
+    ReportStatus status = 7;
+    string created_at = 8;
+    string reviewed_at = 9;
+    string reviewer_id = 10;
+    string review_note = 11;
+}
+
+message ReportContentRequest {
+    string reporter_id = 1;
+    ReportTargetType target_type = 2;
+    string target_id = 3;
+    ReportReason reason = 4;
+    string details = 5;
+}
+
+message ReportContentResponse {
+    Report report = 1;
+    // duplicate is true when the reporter already had an open report for this
+    // target. The existing report is returned instead of creating a second one.
+    bool duplicate = 2;
+}
+
+message ListReportsRequest {
+    // status filters the queue. UNSPECIFIED returns open reports only.
+    ReportStatus status = 1;
+    int32 limit = 2;
+    string cursor = 3;
+}
+
+message ListReportsResponse {
+    repeated Report reports = 1;
+    string next_cursor = 2;
+    bool has_more = 3;
+}
+
+message ResolveReportRequest {
+    string report_id = 1;
+    string reviewer_id = 2;
+    ReportStatus status = 3;
+    string note = 4;
+}
+
+message ResolveReportResponse {
+    Report report = 1;
+}
