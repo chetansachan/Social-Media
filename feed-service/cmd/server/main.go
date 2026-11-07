@@ -119,6 +119,7 @@ func run() error {
 	// service can run read-only in development.
 	if redisClient != nil && cfg.EventConsumerEnabled {
 		consumer := events.NewConsumer(redisClient, fanoutService, cfg.EventStream, cfg.EventGroup, cfg.EventConsumerName)
+		consumer.SetMetrics(metrics)
 		go func() {
 			if err := consumer.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
 				logger.Error("feed event consumer stopped", "error", err)

@@ -17,6 +17,18 @@ type Handler interface {
 	HandleEvent(ctx context.Context, event models.Event) error
 }
 
+// LagRecorder receives the backlog of a consumer group. The observability
+// package's Metrics value implements it; keeping the dependency this narrow
+// lets tests assert reporting without a Prometheus registry.
+type LagRecorder interface {
+	SetConsumerLag(stream, group string, lag int64)
+}
+
+// lagInterval bounds how stale the backlog gauge can be. Alerting uses it to
+// tell "the consumer is behind" apart from "the consumer is dead" long before
+// a user notices their feed has stopped moving.
+const lagInterval = 15 * time.Second
+
 // Consumer reads domain events from a Redis Stream consumer group. Redis
 // Streams are used here as a local, dependency-free stand-in for Kafka or
 // RabbitMQ; the domain services only see models.Event, so the transport can be
@@ -27,6 +39,7 @@ type Consumer struct {
 	stream   string
 	group    string
 	consumer string
+	metrics  LagRecorder
 }
 
 func NewConsumer(client *redis.Client, handler Handler, stream, group, consumer string) *Consumer {
@@ -37,6 +50,12 @@ func NewConsumer(client *redis.Client, handler Handler, stream, group, consumer 
 		group:    group,
 		consumer: consumer,
 	}
+}
+
+// SetMetrics attaches the backlog gauge. It is optional: the consumer works
+// without a recorder, and reporting is skipped until this is called.
+func (c *Consumer) SetMetrics(recorder LagRecorder) {
+	c.metrics = recorder
 }
 
 // Run blocks until the context is cancelled. Redis disconnects are retried;
@@ -52,12 +71,20 @@ func (c *Consumer) Run(ctx context.Context) error {
 	reclaimTicker := time.NewTicker(30 * time.Second)
 	defer reclaimTicker.Stop()
 
+	lagTicker := time.NewTicker(lagInterval)
+	defer lagTicker.Stop()
+	// Publish once at startup so a fresh pod's gauge reflects reality before
+	// the first interval elapses.
+	c.reportLag(ctx)
+
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
 		case <-reclaimTicker.C:
 			c.reclaimPending(ctx)
+		case <-lagTicker.C:
+			c.reportLag(ctx)
 		default:
 		}
 
@@ -99,6 +126,36 @@ func (c *Consumer) ensureGroup(ctx context.Context) error {
 		return nil
 	}
 	return fmt.Errorf("failed to create consumer group %s: %w", c.group, err)
+}
+
+// reportLag publishes the number of stream entries that this consumer group has
+// not yet delivered. Redis returns -1 when it cannot determine the lag (for
+// example right after XGROUP SETID), so the gauge is clamped at zero instead of
+// reporting a negative backlog.
+func (c *Consumer) reportLag(ctx context.Context) {
+	if c.metrics == nil {
+		return
+	}
+
+	groups, err := c.client.XInfoGroups(ctx, c.stream).Result()
+	if err != nil {
+		if ctx.Err() == nil {
+			log.Printf("feed event consumer lag lookup failed: %v", err)
+		}
+		return
+	}
+
+	for _, group := range groups {
+		if group.Name != c.group {
+			continue
+		}
+		lag := group.Lag
+		if lag < 0 {
+			lag = 0
+		}
+		c.metrics.SetConsumerLag(c.stream, c.group, lag)
+		return
+	}
 }
 
 // reclaimPending retries messages that were delivered but never acknowledged,
