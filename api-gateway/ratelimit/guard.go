@@ -45,8 +45,13 @@ func (g *Guard) InterceptOperation(ctx context.Context, next graphql.OperationHa
 		return next(ctx)
 	}
 
-	opCtx := graphql.GetOperationContext(ctx)
-	field := rootField(opCtx)
+	// HasOperationContext rather than a nil check: the getter panics by design,
+	// and a request that fails before parsing never carries one. rootField
+	// already treats a missing context as "no root field".
+	var field string
+	if graphql.HasOperationContext(ctx) {
+		field = rootField(graphql.GetOperationContext(ctx))
+	}
 	if field == "" {
 		return next(ctx)
 	}

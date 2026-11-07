@@ -23,7 +23,11 @@ func (graphqlTracing) Validate(graphql.ExecutableSchema) error { return nil }
 func (graphqlTracing) InterceptOperation(ctx context.Context, next graphql.OperationHandler) graphql.ResponseHandler {
 	operationType := ""
 	operationName := ""
-	if opCtx := graphql.GetOperationContext(ctx); opCtx != nil {
+	// HasOperationContext is the non-panicking guard. GetOperationContext
+	// panics by design, and it is reachable without one: the transport
+	// handlers that build this context run after some extension hooks.
+	if graphql.HasOperationContext(ctx) {
+		opCtx := graphql.GetOperationContext(ctx)
 		operationName = opCtx.OperationName
 		if opCtx.Operation != nil {
 			operationType = string(opCtx.Operation.Operation)

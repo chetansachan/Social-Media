@@ -18,6 +18,11 @@ type fakeUserClient struct {
 	socialflowpb.UserServiceClient
 
 	updateRequests []*socialflowpb.UpdateUserRequest
+
+	lastGetByID       string
+	lastGetByEmail    string
+	lastGetByUsername string
+	deletedID         string
 }
 
 func (c *fakeUserClient) UpdateUser(ctx context.Context, req *socialflowpb.UpdateUserRequest, _ ...grpc.CallOption) (*socialflowpb.UpdateUserResponse, error) {
@@ -33,11 +38,22 @@ func (c *fakeUserClient) UpdateUser(ctx context.Context, req *socialflowpb.Updat
 type fakePostClient struct {
 	socialflowpb.PostServiceClient
 
-	posts       map[string]*socialflowpb.Post
-	deleted     []string
-	archived    []string
-	likeStates  map[string]bool
-	getPostErrs error
+	posts           map[string]*socialflowpb.Post
+	archivedPosts   map[string]*socialflowpb.Post
+	deleted         []string
+	archived        []string
+	likeStates      map[string]bool
+	getPostErrs     error
+	getArchivedErrs error
+
+	createRequests []*socialflowpb.CreatePostRequest
+	updateRequests []*socialflowpb.UpdatePostRequest
+	likeRequests   []*socialflowpb.LikePostRequest
+
+	lastAllPostsAuthor string
+	lastArchivedAuthor string
+	lastLikersPost     string
+	lastLikedBy        string
 
 	signatureRequest *socialflowpb.GetUploadSignatureRequest
 }
@@ -100,11 +116,15 @@ func (c *fakeFeedClient) GetFeed(ctx context.Context, req *socialflowpb.GetFeedR
 type fakeNotificationClient struct {
 	socialflowpb.NotificationServiceClient
 
-	lastListRequest *socialflowpb.GetNotificationsRequest
-	lastMarkRead    *socialflowpb.MarkAsReadRequest
-	response        *socialflowpb.GetNotificationsResponse
-	settings        *socialflowpb.NotificationSettings
-	unreadCount     int32
+	lastListRequest         *socialflowpb.GetNotificationsRequest
+	lastMarkRead            *socialflowpb.MarkAsReadRequest
+	lastMarkAll             *socialflowpb.MarkAllAsReadRequest
+	lastDeletedNotification *socialflowpb.DeleteNotificationRequest
+	lastDeviceRequest       *socialflowpb.RegisterDeviceTokenRequest
+	lastSettingsRequest     *socialflowpb.UpdateSettingsRequest
+	response                *socialflowpb.GetNotificationsResponse
+	settings                *socialflowpb.NotificationSettings
+	unreadCount             int32
 }
 
 func (c *fakeNotificationClient) GetNotifications(ctx context.Context, req *socialflowpb.GetNotificationsRequest, _ ...grpc.CallOption) (*socialflowpb.GetNotificationsResponse, error) {
