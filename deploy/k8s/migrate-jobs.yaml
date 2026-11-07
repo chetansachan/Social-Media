@@ -7,9 +7,9 @@
 # Jobs are immutable once created, so delete the finished Job before applying a
 # new revision of this file:
 #
-#   kubectl -n socialflow delete job users-migrate posts-migrate follows-migrate notifications-migrate
+#   kubectl -n socialflow delete job users-migrate posts-migrate follows-migrate notifications-migrate moderation-migrate chat-migrate
 #
-# Each service owns its own database, which is why the four Jobs are
+# Each service owns its own database, which is why the Jobs are
 # independent and run in parallel.
 ---
 apiVersion: batch/v1
@@ -166,6 +166,86 @@ spec:
                 secretKeyRef:
                   name: socialflow-secrets
                   key: notifications-database-url
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: moderation-migrate
+  namespace: socialflow
+  labels:
+    app.kubernetes.io/name: moderation-migrate
+    app.kubernetes.io/part-of: socialflow
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: moderation-migrate
+        app.kubernetes.io/part-of: socialflow
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: socialflow/migrate:latest
+          imagePullPolicy: IfNotPresent
+          args:
+            - -path
+            - /migrations/moderation
+            - -database
+            - $(DATABASE_URL)
+            - up
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: socialflow-secrets
+                  key: moderation-database-url
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: chat-migrate
+  namespace: socialflow
+  labels:
+    app.kubernetes.io/name: chat-migrate
+    app.kubernetes.io/part-of: socialflow
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: chat-migrate
+        app.kubernetes.io/part-of: socialflow
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: socialflow/migrate:latest
+          imagePullPolicy: IfNotPresent
+          args:
+            - -path
+            - /migrations/chat
+            - -database
+            - $(DATABASE_URL)
+            - up
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: socialflow-secrets
+                  key: chat-database-url
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:

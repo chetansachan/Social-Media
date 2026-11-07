@@ -68,3 +68,27 @@ spec:
   selector:
     matchLabels:
       app.kubernetes.io/name: notification-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: moderation-service
+  namespace: socialflow
+spec:
+  # Blocks and reports are safety features: losing the whole service hides
+  # content a user asked to be rid of.
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: moderation-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: chat-service
+  namespace: socialflow
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: chat-service

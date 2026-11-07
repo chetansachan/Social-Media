@@ -44,6 +44,8 @@ break a user-visible flow.
 | `post-service` | Post detail, author timeline, archived list, likers, liked posts, batch like states | None; every mutation and transaction |
 | `follow-service` | Follower/following lists, follower/following counts | Follow-status check (drives the button) |
 | `notification-service` | Inbox list, settings read | Unread counts, `GetByID` after aggregation, every device-token read |
+| `moderation-service` | Block/mute status and lists, relationship counts | Every block, mute, report insert and resolve |
+| `chat-service` | Inbox, thread reads, unread counts, presence | Every message insert, soft delete, and read watermark |
 
 Writes and transactions always use the primary pool. A transaction can never
 begin on the replica, so an outbox event can never commit against the wrong
@@ -57,8 +59,12 @@ server.
 | `post-service` | `DB_MAX_CONNS` (20) | `DB_MIN_CONNS` (2) |
 | `follow-service` | `DB_MAX_CONNS` (20) | `DB_MIN_CONNS` (2) |
 | `notification-service` | `DB_MAX_OPEN_CONNS` (25) | `DB_MAX_IDLE_CONNS` (10) |
+| `moderation-service` | `DB_MAX_CONNS` (20) | `DB_MIN_CONNS` (2) |
+| `chat-service` | `DB_MAX_CONNS` (20) | `DB_MIN_CONNS` (2) |
 
-`notification-service` also reads `DB_CONN_MAX_LIFETIME` (default `5m`). Keep
+`notification-service` also reads `DB_CONN_MAX_LIFETIME` (default `5m`), and
+`chat-service` adds `PRESENCE_TTL_SECONDS` (60) and `TYPING_TTL_SECONDS` (6).
+Keep
 application-side pools small when PgBouncer is in front of PostgreSQL: the
 pooler is what multiplexes thousands of clients, so a large per-process pool
 multiplies across every pod.
@@ -135,9 +141,9 @@ docker build -f deploy/docker/Dockerfile.service \
 ```
 
 Replace `SERVICE` with `api-gateway`, `post-service`, `follow-service`,
-`feed-service`, or `notification-service`. The build context must be the
-repository root; `.dockerignore` keeps `.git`, local binaries, and environment
-files out of the image.
+`feed-service`, `notification-service`, `moderation-service`, or `chat-service`.
+The build context must be the repository root; `.dockerignore` keeps `.git`,
+local binaries, and environment files out of the image.
 
 The images have no shell. Liveness and readiness come from the HTTP admin
 server, never from an exec probe, and `SIGTERM` is handled by the service's own
@@ -166,7 +172,9 @@ kubectl -n socialflow create secret generic socialflow-secrets \
   --from-literal=users-database-url="postgres://..." \
   --from-literal=posts-database-url="postgres://..." \
   --from-literal=follows-database-url="postgres://..." \
-  --from-literal=notifications-database-url="postgres://..."
+  --from-literal=notifications-database-url="postgres://..." \
+  --from-literal=moderation-database-url="postgres://..." \
+  --from-literal=chat-database-url="postgres://..."
 
 # Optional read replicas:
 #   --from-literal=users-database-read-url="postgres://..."
@@ -177,12 +185,14 @@ kubectl -n socialflow wait --for=condition=complete job/users-migrate --timeout=
 kubectl -n socialflow wait --for=condition=complete job/posts-migrate --timeout=120s
 kubectl -n socialflow wait --for=condition=complete job/follows-migrate --timeout=120s
 kubectl -n socialflow wait --for=condition=complete job/notifications-migrate --timeout=120s
+kubectl -n socialflow wait --for=condition=complete job/moderation-migrate --timeout=120s
+kubectl -n socialflow wait --for=condition=complete job/chat-migrate --timeout=120s
 
 kubectl apply -k deploy/k8s
 kubectl -n socialflow get pods,svc,hpa
 ```
 
-Jobs are immutable: delete the four migration Jobs before applying a new
+Jobs are immutable: delete the migration Jobs before applying a new
 revision of `migrate-jobs.yaml`.
 
 Update the placeholder host and TLS secret in `k8s/ingress.yaml` first. The
@@ -203,6 +213,8 @@ Service. Probes and Prometheus scrape that port inside the pod network.
 | `follow-service` | `9093` | PostgreSQL primary |
 | `feed-service` | `9094` | None; Redis is optional and pull-model fallback stays ready |
 | `notification-service` | `9095` | PostgreSQL primary |
+| `moderation-service` | `9096` | PostgreSQL primary |
+| `chat-service` | `9097` | PostgreSQL primary; Redis is optional (chat works, presence does not) |
 
 `/healthz` is always a process-liveness check and does not touch dependencies.
 `/metrics` serves a private Prometheus registry; the OpenTelemetry collector or
@@ -258,6 +270,8 @@ revocation keeps failing closed.
 | :--- | :--- | :--- | :--- |
 | `api-gateway` | 3 | 50 | CPU 70% |
 | `notification-service` | 3 | 50 | CPU 70% |
+| `moderation-service` | 2 | 10 | CPU 70% |
+| `chat-service` | 2 | 20 | CPU 70% |
 | `user-service` | 2 | 20 | CPU 70% |
 | `post-service` | 2 | 20 | CPU 70% |
 | `follow-service` | 2 | 20 | CPU 70% |

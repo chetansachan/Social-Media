@@ -5,13 +5,16 @@
 #
 #   docker build -f deploy/docker/Dockerfile.migrate -t socialflow/migrate:dev .
 #
-# Each service owns a separate PostgreSQL database, so the four directories are
-# independent and can be applied in parallel.
+# Each service owns a separate PostgreSQL database, so the directories are
+# independent and can be applied in parallel. Comments run inside post-service's
+# database, which is why there is no separate comments directory.
 FROM migrate/migrate:v4.18.1
 
 COPY user-service/migrations /migrations/users
 COPY post-service/migrations /migrations/posts
 COPY follow-service/migrations /migrations/follows
 COPY notification-service/migrations /migrations/notifications
+COPY moderation-service/migrations /migrations/moderation
+COPY chat-service/migrations /migrations/chat
 
 ENTRYPOINT ["/usr/local/bin/migrate"]

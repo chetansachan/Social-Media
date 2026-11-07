@@ -9,7 +9,8 @@
 #     -t socialflow/api-gateway:dev .
 #
 # SERVICE may be any module in go.work: api-gateway, user-service,
-# post-service, follow-service, feed-service, or notification-service.
+# post-service, follow-service, feed-service, notification-service,
+# moderation-service, or chat-service.
 #
 # By default the entrypoint is cmd/server inside the module. api-gateway keeps
 # main at the module root, so the build step falls back to "." when cmd/server

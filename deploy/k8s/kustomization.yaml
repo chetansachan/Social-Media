@@ -11,6 +11,8 @@ resources:
   - follow-service.yaml
   - feed-service.yaml
   - notification-service.yaml
+  - moderation-service.yaml
+  - chat-service.yaml
   - api-gateway.yaml
   - hpa.yaml
   - pdb.yaml
@@ -32,4 +34,8 @@ images:
   - name: socialflow/feed-service
     newTag: latest
   - name: socialflow/notification-service
+    newTag: latest
+  - name: socialflow/moderation-service
+    newTag: latest
+  - name: socialflow/chat-service
     newTag: latest

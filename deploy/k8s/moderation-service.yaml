@@ -1,0 +1,131 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: moderation-service
+  namespace: socialflow
+  labels:
+    app.kubernetes.io/name: moderation-service
+    app.kubernetes.io/part-of: socialflow
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  progressDeadlineSeconds: 300
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: moderation-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: moderation-service
+        app.kubernetes.io/part-of: socialflow
+    spec:
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: moderation-service
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: moderation-service
+      containers:
+        - name: moderation-service
+          image: socialflow/moderation-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: grpc
+              containerPort: 50056
+            - name: admin
+              containerPort: 9096
+          envFrom:
+            - configMapRef:
+                name: socialflow-config
+            - secretRef:
+                name: socialflow-secrets
+                optional: true
+          env:
+            - name: PORT
+              value: "50056"
+            - name: ADMIN_PORT
+              value: "9096"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: socialflow-secrets
+                  key: moderation-database-url
+            - name: DATABASE_READ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: socialflow-secrets
+                  key: moderation-database-read-url
+                  optional: true
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: admin
+            periodSeconds: 2
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: admin
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: admin
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: moderation-service
+  namespace: socialflow
+  labels:
+    app.kubernetes.io/name: moderation-service
+    app.kubernetes.io/part-of: socialflow
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: moderation-service
+  ports:
+    - name: grpc
+      port: 50056
+      targetPort: grpc
+      protocol: TCP
