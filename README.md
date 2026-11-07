@@ -47,6 +47,13 @@ SocialFlow is a high-performance, event-driven social media backend built with *
                                │   (Port 50055 & 8085)     │
                                │  PostgreSQL + Redis WS    │
                                └───────────────────────────┘
+
+┌───────────────────────────┐    ┌──────────────────────────┐
+│    moderation-service     │    │       chat-service        │
+│     (Port 50056)          │    │     (Port 50057)          │
+│ Blocks, mutes, reports    │    │  Messaging + presence     │
+│       PostgreSQL          │    │  PostgreSQL + Redis       │
+└──────────────────────────┘    └──────────────────────────┘
 ```
 
 ---
@@ -57,10 +64,12 @@ SocialFlow is a high-performance, event-driven social media backend built with *
 | :--- | :--- | :--- | :--- |
 | **`api-gateway`** | `:8080` | Public GraphQL API gateway (gqlgen), auth middleware, dataloaders. | In-Memory Query Cache |
 | **`user-service`** | `:50051` | User registration, authentication, JWT tokens, profile management. | PostgreSQL |
-| **`post-service`** | `:50052` | Post creation, editing, deletion, archiving, media uploads, likes. | PostgreSQL + Cloudinary |
+| **`post-service`** | `:50052` | Post creation, editing, deletion, archiving, media uploads, likes, threaded comments, full-text and hashtag search. | PostgreSQL + Cloudinary |
 | **`follow-service`** | `:50053` | Social graph, follow/unfollow relationships, follower counts. | PostgreSQL |
 | **`feed-service`** | `:50054` | Chronological activity streams, hybrid fanout, Redis timeline cache. | Redis (Sorted Sets) |
 | **`notification-service`** | `:50055`, `:8085` | In-app real-time alerts, mobile push (APNs/FCM), email, roll-ups. | PostgreSQL + Redis Pub/Sub |
+| **`moderation-service`** | `:50056` | Block/mute graph, content reporting, reviewer queue. | PostgreSQL |
+| **`chat-service`** | `:50057` | Direct and group messaging, read watermarks, presence and typing. | PostgreSQL + Redis |
 | **`proto`** | N/A | Shared Protocol Buffer definitions and compiled gRPC code stubs. | N/A |
 
 ---

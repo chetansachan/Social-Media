@@ -283,6 +283,21 @@ To complete a modern social platform, the following features and services must b
    * Block and mute relationship graph.
    * Flagging/reporting content for automated or manual review.
 
+#### Implementation status (this repository)
+
+| Item | State | Notes |
+| :--- | :--- | :--- |
+| Threaded comments (+ likes, denormalized counts, outbox events) | Done | Lives in `post-service` beside the post row it mutates, as 2.4 allows. Events are `post.commented`, `comment.replied`, `comment.liked`, and `comment.unliked`, matching the field names `notification-service` already consumes. |
+| Comment mentions (`@username`) | Not done | No mention table or notification type yet; the payloads carry no mention flag. |
+| Post full-text and hashtag search | Done | `tsvector` (GIN) plus `pg_trgm` (GIN) and a stored `hashtags` array in `post-service`, exposed as `searchPosts`. |
+| User autocomplete search | Done | `pg_trgm` plus a `text_pattern_ops` prefix index in `user-service`, exposed as `searchUsers`. |
+| 1-on-1 and group messaging | Done | `chat-service`, PostgreSQL-backed, with read watermarks, unread counts, soft delete, and keyset cursors. |
+| Presence and typing over WebSocket | Done | TTL'd heartbeat keys plus expiring typing flags in Redis; typing and message frames relay through the gateway's `chatEvent` subscription. |
+| Durable chat storage in ScyllaDB or MongoDB | Not done | Chat uses PostgreSQL. The append-only shape would translate, but no second store or driver is wired in. |
+| Block and mute relationship graph | Done | `moderation-service`; blocks hide content in both directions and are enforced in chat inboxes. |
+| Content reporting for review | Done | `moderation-service` with an idempotent open-report constraint, a reviewer queue, and admin-only gateway mutations. |
+| Automated (as opposed to human) review | Not done | No classifier or auto-action path; the queue is reviewed by hand. |
+
 ---
 
 ### 2.5 Authentication, Token Lifecycle & Session Revocation
