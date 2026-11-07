@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -28,6 +29,11 @@ type fakeUserRepo struct {
 	updated    *models.UpdateUserInput
 	updatedID  uuid.UUID
 	deleted    uuid.UUID
+
+	lastSearchQuery string
+	lastSearchLimit int
+	searchResults   []models.User
+	searchErr       error
 
 	mu           sync.Mutex
 	getByIDCalls int
@@ -189,6 +195,12 @@ func (r *fakeUserRepo) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	r.deleted = id
 	delete(r.byID, id)
 	return nil
+}
+
+func (r *fakeUserRepo) SearchUsers(ctx context.Context, query string, limit int) ([]models.User, error) {
+	r.lastSearchQuery = query
+	r.lastSearchLimit = limit
+	return r.searchResults, r.searchErr
 }
 
 func (r *fakeUserRepo) seed(t *testing.T, user *models.User) {
@@ -837,5 +849,82 @@ func TestDeleteUserInvalidatesCachedProfile(t *testing.T) {
 	}
 	if !userCache.wasDeleted(user.ID) {
 		t.Fatal("delete left the profile in the cache")
+	}
+}
+
+func TestSearchUsersValidatesQuery(t *testing.T) {
+	svc, _ := newService(t)
+
+	for _, query := range []string{"", "  ", strings.Repeat("a", models.MaxSearchQueryLength+1)} {
+		if _, err := svc.SearchUsers(context.Background(), query, 0); !errors.Is(err, models.ErrInvalidInput) {
+			t.Fatalf("SearchUsers(%q...): err = %v, want ErrInvalidInput", query[:8], err)
+		}
+	}
+}
+
+func TestSearchUsersClampsLimitAndStripsPassword(t *testing.T) {
+	_, repo := newService(t)
+	repo.searchResults = []models.User{{
+		ID:       uuid.New(),
+		Username: "alice",
+		Name:     "Alice",
+		Password: "hash-should-not-leave",
+	}}
+
+	service := NewUserService(repo).(*userService)
+
+	results, err := service.SearchUsers(context.Background(), "  alice  ", 1000)
+	if err != nil {
+		t.Fatalf("SearchUsers: %v", err)
+	}
+	if repo.lastSearchQuery != "alice" {
+		t.Fatalf("query = %q, want the trimmed input", repo.lastSearchQuery)
+	}
+	if repo.lastSearchLimit != maxSearchPageSize {
+		t.Fatalf("limit = %d, want %d", repo.lastSearchLimit, maxSearchPageSize)
+	}
+	if len(results) != 1 {
+		t.Fatalf("results = %d, want 1", len(results))
+	}
+	if results[0].Password != "" {
+		t.Fatal("the password hash must not leave the service")
+	}
+	if results[0].Username != "alice" {
+		t.Fatalf("username = %q", results[0].Username)
+	}
+}
+
+func TestSearchUsersDefaultsLimit(t *testing.T) {
+	_, repo := newService(t)
+	service := NewUserService(repo).(*userService)
+
+	if _, err := service.SearchUsers(context.Background(), "alice", -5); err != nil {
+		t.Fatalf("SearchUsers: %v", err)
+	}
+	if repo.lastSearchLimit != defaultSearchPageSize {
+		t.Fatalf("limit = %d, want %d", repo.lastSearchLimit, defaultSearchPageSize)
+	}
+}
+
+func TestSearchUsersReturnsEmptySliceNotNil(t *testing.T) {
+	_, repo := newService(t)
+	service := NewUserService(repo).(*userService)
+
+	results, err := service.SearchUsers(context.Background(), "alice", 10)
+	if err != nil {
+		t.Fatalf("SearchUsers: %v", err)
+	}
+	if results == nil {
+		t.Fatal("an empty result should still serialise as [] for clients")
+	}
+}
+
+func TestSearchUsersPreservesRepositoryFailure(t *testing.T) {
+	_, repo := newService(t)
+	repo.searchErr = errors.New("connection reset")
+	service := NewUserService(repo).(*userService)
+
+	if _, err := service.SearchUsers(context.Background(), "alice", 10); err == nil {
+		t.Fatal("expected the repository failure to surface")
 	}
 }

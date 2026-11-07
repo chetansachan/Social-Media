@@ -31,6 +31,7 @@ type UserService interface {
 	Refresh(ctx context.Context, tkn string) (*models.RotationResponse, error)
 	UpdateUser(ctx context.Context, input models.UpdateUserInput, id string) (*models.User, error)
 	DeleteUser(ctx context.Context, id string) (*models.DeleteUserRespose, error)
+	SearchUsers(ctx context.Context, query string, limit int32) ([]models.User, error)
 }
 
 type userService struct {
@@ -69,6 +70,13 @@ const bcryptCost = 12
 // minPasswordLength is the shortest password accepted at registration and
 // during a password change.
 const minPasswordLength = 8
+
+// Search result sets stay small: autocomplete wants the handful of best
+// matches, and each row is hydrated into a profile card by the caller.
+const (
+	defaultSearchPageSize = 20
+	maxSearchPageSize     = 50
+)
 
 func NewUserService(userRepo repository.UserRepository, opts ...Option) UserService {
 	service := &userService{userRepo: userRepo}
@@ -585,6 +593,37 @@ func (s *userService) UpdateUser(ctx context.Context, input models.UpdateUserInp
 	updatedUser.Password = ""
 
 	return updatedUser, nil
+}
+
+// SearchUsers validates and clamps an autocomplete query, then masks the
+// password column the repository selects alongside the profile fields. The
+// hash never crosses the service boundary.
+func (s *userService) SearchUsers(ctx context.Context, query string, limit int32) ([]models.User, error) {
+	normalized, ok := models.NormalizeSearchQuery(query)
+	if !ok {
+		return nil, fmt.Errorf("%w: search query must be 1-%d characters", models.ErrInvalidInput, models.MaxSearchQueryLength)
+	}
+
+	pageSize := int(limit)
+	if pageSize <= 0 {
+		pageSize = defaultSearchPageSize
+	}
+	if pageSize > maxSearchPageSize {
+		pageSize = maxSearchPageSize
+	}
+
+	users, err := s.userRepo.SearchUsers(ctx, normalized, pageSize)
+	if err != nil {
+		return nil, fmt.Errorf("failed to search users: %w", err)
+	}
+
+	for i := range users {
+		users[i].Password = ""
+	}
+	if users == nil {
+		users = []models.User{}
+	}
+	return users, nil
 }
 
 func (s *userService) DeleteUser(ctx context.Context, id string) (*models.DeleteUserRespose, error) {

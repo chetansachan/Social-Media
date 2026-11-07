@@ -24,6 +24,7 @@ type UserRepository interface {
 	RotateToken(ctx context.Context, oldtkn string, newtkn string, data *models.RefreshTkn) error
 	UpdateUser(ctx context.Context, input *models.UpdateUserInput, id uuid.UUID) (*models.User, error)
 	DeleteUser(ctx context.Context, id uuid.UUID) error
+	SearchUsers(ctx context.Context, query string, limit int) ([]models.User, error)
 }
 
 type userRepository struct {
@@ -201,6 +202,61 @@ func (r *userRepository) GetByIds(ctx context.Context, ids []uuid.UUID) ([]model
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating batch users: %w", err)
+	}
+	return users, nil
+}
+
+// SearchUsers matches on username prefix first, then fuzzy-matches both the
+// username and display name. Readers run on the replica: a newly registered
+// account may lag for a caption-worthy moment, which is preferable to reading
+// auth tables on the primary.
+func (r *userRepository) SearchUsers(ctx context.Context, query string, limit int) ([]models.User, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+
+	const searchQuery = `
+		SELECT id, username, name, email, password, is_public, created_at, updated_at
+		FROM users
+		WHERE lower(username) LIKE lower($1) || '%'
+		   OR similarity(username, $1) >= 0.3
+		   OR similarity(name, $1) >= 0.3
+		ORDER BY
+		    CASE
+		        WHEN lower(username) = lower($1) THEN 0
+		        WHEN lower(username) LIKE lower($1) || '%' THEN 1
+		        ELSE 2
+		    END,
+		    GREATEST(similarity(username, $1), similarity(name, $1)) DESC,
+		    created_at DESC
+		LIMIT $2
+	`
+
+	rows, err := r.reader.Query(ctx, searchQuery, query, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to search users: %w", err)
+	}
+	defer rows.Close()
+
+	users := make([]models.User, 0, limit)
+	for rows.Next() {
+		var user models.User
+		if err := rows.Scan(
+			&user.ID,
+			&user.Username,
+			&user.Name,
+			&user.Email,
+			&user.Password,
+			&user.IsPublic,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan user search result: %w", err)
+		}
+		users = append(users, user)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating user search results: %w", err)
 	}
 	return users, nil
 }

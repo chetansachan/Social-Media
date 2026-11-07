@@ -234,3 +234,35 @@ func (h *UserHandler) DeleteUser(ctx context.Context, req *userpb.DeleteUserRequ
 		Message: "User Deleted Successfully",
 	}, nil
 }
+
+func toUserPB(user *models.User) *userpb.User {
+	if user == nil {
+		return nil
+	}
+	return &userpb.User{
+		Id:        user.ID.String(),
+		Username:  user.Username,
+		Name:      user.Name,
+		Email:     user.Email,
+		IsPublic:  user.IsPublic,
+		CreatedAt: user.CreatedAt.Format(time.RFC3339),
+		UpdatedAt: formatTimestamp(user.UpdatedAt),
+	}
+}
+
+func (h *UserHandler) SearchUsers(ctx context.Context, req *userpb.SearchUsersRequest) (*userpb.SearchUsersResponse, error) {
+	users, err := h.userService.SearchUsers(ctx, req.GetQuery(), req.GetLimit())
+	if err != nil {
+		if errors.Is(err, models.ErrInvalidInput) {
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		}
+		return nil, status.Errorf(codes.Internal, "failed to search users: %v", err)
+	}
+
+	results := make([]*userpb.User, 0, len(users))
+	for i := range users {
+		results = append(results, toUserPB(&users[i]))
+	}
+
+	return &userpb.SearchUsersResponse{Users: results}, nil
+}
