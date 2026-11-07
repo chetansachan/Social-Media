@@ -91,7 +91,7 @@ func (h *UserHandler) GetUserById(ctx context.Context, req *userpb.GetUserByIdRe
 	user, err := h.userService.GetById(ctx, req.Id)
 	if err != nil {
 		if errors.Is(err, models.ErrUserNotFound) {
-			return nil, models.ErrUserNotFound
+			return nil, status.Error(codes.NotFound, models.ErrUserNotFound.Error())
 		}
 		return nil, status.Errorf(codes.Internal, "failed to find user %v", err)
 	}
@@ -113,7 +113,7 @@ func (h *UserHandler) GetUserByEmail(ctx context.Context, req *userpb.GetUserByE
 	user, err := h.userService.GetByEmail(ctx, req.Email)
 	if err != nil {
 		if errors.Is(err, models.ErrUserNotFound) {
-			return nil, models.ErrUserNotFound
+			return nil, status.Error(codes.NotFound, models.ErrUserNotFound.Error())
 		}
 		return nil, status.Errorf(codes.Internal, "failed to find user %v", err)
 	}
@@ -135,7 +135,7 @@ func (h *UserHandler) GetUserByUsername(ctx context.Context, req *userpb.GetUser
 	user, err := h.userService.GetByUsername(ctx, req.Username)
 	if err != nil {
 		if errors.Is(err, models.ErrUserNotFound) {
-			return nil, models.ErrUserNotFound
+			return nil, status.Error(codes.NotFound, models.ErrUserNotFound.Error())
 		}
 		return nil, status.Errorf(codes.Internal, "failed to find user %v", err)
 	}
