@@ -1,40 +1,53 @@
-# dev.ps1 - Start all services with hot-reloading using Air
+# dev.ps1 - Start every service with hot-reloading using Air.
+#
+# The service list lives in one place: add a directory here and both branches
+# below pick it up, so a new service cannot silently miss the local stack.
 $ErrorActionPreference = "Continue"
+
+$services = @(
+    @{ Name = "USER-SVC";      Dir = "user-service" },
+    @{ Name = "POST-SVC";      Dir = "post-service" },
+    @{ Name = "FOLLOW-SVC";    Dir = "follow-service" },
+    @{ Name = "FEED-SVC";      Dir = "feed-service" },
+    @{ Name = "NOTIFY-SVC";    Dir = "notification-service" },
+    @{ Name = "MODERATION-SVC"; Dir = "moderation-service" },
+    @{ Name = "CHAT-SVC";      Dir = "chat-service" },
+    @{ Name = "GATEWAY";       Dir = "api-gateway" }
+)
 
 Write-Host "Starting microservices with Air..." -ForegroundColor Cyan
 
-# Option A: If npx concurrently is available, use it for unified color-coded logs in one terminal
+# Option A: npx concurrently gives unified, colour-coded logs in one terminal.
 if (Get-Command "npx" -ErrorAction SilentlyContinue) {
+    $names = ($services | ForEach-Object { $_.Name }) -join ","
+    $commands = ($services | ForEach-Object { "cd $($_.Dir) && air" }) -join "`n`t"
+
     Write-Host "Detected npx. Running via concurrently for combined logs..." -ForegroundColor Green
-    npx concurrently -n "USER-SVC,POST-SVC,FOLLOW-SVC,FEED-SVC,GATEWAY" -c "cyan,blue,yellow,green,magenta" `
-        "cd user-service && air" `
-        "cd post-service && air" `
-        "cd follow-service && air" `
-        "cd feed-service && air" `
-        "cd api-gateway && air"
+    npx concurrently -n $names -c "cyan,blue,yellow,green,magenta,red,gray,white" $commands
     exit
 }
 
-# Option B: Fallback to PowerShell background processes
+# Option B: one Air process per service, so each keeps its own output.
 Write-Host "Running services in separate Air processes..." -ForegroundColor Yellow
 
-$p1 = Start-Process -FilePath "air" -WorkingDirectory ".\user-service" -PassThru
-$p2 = Start-Process -FilePath "air" -WorkingDirectory ".\post-service" -PassThru
-$p3 = Start-Process -FilePath "air" -WorkingDirectory ".\follow-service" -PassThru
-$p4 = Start-Process -FilePath "air" -WorkingDirectory ".\feed-service" -PassThru
-$p5 = Start-Process -FilePath "air" -WorkingDirectory ".\api-gateway" -PassThru
+$processes = @()
+$colors = @("Cyan", "Blue", "Yellow", "Green", "Magenta", "Red", "Gray", "White")
 
-Write-Host "User Service   PID: $($p1.Id)" -ForegroundColor Cyan
-Write-Host "Post Service   PID: $($p2.Id)" -ForegroundColor Blue
-Write-Host "Follow Service PID: $($p3.Id)" -ForegroundColor Yellow
-Write-Host "Feed Service   PID: $($p4.Id)" -ForegroundColor Green
-Write-Host "API Gateway    PID: $($p5.Id)" -ForegroundColor Magenta
+for ($i = 0; $i -lt $services.Count; $i++) {
+    $service = $services[$i]
+    $process = Start-Process -FilePath "air" -WorkingDirectory ".\$($service.Dir)" -PassThru
+    $script:processes += $process
+
+    $color = $colors[$i % $colors.Count]
+    Write-Host ("{0,-14} PID: {1}" -f $service.Name, $process.Id) -ForegroundColor $color
+}
+
 Write-Host "Press Ctrl+C to stop all services..." -ForegroundColor White
 
 try {
-    Wait-Process -Id $p1.Id, $p2.Id, $p3.Id, $p4.Id, $p5.Id
+    Wait-Process -Id ($processes | ForEach-Object { $_.Id })
 }
 finally {
     Write-Host "`nStopping all services..." -ForegroundColor Red
-    Stop-Process -Id $p1.Id, $p2.Id, $p3.Id, $p4.Id, $p5.Id -ErrorAction SilentlyContinue
+    Stop-Process -Id ($processes | ForEach-Object { $_.Id }) -ErrorAction SilentlyContinue
 }
