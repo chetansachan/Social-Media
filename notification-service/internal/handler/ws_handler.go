@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -222,7 +223,14 @@ func verifyHS256(token, secret string) (map[string]any, error) {
 	return claims, nil
 }
 
+// decodeJWTPart accepts a JWT segment in either base64url form: unpadded, which
+// the spec requires, or padded, which some implementations emit. An empty
+// segment is rejected outright, because decoding it would succeed and defer the
+// failure to a confusing JSON parse later.
 func decodeJWTPart(value string) ([]byte, error) {
+	if value == "" {
+		return nil, fmt.Errorf("empty token segment")
+	}
 	if decoded, err := base64.RawURLEncoding.DecodeString(value); err == nil {
 		return decoded, nil
 	}

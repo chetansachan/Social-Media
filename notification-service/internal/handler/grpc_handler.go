@@ -227,7 +227,13 @@ func toProtoSettings(settings *models.NotificationSettings) *notificationpb.Noti
 	}
 }
 
+// fromProtoSettings maps a client payload. A nil settings message has no
+// meaning rather than "turn everything off", so it maps to nil rather than a
+// struct of zero values that a caller could mistake for a real choice.
 func fromProtoSettings(userID uuid.UUID, settings *notificationpb.NotificationSettings) *models.NotificationSettings {
+	if settings == nil {
+		return nil
+	}
 	return &models.NotificationSettings{
 		UserID:              userID,
 		InAppLikes:          settings.GetInappLikes(),
