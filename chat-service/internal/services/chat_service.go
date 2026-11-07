@@ -380,6 +380,21 @@ func (s *chatService) DeleteMessage(ctx context.Context, messageID, senderID str
 	if err != nil {
 		return nil, err
 	}
+
+	// The other members learn their conversation now holds a tombstone, so a
+	// client can drop the row without refetching the page.
+	if s.publisher != nil {
+		members, err := s.memberIDs(ctx, message.ConversationID)
+		if err == nil {
+			recipients := make([]uuid.UUID, 0, len(members))
+			for _, member := range members {
+				if member != sender {
+					recipients = append(recipients, member)
+				}
+			}
+			_ = s.publisher.PublishMessageDeleted(ctx, recipients, message.ConversationID, message.ID)
+		}
+	}
 	return message, nil
 }
 

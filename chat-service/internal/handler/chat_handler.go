@@ -153,6 +153,14 @@ func (h *ChatHandler) MarkRead(ctx context.Context, req *chatpb.MarkReadRequest)
 	return &chatpb.MarkReadResponse{Success: true, LastReadAt: time.Now().UTC().Format(time.RFC3339)}, nil
 }
 
+func (h *ChatHandler) DeleteMessage(ctx context.Context, req *chatpb.DeleteMessageRequest) (*chatpb.DeleteMessageResponse, error) {
+	if _, err := h.chatService.DeleteMessage(ctx, req.GetMessageId(), req.GetSenderId()); err != nil {
+		return nil, chatStatus(err)
+	}
+
+	return &chatpb.DeleteMessageResponse{Message: "message deleted"}, nil
+}
+
 func (h *ChatHandler) Typing(ctx context.Context, req *chatpb.TypingRequest) (*chatpb.TypingResponse, error) {
 	typing, err := h.chatService.SetTyping(ctx, req.GetConversationId(), req.GetUserId(), req.GetIsTyping())
 	if err != nil {

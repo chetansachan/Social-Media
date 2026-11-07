@@ -14,6 +14,7 @@ service ChatService {
     rpc GetMessages(GetMessagesRequest) returns (GetMessagesResponse);
     rpc MarkRead(MarkReadRequest) returns (MarkReadResponse);
     rpc Typing(TypingRequest) returns (TypingResponse);
+    rpc DeleteMessage(DeleteMessageRequest) returns (DeleteMessageResponse);
     rpc Heartbeat(HeartbeatRequest) returns (PresenceResponse);
     rpc GetPresence(GetPresenceRequest) returns (PresenceResponse);
 }
@@ -131,6 +132,16 @@ message TypingRequest {
 message TypingResponse {
     // Users currently typing, excluding the caller.
     repeated string typing_user_ids = 1;
+}
+
+message DeleteMessageRequest {
+    string message_id = 1;
+    // Must be the sender; ownership is enforced by the service.
+    string sender_id = 2;
+}
+
+message DeleteMessageResponse {
+    string message = 1;
 }
 
 message HeartbeatRequest {

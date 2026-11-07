@@ -91,6 +91,15 @@ func (p *Publisher) PublishMessageCreated(ctx context.Context, members []uuid.UU
 	return p.PublishToUsers(ctx, members, EventMessageCreated, payload)
 }
 
+// PublishMessageDeleted tells the other members a message became a tombstone.
+// The frame names only the id so a client can drop it from its own page.
+func (p *Publisher) PublishMessageDeleted(ctx context.Context, members []uuid.UUID, conversationID, messageID uuid.UUID) error {
+	return p.PublishToUsers(ctx, members, EventMessageDeleted, map[string]any{
+		"conversation_id": conversationID.String(),
+		"message_id":      messageID.String(),
+	})
+}
+
 // PublishRead tells the other members that their messages were seen, so the
 // sender can stop showing a "waiting" state.
 func (p *Publisher) PublishRead(ctx context.Context, members []uuid.UUID, conversationID, userID uuid.UUID) error {

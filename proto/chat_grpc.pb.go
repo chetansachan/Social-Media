@@ -26,6 +26,7 @@ const (
 	ChatService_GetMessages_FullMethodName        = "/chat.ChatService/GetMessages"
 	ChatService_MarkRead_FullMethodName           = "/chat.ChatService/MarkRead"
 	ChatService_Typing_FullMethodName             = "/chat.ChatService/Typing"
+	ChatService_DeleteMessage_FullMethodName      = "/chat.ChatService/DeleteMessage"
 	ChatService_Heartbeat_FullMethodName          = "/chat.ChatService/Heartbeat"
 	ChatService_GetPresence_FullMethodName        = "/chat.ChatService/GetPresence"
 )
@@ -44,6 +45,7 @@ type ChatServiceClient interface {
 	GetMessages(ctx context.Context, in *GetMessagesRequest, opts ...grpc.CallOption) (*GetMessagesResponse, error)
 	MarkRead(ctx context.Context, in *MarkReadRequest, opts ...grpc.CallOption) (*MarkReadResponse, error)
 	Typing(ctx context.Context, in *TypingRequest, opts ...grpc.CallOption) (*TypingResponse, error)
+	DeleteMessage(ctx context.Context, in *DeleteMessageRequest, opts ...grpc.CallOption) (*DeleteMessageResponse, error)
 	Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*PresenceResponse, error)
 	GetPresence(ctx context.Context, in *GetPresenceRequest, opts ...grpc.CallOption) (*PresenceResponse, error)
 }
@@ -126,6 +128,16 @@ func (c *chatServiceClient) Typing(ctx context.Context, in *TypingRequest, opts 
 	return out, nil
 }
 
+func (c *chatServiceClient) DeleteMessage(ctx context.Context, in *DeleteMessageRequest, opts ...grpc.CallOption) (*DeleteMessageResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteMessageResponse)
+	err := c.cc.Invoke(ctx, ChatService_DeleteMessage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *chatServiceClient) Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*PresenceResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(PresenceResponse)
@@ -160,6 +172,7 @@ type ChatServiceServer interface {
 	GetMessages(context.Context, *GetMessagesRequest) (*GetMessagesResponse, error)
 	MarkRead(context.Context, *MarkReadRequest) (*MarkReadResponse, error)
 	Typing(context.Context, *TypingRequest) (*TypingResponse, error)
+	DeleteMessage(context.Context, *DeleteMessageRequest) (*DeleteMessageResponse, error)
 	Heartbeat(context.Context, *HeartbeatRequest) (*PresenceResponse, error)
 	GetPresence(context.Context, *GetPresenceRequest) (*PresenceResponse, error)
 	mustEmbedUnimplementedChatServiceServer()
@@ -192,6 +205,9 @@ func (UnimplementedChatServiceServer) MarkRead(context.Context, *MarkReadRequest
 }
 func (UnimplementedChatServiceServer) Typing(context.Context, *TypingRequest) (*TypingResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Typing not implemented")
+}
+func (UnimplementedChatServiceServer) DeleteMessage(context.Context, *DeleteMessageRequest) (*DeleteMessageResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteMessage not implemented")
 }
 func (UnimplementedChatServiceServer) Heartbeat(context.Context, *HeartbeatRequest) (*PresenceResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Heartbeat not implemented")
@@ -346,6 +362,24 @@ func _ChatService_Typing_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ChatService_DeleteMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteMessageRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).DeleteMessage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatService_DeleteMessage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).DeleteMessage(ctx, req.(*DeleteMessageRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ChatService_Heartbeat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(HeartbeatRequest)
 	if err := dec(in); err != nil {
@@ -416,6 +450,10 @@ var ChatService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Typing",
 			Handler:    _ChatService_Typing_Handler,
+		},
+		{
+			MethodName: "DeleteMessage",
+			Handler:    _ChatService_DeleteMessage_Handler,
 		},
 		{
 			MethodName: "Heartbeat",

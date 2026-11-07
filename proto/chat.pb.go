@@ -1071,6 +1071,103 @@ func (x *TypingResponse) GetTypingUserIds() []string {
 	return nil
 }
 
+type DeleteMessageRequest struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	MessageId string                 `protobuf:"bytes,1,opt,name=message_id,json=messageId,proto3" json:"message_id,omitempty"`
+	// Must be the sender; ownership is enforced by the service.
+	SenderId      string `protobuf:"bytes,2,opt,name=sender_id,json=senderId,proto3" json:"sender_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteMessageRequest) Reset() {
+	*x = DeleteMessageRequest{}
+	mi := &file_chat_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteMessageRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteMessageRequest) ProtoMessage() {}
+
+func (x *DeleteMessageRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_chat_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteMessageRequest.ProtoReflect.Descriptor instead.
+func (*DeleteMessageRequest) Descriptor() ([]byte, []int) {
+	return file_chat_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *DeleteMessageRequest) GetMessageId() string {
+	if x != nil {
+		return x.MessageId
+	}
+	return ""
+}
+
+func (x *DeleteMessageRequest) GetSenderId() string {
+	if x != nil {
+		return x.SenderId
+	}
+	return ""
+}
+
+type DeleteMessageResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteMessageResponse) Reset() {
+	*x = DeleteMessageResponse{}
+	mi := &file_chat_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteMessageResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteMessageResponse) ProtoMessage() {}
+
+func (x *DeleteMessageResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_chat_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteMessageResponse.ProtoReflect.Descriptor instead.
+func (*DeleteMessageResponse) Descriptor() ([]byte, []int) {
+	return file_chat_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *DeleteMessageResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
 type HeartbeatRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
@@ -1080,7 +1177,7 @@ type HeartbeatRequest struct {
 
 func (x *HeartbeatRequest) Reset() {
 	*x = HeartbeatRequest{}
-	mi := &file_chat_proto_msgTypes[16]
+	mi := &file_chat_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1092,7 +1189,7 @@ func (x *HeartbeatRequest) String() string {
 func (*HeartbeatRequest) ProtoMessage() {}
 
 func (x *HeartbeatRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_chat_proto_msgTypes[16]
+	mi := &file_chat_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1105,7 +1202,7 @@ func (x *HeartbeatRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeartbeatRequest.ProtoReflect.Descriptor instead.
 func (*HeartbeatRequest) Descriptor() ([]byte, []int) {
-	return file_chat_proto_rawDescGZIP(), []int{16}
+	return file_chat_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *HeartbeatRequest) GetUserId() string {
@@ -1124,7 +1221,7 @@ type GetPresenceRequest struct {
 
 func (x *GetPresenceRequest) Reset() {
 	*x = GetPresenceRequest{}
-	mi := &file_chat_proto_msgTypes[17]
+	mi := &file_chat_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1136,7 +1233,7 @@ func (x *GetPresenceRequest) String() string {
 func (*GetPresenceRequest) ProtoMessage() {}
 
 func (x *GetPresenceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_chat_proto_msgTypes[17]
+	mi := &file_chat_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1149,7 +1246,7 @@ func (x *GetPresenceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPresenceRequest.ProtoReflect.Descriptor instead.
 func (*GetPresenceRequest) Descriptor() ([]byte, []int) {
-	return file_chat_proto_rawDescGZIP(), []int{17}
+	return file_chat_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *GetPresenceRequest) GetUserIds() []string {
@@ -1169,7 +1266,7 @@ type PresenceResponse struct {
 
 func (x *PresenceResponse) Reset() {
 	*x = PresenceResponse{}
-	mi := &file_chat_proto_msgTypes[18]
+	mi := &file_chat_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1181,7 +1278,7 @@ func (x *PresenceResponse) String() string {
 func (*PresenceResponse) ProtoMessage() {}
 
 func (x *PresenceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_chat_proto_msgTypes[18]
+	mi := &file_chat_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1194,7 +1291,7 @@ func (x *PresenceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PresenceResponse.ProtoReflect.Descriptor instead.
 func (*PresenceResponse) Descriptor() ([]byte, []int) {
-	return file_chat_proto_rawDescGZIP(), []int{18}
+	return file_chat_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *PresenceResponse) GetPresence() map[string]int64 {
@@ -1287,7 +1384,13 @@ const file_chat_proto_rawDesc = "" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x1b\n" +
 	"\tis_typing\x18\x03 \x01(\bR\bisTyping\"8\n" +
 	"\x0eTypingResponse\x12&\n" +
-	"\x0ftyping_user_ids\x18\x01 \x03(\tR\rtypingUserIds\"+\n" +
+	"\x0ftyping_user_ids\x18\x01 \x03(\tR\rtypingUserIds\"R\n" +
+	"\x14DeleteMessageRequest\x12\x1d\n" +
+	"\n" +
+	"message_id\x18\x01 \x01(\tR\tmessageId\x12\x1b\n" +
+	"\tsender_id\x18\x02 \x01(\tR\bsenderId\"1\n" +
+	"\x15DeleteMessageResponse\x12\x18\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\"+\n" +
 	"\x10HeartbeatRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"/\n" +
 	"\x12GetPresenceRequest\x12\x19\n" +
@@ -1300,7 +1403,7 @@ const file_chat_proto_rawDesc = "" +
 	"\x10ConversationType\x12!\n" +
 	"\x1dCONVERSATION_TYPE_UNSPECIFIED\x10\x00\x12\x1c\n" +
 	"\x18CONVERSATION_TYPE_DIRECT\x10\x01\x12\x1b\n" +
-	"\x17CONVERSATION_TYPE_GROUP\x10\x022\xf9\x04\n" +
+	"\x17CONVERSATION_TYPE_GROUP\x10\x022\xc3\x05\n" +
 	"\vChatService\x12Q\n" +
 	"\x12CreateConversation\x12\x1f.chat.CreateConversationRequest\x1a\x1a.chat.ConversationResponse\x12K\n" +
 	"\x0fGetConversation\x12\x1c.chat.GetConversationRequest\x1a\x1a.chat.ConversationResponse\x12T\n" +
@@ -1308,7 +1411,8 @@ const file_chat_proto_rawDesc = "" +
 	"\vSendMessage\x12\x18.chat.SendMessageRequest\x1a\x19.chat.SendMessageResponse\x12B\n" +
 	"\vGetMessages\x12\x18.chat.GetMessagesRequest\x1a\x19.chat.GetMessagesResponse\x129\n" +
 	"\bMarkRead\x12\x15.chat.MarkReadRequest\x1a\x16.chat.MarkReadResponse\x123\n" +
-	"\x06Typing\x12\x13.chat.TypingRequest\x1a\x14.chat.TypingResponse\x12;\n" +
+	"\x06Typing\x12\x13.chat.TypingRequest\x1a\x14.chat.TypingResponse\x12H\n" +
+	"\rDeleteMessage\x12\x1a.chat.DeleteMessageRequest\x1a\x1b.chat.DeleteMessageResponse\x12;\n" +
 	"\tHeartbeat\x12\x16.chat.HeartbeatRequest\x1a\x16.chat.PresenceResponse\x12?\n" +
 	"\vGetPresence\x12\x18.chat.GetPresenceRequest\x1a\x16.chat.PresenceResponseB*Z(github.com/chetansachan/socialflow/protob\x06proto3"
 
@@ -1325,7 +1429,7 @@ func file_chat_proto_rawDescGZIP() []byte {
 }
 
 var file_chat_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_chat_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_chat_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
 var file_chat_proto_goTypes = []any{
 	(ConversationType)(0),             // 0: chat.ConversationType
 	(*Participant)(nil),               // 1: chat.Participant
@@ -1344,10 +1448,12 @@ var file_chat_proto_goTypes = []any{
 	(*MarkReadResponse)(nil),          // 14: chat.MarkReadResponse
 	(*TypingRequest)(nil),             // 15: chat.TypingRequest
 	(*TypingResponse)(nil),            // 16: chat.TypingResponse
-	(*HeartbeatRequest)(nil),          // 17: chat.HeartbeatRequest
-	(*GetPresenceRequest)(nil),        // 18: chat.GetPresenceRequest
-	(*PresenceResponse)(nil),          // 19: chat.PresenceResponse
-	nil,                               // 20: chat.PresenceResponse.PresenceEntry
+	(*DeleteMessageRequest)(nil),      // 17: chat.DeleteMessageRequest
+	(*DeleteMessageResponse)(nil),     // 18: chat.DeleteMessageResponse
+	(*HeartbeatRequest)(nil),          // 19: chat.HeartbeatRequest
+	(*GetPresenceRequest)(nil),        // 20: chat.GetPresenceRequest
+	(*PresenceResponse)(nil),          // 21: chat.PresenceResponse
+	nil,                               // 22: chat.PresenceResponse.PresenceEntry
 }
 var file_chat_proto_depIdxs = []int32{
 	0,  // 0: chat.Conversation.type:type_name -> chat.ConversationType
@@ -1357,7 +1463,7 @@ var file_chat_proto_depIdxs = []int32{
 	2,  // 4: chat.ListConversationsResponse.conversations:type_name -> chat.Conversation
 	3,  // 5: chat.SendMessageResponse.message:type_name -> chat.Message
 	3,  // 6: chat.GetMessagesResponse.messages:type_name -> chat.Message
-	20, // 7: chat.PresenceResponse.presence:type_name -> chat.PresenceResponse.PresenceEntry
+	22, // 7: chat.PresenceResponse.presence:type_name -> chat.PresenceResponse.PresenceEntry
 	4,  // 8: chat.ChatService.CreateConversation:input_type -> chat.CreateConversationRequest
 	5,  // 9: chat.ChatService.GetConversation:input_type -> chat.GetConversationRequest
 	7,  // 10: chat.ChatService.ListConversations:input_type -> chat.ListConversationsRequest
@@ -1365,19 +1471,21 @@ var file_chat_proto_depIdxs = []int32{
 	11, // 12: chat.ChatService.GetMessages:input_type -> chat.GetMessagesRequest
 	13, // 13: chat.ChatService.MarkRead:input_type -> chat.MarkReadRequest
 	15, // 14: chat.ChatService.Typing:input_type -> chat.TypingRequest
-	17, // 15: chat.ChatService.Heartbeat:input_type -> chat.HeartbeatRequest
-	18, // 16: chat.ChatService.GetPresence:input_type -> chat.GetPresenceRequest
-	6,  // 17: chat.ChatService.CreateConversation:output_type -> chat.ConversationResponse
-	6,  // 18: chat.ChatService.GetConversation:output_type -> chat.ConversationResponse
-	8,  // 19: chat.ChatService.ListConversations:output_type -> chat.ListConversationsResponse
-	10, // 20: chat.ChatService.SendMessage:output_type -> chat.SendMessageResponse
-	12, // 21: chat.ChatService.GetMessages:output_type -> chat.GetMessagesResponse
-	14, // 22: chat.ChatService.MarkRead:output_type -> chat.MarkReadResponse
-	16, // 23: chat.ChatService.Typing:output_type -> chat.TypingResponse
-	19, // 24: chat.ChatService.Heartbeat:output_type -> chat.PresenceResponse
-	19, // 25: chat.ChatService.GetPresence:output_type -> chat.PresenceResponse
-	17, // [17:26] is the sub-list for method output_type
-	8,  // [8:17] is the sub-list for method input_type
+	17, // 15: chat.ChatService.DeleteMessage:input_type -> chat.DeleteMessageRequest
+	19, // 16: chat.ChatService.Heartbeat:input_type -> chat.HeartbeatRequest
+	20, // 17: chat.ChatService.GetPresence:input_type -> chat.GetPresenceRequest
+	6,  // 18: chat.ChatService.CreateConversation:output_type -> chat.ConversationResponse
+	6,  // 19: chat.ChatService.GetConversation:output_type -> chat.ConversationResponse
+	8,  // 20: chat.ChatService.ListConversations:output_type -> chat.ListConversationsResponse
+	10, // 21: chat.ChatService.SendMessage:output_type -> chat.SendMessageResponse
+	12, // 22: chat.ChatService.GetMessages:output_type -> chat.GetMessagesResponse
+	14, // 23: chat.ChatService.MarkRead:output_type -> chat.MarkReadResponse
+	16, // 24: chat.ChatService.Typing:output_type -> chat.TypingResponse
+	18, // 25: chat.ChatService.DeleteMessage:output_type -> chat.DeleteMessageResponse
+	21, // 26: chat.ChatService.Heartbeat:output_type -> chat.PresenceResponse
+	21, // 27: chat.ChatService.GetPresence:output_type -> chat.PresenceResponse
+	18, // [18:28] is the sub-list for method output_type
+	8,  // [8:18] is the sub-list for method input_type
 	8,  // [8:8] is the sub-list for extension type_name
 	8,  // [8:8] is the sub-list for extension extendee
 	0,  // [0:8] is the sub-list for field type_name
@@ -1394,7 +1502,7 @@ func file_chat_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_chat_proto_rawDesc), len(file_chat_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   20,
+			NumMessages:   22,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
