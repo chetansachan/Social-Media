@@ -1101,6 +1101,104 @@ func (x *DeleteUserResponse) GetMessage() string {
 	return ""
 }
 
+type SearchUsersRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Username prefix or display-name keywords.
+	Query         string `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
+	Limit         int32  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchUsersRequest) Reset() {
+	*x = SearchUsersRequest{}
+	mi := &file_user_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchUsersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchUsersRequest) ProtoMessage() {}
+
+func (x *SearchUsersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_user_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchUsersRequest.ProtoReflect.Descriptor instead.
+func (*SearchUsersRequest) Descriptor() ([]byte, []int) {
+	return file_user_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *SearchUsersRequest) GetQuery() string {
+	if x != nil {
+		return x.Query
+	}
+	return ""
+}
+
+func (x *SearchUsersRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type SearchUsersResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Exact username matches first, then prefix matches, then fuzzy matches.
+	Users         []*User `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchUsersResponse) Reset() {
+	*x = SearchUsersResponse{}
+	mi := &file_user_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchUsersResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchUsersResponse) ProtoMessage() {}
+
+func (x *SearchUsersResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_user_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchUsersResponse.ProtoReflect.Descriptor instead.
+func (*SearchUsersResponse) Descriptor() ([]byte, []int) {
+	return file_user_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *SearchUsersResponse) GetUsers() []*User {
+	if x != nil {
+		return x.Users
+	}
+	return nil
+}
+
 var File_user_proto protoreflect.FileDescriptor
 
 const file_user_proto_rawDesc = "" +
@@ -1196,7 +1294,13 @@ const file_user_proto_rawDesc = "" +
 	"\x11DeleteUserRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\".\n" +
 	"\x12DeleteUserResponse\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage2\xf3\x04\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\"@\n" +
+	"\x12SearchUsersRequest\x12\x14\n" +
+	"\x05query\x18\x01 \x01(\tR\x05query\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\"7\n" +
+	"\x13SearchUsersResponse\x12 \n" +
+	"\x05users\x18\x01 \x03(\v2\n" +
+	".user.UserR\x05users2\xb7\x05\n" +
 	"\vUserService\x12A\n" +
 	"\bRegister\x12\x19.user.RegisterUserRequest\x1a\x1a.user.RegisterUserResponse\x12B\n" +
 	"\vGetUserById\x12\x18.user.GetUserByIdRequest\x1a\x19.user.GetUserByIdResponse\x12K\n" +
@@ -1208,7 +1312,8 @@ const file_user_proto_rawDesc = "" +
 	"\n" +
 	"UpdateUser\x12\x17.user.UpdateUserRequest\x1a\x18.user.UpdateUserResponse\x12?\n" +
 	"\n" +
-	"DeleteUser\x12\x17.user.DeleteUserRequest\x1a\x18.user.DeleteUserResponseB*Z(github.com/chetansachan/socialflow/protob\x06proto3"
+	"DeleteUser\x12\x17.user.DeleteUserRequest\x1a\x18.user.DeleteUserResponse\x12B\n" +
+	"\vSearchUsers\x12\x18.user.SearchUsersRequest\x1a\x19.user.SearchUsersResponseB*Z(github.com/chetansachan/socialflow/protob\x06proto3"
 
 var (
 	file_user_proto_rawDescOnce sync.Once
@@ -1222,7 +1327,7 @@ func file_user_proto_rawDescGZIP() []byte {
 	return file_user_proto_rawDescData
 }
 
-var file_user_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_user_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
 var file_user_proto_goTypes = []any{
 	(*User)(nil),                      // 0: user.User
 	(*RegisterUserRequest)(nil),       // 1: user.RegisterUserRequest
@@ -1244,6 +1349,8 @@ var file_user_proto_goTypes = []any{
 	(*UpdateUserRequest)(nil),         // 17: user.UpdateUserRequest
 	(*DeleteUserRequest)(nil),         // 18: user.DeleteUserRequest
 	(*DeleteUserResponse)(nil),        // 19: user.DeleteUserResponse
+	(*SearchUsersRequest)(nil),        // 20: user.SearchUsersRequest
+	(*SearchUsersResponse)(nil),       // 21: user.SearchUsersResponse
 }
 var file_user_proto_depIdxs = []int32{
 	0,  // 0: user.RegisterUserResponse.user:type_name -> user.User
@@ -1252,29 +1359,32 @@ var file_user_proto_depIdxs = []int32{
 	0,  // 3: user.GetUserByUsernameResponse.user:type_name -> user.User
 	0,  // 4: user.BatchGetUsersResponse.users:type_name -> user.User
 	0,  // 5: user.UpdateUserResponse.user:type_name -> user.User
-	1,  // 6: user.UserService.Register:input_type -> user.RegisterUserRequest
-	3,  // 7: user.UserService.GetUserById:input_type -> user.GetUserByIdRequest
-	5,  // 8: user.UserService.GetUserByEmail:input_type -> user.GetUserByEmailRequest
-	7,  // 9: user.UserService.GetUserByUsername:input_type -> user.GetUserByUsernameRequest
-	9,  // 10: user.UserService.BatchGetUsers:input_type -> user.BatchGetUsersRequest
-	11, // 11: user.UserService.Login:input_type -> user.LoginRequest
-	14, // 12: user.UserService.Refresh:input_type -> user.RefreshTknRequest
-	17, // 13: user.UserService.UpdateUser:input_type -> user.UpdateUserRequest
-	18, // 14: user.UserService.DeleteUser:input_type -> user.DeleteUserRequest
-	2,  // 15: user.UserService.Register:output_type -> user.RegisterUserResponse
-	4,  // 16: user.UserService.GetUserById:output_type -> user.GetUserByIdResponse
-	6,  // 17: user.UserService.GetUserByEmail:output_type -> user.GetUserByEmailResponse
-	8,  // 18: user.UserService.GetUserByUsername:output_type -> user.GetUserByUsernameResponse
-	10, // 19: user.UserService.BatchGetUsers:output_type -> user.BatchGetUsersResponse
-	12, // 20: user.UserService.Login:output_type -> user.LoginResponse
-	15, // 21: user.UserService.Refresh:output_type -> user.RefreshTknResponse
-	16, // 22: user.UserService.UpdateUser:output_type -> user.UpdateUserResponse
-	19, // 23: user.UserService.DeleteUser:output_type -> user.DeleteUserResponse
-	15, // [15:24] is the sub-list for method output_type
-	6,  // [6:15] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	0,  // 6: user.SearchUsersResponse.users:type_name -> user.User
+	1,  // 7: user.UserService.Register:input_type -> user.RegisterUserRequest
+	3,  // 8: user.UserService.GetUserById:input_type -> user.GetUserByIdRequest
+	5,  // 9: user.UserService.GetUserByEmail:input_type -> user.GetUserByEmailRequest
+	7,  // 10: user.UserService.GetUserByUsername:input_type -> user.GetUserByUsernameRequest
+	9,  // 11: user.UserService.BatchGetUsers:input_type -> user.BatchGetUsersRequest
+	11, // 12: user.UserService.Login:input_type -> user.LoginRequest
+	14, // 13: user.UserService.Refresh:input_type -> user.RefreshTknRequest
+	17, // 14: user.UserService.UpdateUser:input_type -> user.UpdateUserRequest
+	18, // 15: user.UserService.DeleteUser:input_type -> user.DeleteUserRequest
+	20, // 16: user.UserService.SearchUsers:input_type -> user.SearchUsersRequest
+	2,  // 17: user.UserService.Register:output_type -> user.RegisterUserResponse
+	4,  // 18: user.UserService.GetUserById:output_type -> user.GetUserByIdResponse
+	6,  // 19: user.UserService.GetUserByEmail:output_type -> user.GetUserByEmailResponse
+	8,  // 20: user.UserService.GetUserByUsername:output_type -> user.GetUserByUsernameResponse
+	10, // 21: user.UserService.BatchGetUsers:output_type -> user.BatchGetUsersResponse
+	12, // 22: user.UserService.Login:output_type -> user.LoginResponse
+	15, // 23: user.UserService.Refresh:output_type -> user.RefreshTknResponse
+	16, // 24: user.UserService.UpdateUser:output_type -> user.UpdateUserResponse
+	19, // 25: user.UserService.DeleteUser:output_type -> user.DeleteUserResponse
+	21, // 26: user.UserService.SearchUsers:output_type -> user.SearchUsersResponse
+	17, // [17:27] is the sub-list for method output_type
+	7,  // [7:17] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_user_proto_init() }
@@ -1290,7 +1400,7 @@ func file_user_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_user_proto_rawDesc), len(file_user_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   20,
+			NumMessages:   22,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

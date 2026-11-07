@@ -32,6 +32,7 @@ const (
 	PostService_GetAllLikedPosts_FullMethodName    = "/post.PostService/GetAllLikedPosts"
 	PostService_GetLikeStates_FullMethodName       = "/post.PostService/GetLikeStates"
 	PostService_GetUploadSignature_FullMethodName  = "/post.PostService/GetUploadSignature"
+	PostService_SearchPosts_FullMethodName         = "/post.PostService/SearchPosts"
 )
 
 // PostServiceClient is the client API for PostService service.
@@ -51,6 +52,7 @@ type PostServiceClient interface {
 	GetAllLikedPosts(ctx context.Context, in *GetAllLikedPostsRequest, opts ...grpc.CallOption) (*GetAllLikedPostsResponse, error)
 	GetLikeStates(ctx context.Context, in *GetLikeStatesRequest, opts ...grpc.CallOption) (*GetLikeStatesResponse, error)
 	GetUploadSignature(ctx context.Context, in *GetUploadSignatureRequest, opts ...grpc.CallOption) (*GetUploadSignatureResponse, error)
+	SearchPosts(ctx context.Context, in *SearchPostsRequest, opts ...grpc.CallOption) (*SearchPostsResponse, error)
 }
 
 type postServiceClient struct {
@@ -191,6 +193,16 @@ func (c *postServiceClient) GetUploadSignature(ctx context.Context, in *GetUploa
 	return out, nil
 }
 
+func (c *postServiceClient) SearchPosts(ctx context.Context, in *SearchPostsRequest, opts ...grpc.CallOption) (*SearchPostsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SearchPostsResponse)
+	err := c.cc.Invoke(ctx, PostService_SearchPosts_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PostServiceServer is the server API for PostService service.
 // All implementations must embed UnimplementedPostServiceServer
 // for forward compatibility.
@@ -208,6 +220,7 @@ type PostServiceServer interface {
 	GetAllLikedPosts(context.Context, *GetAllLikedPostsRequest) (*GetAllLikedPostsResponse, error)
 	GetLikeStates(context.Context, *GetLikeStatesRequest) (*GetLikeStatesResponse, error)
 	GetUploadSignature(context.Context, *GetUploadSignatureRequest) (*GetUploadSignatureResponse, error)
+	SearchPosts(context.Context, *SearchPostsRequest) (*SearchPostsResponse, error)
 	mustEmbedUnimplementedPostServiceServer()
 }
 
@@ -256,6 +269,9 @@ func (UnimplementedPostServiceServer) GetLikeStates(context.Context, *GetLikeSta
 }
 func (UnimplementedPostServiceServer) GetUploadSignature(context.Context, *GetUploadSignatureRequest) (*GetUploadSignatureResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetUploadSignature not implemented")
+}
+func (UnimplementedPostServiceServer) SearchPosts(context.Context, *SearchPostsRequest) (*SearchPostsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SearchPosts not implemented")
 }
 func (UnimplementedPostServiceServer) mustEmbedUnimplementedPostServiceServer() {}
 func (UnimplementedPostServiceServer) testEmbeddedByValue()                     {}
@@ -512,6 +528,24 @@ func _PostService_GetUploadSignature_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PostService_SearchPosts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchPostsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PostServiceServer).SearchPosts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PostService_SearchPosts_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PostServiceServer).SearchPosts(ctx, req.(*SearchPostsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PostService_ServiceDesc is the grpc.ServiceDesc for PostService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -570,6 +604,10 @@ var PostService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUploadSignature",
 			Handler:    _PostService_GetUploadSignature_Handler,
+		},
+		{
+			MethodName: "SearchPosts",
+			Handler:    _PostService_SearchPosts_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

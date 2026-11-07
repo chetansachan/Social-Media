@@ -330,3 +330,36 @@ func (h *PostHandler) GetUploadSignature(ctx context.Context, req *postpb.GetUpl
 		ExpiresAt: signature.ExpiresAt,
 	}, nil
 }
+
+func toPostPB(post *models.Post) *postpb.Post {
+	if post == nil {
+		return nil
+	}
+	return &postpb.Post{
+		Id:        post.ID.String(),
+		AuthorId:  post.AuthorID.String(),
+		Content:   post.Content,
+		MediaUrl:  post.MediaURL,
+		IsPublic:  post.IsPublic,
+		LikeCount: int32(post.LikeCount),
+		CreatedAt: post.CreatedAt.Format(time.RFC3339),
+		UpdatedAt: formatTimestamp(post.UpdatedAt),
+	}
+}
+
+func (h *PostHandler) SearchPosts(ctx context.Context, req *postpb.SearchPostsRequest) (*postpb.SearchPostsResponse, error) {
+	posts, err := h.postService.SearchPosts(ctx, req.GetQuery(), req.GetLimit())
+	if err != nil {
+		if errors.Is(err, models.ErrInvalidInput) {
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		}
+		return nil, status.Errorf(codes.Internal, "failed to search posts: %v", err)
+	}
+
+	results := make([]*postpb.Post, 0, len(posts))
+	for i := range posts {
+		results = append(results, toPostPB(&posts[i]))
+	}
+
+	return &postpb.SearchPostsResponse{Posts: results}, nil
+}

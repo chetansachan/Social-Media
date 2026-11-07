@@ -1425,6 +1425,104 @@ func (x *GetUploadSignatureResponse) GetExpiresAt() int64 {
 	return 0
 }
 
+type SearchPostsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Plain keywords or hashtags such as "#golang".
+	Query         string `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
+	Limit         int32  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchPostsRequest) Reset() {
+	*x = SearchPostsRequest{}
+	mi := &file_post_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchPostsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchPostsRequest) ProtoMessage() {}
+
+func (x *SearchPostsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_post_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchPostsRequest.ProtoReflect.Descriptor instead.
+func (*SearchPostsRequest) Descriptor() ([]byte, []int) {
+	return file_post_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *SearchPostsRequest) GetQuery() string {
+	if x != nil {
+		return x.Query
+	}
+	return ""
+}
+
+func (x *SearchPostsRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type SearchPostsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Ranked matches, best first. Public, non-deleted posts only.
+	Posts         []*Post `protobuf:"bytes,1,rep,name=posts,proto3" json:"posts,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchPostsResponse) Reset() {
+	*x = SearchPostsResponse{}
+	mi := &file_post_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchPostsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchPostsResponse) ProtoMessage() {}
+
+func (x *SearchPostsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_post_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchPostsResponse.ProtoReflect.Descriptor instead.
+func (*SearchPostsResponse) Descriptor() ([]byte, []int) {
+	return file_post_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *SearchPostsResponse) GetPosts() []*Post {
+	if x != nil {
+		return x.Posts
+	}
+	return nil
+}
+
 var File_post_proto protoreflect.FileDescriptor
 
 const file_post_proto_rawDesc = "" +
@@ -1534,7 +1632,13 @@ const file_post_proto_rawDesc = "" +
 	"\n" +
 	"upload_url\x18\a \x01(\tR\tuploadUrl\x12\x1d\n" +
 	"\n" +
-	"expires_at\x18\b \x01(\x03R\texpiresAt2\xd1\a\n" +
+	"expires_at\x18\b \x01(\x03R\texpiresAt\"@\n" +
+	"\x12SearchPostsRequest\x12\x14\n" +
+	"\x05query\x18\x01 \x01(\tR\x05query\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\"7\n" +
+	"\x13SearchPostsResponse\x12 \n" +
+	"\x05posts\x18\x01 \x03(\v2\n" +
+	".post.PostR\x05posts2\x95\b\n" +
 	"\vPostService\x12?\n" +
 	"\n" +
 	"CreatePost\x12\x17.post.CreatePostRequest\x1a\x18.post.CreatePostResponse\x12<\n" +
@@ -1551,7 +1655,8 @@ const file_post_proto_rawDesc = "" +
 	"\x10GetAllPostLikers\x12\x1d.post.GetAllPostLikersRequest\x1a\x1e.post.GetAllPostLikersResponse\x12Q\n" +
 	"\x10GetAllLikedPosts\x12\x1d.post.GetAllLikedPostsRequest\x1a\x1e.post.GetAllLikedPostsResponse\x12H\n" +
 	"\rGetLikeStates\x12\x1a.post.GetLikeStatesRequest\x1a\x1b.post.GetLikeStatesResponse\x12W\n" +
-	"\x12GetUploadSignature\x12\x1f.post.GetUploadSignatureRequest\x1a .post.GetUploadSignatureResponseB*Z(github.com/chetansachan/socialflow/protob\x06proto3"
+	"\x12GetUploadSignature\x12\x1f.post.GetUploadSignatureRequest\x1a .post.GetUploadSignatureResponse\x12B\n" +
+	"\vSearchPosts\x12\x18.post.SearchPostsRequest\x1a\x19.post.SearchPostsResponseB*Z(github.com/chetansachan/socialflow/protob\x06proto3"
 
 var (
 	file_post_proto_rawDescOnce sync.Once
@@ -1565,7 +1670,7 @@ func file_post_proto_rawDescGZIP() []byte {
 	return file_post_proto_rawDescData
 }
 
-var file_post_proto_msgTypes = make([]protoimpl.MessageInfo, 28)
+var file_post_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
 var file_post_proto_goTypes = []any{
 	(*Post)(nil),                       // 0: post.Post
 	(*PostByIdRequest)(nil),            // 1: post.PostByIdRequest
@@ -1594,7 +1699,9 @@ var file_post_proto_goTypes = []any{
 	(*GetLikeStatesResponse)(nil),      // 24: post.GetLikeStatesResponse
 	(*GetUploadSignatureRequest)(nil),  // 25: post.GetUploadSignatureRequest
 	(*GetUploadSignatureResponse)(nil), // 26: post.GetUploadSignatureResponse
-	nil,                                // 27: post.GetLikeStatesResponse.LikedEntry
+	(*SearchPostsRequest)(nil),         // 27: post.SearchPostsRequest
+	(*SearchPostsResponse)(nil),        // 28: post.SearchPostsResponse
+	nil,                                // 29: post.GetLikeStatesResponse.LikedEntry
 }
 var file_post_proto_depIdxs = []int32{
 	0,  // 0: post.PostByIdResponse.post:type_name -> post.Post
@@ -1604,38 +1711,41 @@ var file_post_proto_depIdxs = []int32{
 	0,  // 4: post.AllArchivedPostResponse.post:type_name -> post.Post
 	0,  // 5: post.AllPostResponse.post:type_name -> post.Post
 	0,  // 6: post.GetAllLikedPostsResponse.post:type_name -> post.Post
-	27, // 7: post.GetLikeStatesResponse.liked:type_name -> post.GetLikeStatesResponse.LikedEntry
-	5,  // 8: post.PostService.CreatePost:input_type -> post.CreatePostRequest
-	1,  // 9: post.PostService.GetPostById:input_type -> post.PostByIdRequest
-	3,  // 10: post.PostService.DeletePost:input_type -> post.DeletePostRequest
-	7,  // 11: post.PostService.UpdatePost:input_type -> post.UpdatePostRequest
-	11, // 12: post.PostService.MovePostToArchived:input_type -> post.MovePostToArchivedRequest
-	9,  // 13: post.PostService.GetArchivedPostById:input_type -> post.ArchivedPostByIdRequest
-	13, // 14: post.PostService.GetAllArchivedPosts:input_type -> post.AllArchivedPostRequest
-	15, // 15: post.PostService.GetAllPosts:input_type -> post.AllPostRequest
-	17, // 16: post.PostService.LikePost:input_type -> post.LikePostRequest
-	19, // 17: post.PostService.GetAllPostLikers:input_type -> post.GetAllPostLikersRequest
-	21, // 18: post.PostService.GetAllLikedPosts:input_type -> post.GetAllLikedPostsRequest
-	23, // 19: post.PostService.GetLikeStates:input_type -> post.GetLikeStatesRequest
-	25, // 20: post.PostService.GetUploadSignature:input_type -> post.GetUploadSignatureRequest
-	6,  // 21: post.PostService.CreatePost:output_type -> post.CreatePostResponse
-	2,  // 22: post.PostService.GetPostById:output_type -> post.PostByIdResponse
-	4,  // 23: post.PostService.DeletePost:output_type -> post.DeletePostResponse
-	8,  // 24: post.PostService.UpdatePost:output_type -> post.UpdatePostResponse
-	12, // 25: post.PostService.MovePostToArchived:output_type -> post.MovePostToArchivedResponse
-	10, // 26: post.PostService.GetArchivedPostById:output_type -> post.ArchivedPostByIdResponse
-	14, // 27: post.PostService.GetAllArchivedPosts:output_type -> post.AllArchivedPostResponse
-	16, // 28: post.PostService.GetAllPosts:output_type -> post.AllPostResponse
-	18, // 29: post.PostService.LikePost:output_type -> post.LikePostResponse
-	20, // 30: post.PostService.GetAllPostLikers:output_type -> post.GetAllPostLikersResponse
-	22, // 31: post.PostService.GetAllLikedPosts:output_type -> post.GetAllLikedPostsResponse
-	24, // 32: post.PostService.GetLikeStates:output_type -> post.GetLikeStatesResponse
-	26, // 33: post.PostService.GetUploadSignature:output_type -> post.GetUploadSignatureResponse
-	21, // [21:34] is the sub-list for method output_type
-	8,  // [8:21] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	29, // 7: post.GetLikeStatesResponse.liked:type_name -> post.GetLikeStatesResponse.LikedEntry
+	0,  // 8: post.SearchPostsResponse.posts:type_name -> post.Post
+	5,  // 9: post.PostService.CreatePost:input_type -> post.CreatePostRequest
+	1,  // 10: post.PostService.GetPostById:input_type -> post.PostByIdRequest
+	3,  // 11: post.PostService.DeletePost:input_type -> post.DeletePostRequest
+	7,  // 12: post.PostService.UpdatePost:input_type -> post.UpdatePostRequest
+	11, // 13: post.PostService.MovePostToArchived:input_type -> post.MovePostToArchivedRequest
+	9,  // 14: post.PostService.GetArchivedPostById:input_type -> post.ArchivedPostByIdRequest
+	13, // 15: post.PostService.GetAllArchivedPosts:input_type -> post.AllArchivedPostRequest
+	15, // 16: post.PostService.GetAllPosts:input_type -> post.AllPostRequest
+	17, // 17: post.PostService.LikePost:input_type -> post.LikePostRequest
+	19, // 18: post.PostService.GetAllPostLikers:input_type -> post.GetAllPostLikersRequest
+	21, // 19: post.PostService.GetAllLikedPosts:input_type -> post.GetAllLikedPostsRequest
+	23, // 20: post.PostService.GetLikeStates:input_type -> post.GetLikeStatesRequest
+	25, // 21: post.PostService.GetUploadSignature:input_type -> post.GetUploadSignatureRequest
+	27, // 22: post.PostService.SearchPosts:input_type -> post.SearchPostsRequest
+	6,  // 23: post.PostService.CreatePost:output_type -> post.CreatePostResponse
+	2,  // 24: post.PostService.GetPostById:output_type -> post.PostByIdResponse
+	4,  // 25: post.PostService.DeletePost:output_type -> post.DeletePostResponse
+	8,  // 26: post.PostService.UpdatePost:output_type -> post.UpdatePostResponse
+	12, // 27: post.PostService.MovePostToArchived:output_type -> post.MovePostToArchivedResponse
+	10, // 28: post.PostService.GetArchivedPostById:output_type -> post.ArchivedPostByIdResponse
+	14, // 29: post.PostService.GetAllArchivedPosts:output_type -> post.AllArchivedPostResponse
+	16, // 30: post.PostService.GetAllPosts:output_type -> post.AllPostResponse
+	18, // 31: post.PostService.LikePost:output_type -> post.LikePostResponse
+	20, // 32: post.PostService.GetAllPostLikers:output_type -> post.GetAllPostLikersResponse
+	22, // 33: post.PostService.GetAllLikedPosts:output_type -> post.GetAllLikedPostsResponse
+	24, // 34: post.PostService.GetLikeStates:output_type -> post.GetLikeStatesResponse
+	26, // 35: post.PostService.GetUploadSignature:output_type -> post.GetUploadSignatureResponse
+	28, // 36: post.PostService.SearchPosts:output_type -> post.SearchPostsResponse
+	23, // [23:37] is the sub-list for method output_type
+	9,  // [9:23] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_post_proto_init() }
@@ -1651,7 +1761,7 @@ func file_post_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_post_proto_rawDesc), len(file_post_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   28,
+			NumMessages:   30,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

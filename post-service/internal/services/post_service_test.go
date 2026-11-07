@@ -24,6 +24,12 @@ type fakePostRepo struct {
 	savedFiles  []string
 	forceGetErr error
 
+	lastSearchQuery    string
+	lastSearchHashtags []string
+	lastSearchLimit    int
+	searchResults      []models.Post
+	searchErr          error
+
 	mu           sync.Mutex
 	getByIDCalls int
 	getByIDHook  func()
@@ -196,6 +202,13 @@ func (r *fakePostRepo) GetLikeStates(ctx context.Context, userID uuid.UUID, post
 func (r *fakePostRepo) SaveFiles(ctx context.Context, name string, ext string, mimeType string) error {
 	r.savedFiles = append(r.savedFiles, name)
 	return nil
+}
+
+func (r *fakePostRepo) SearchPosts(ctx context.Context, query string, hashtags []string, limit int) ([]models.Post, error) {
+	r.lastSearchQuery = query
+	r.lastSearchHashtags = hashtags
+	r.lastSearchLimit = limit
+	return r.searchResults, r.searchErr
 }
 
 func seedPost(repo *fakePostRepo, authorID uuid.UUID, content string) *models.Post {
@@ -721,5 +734,73 @@ func TestLikePostInvalidatesCachedDetail(t *testing.T) {
 	}
 	if !postCache.wasDeleted(post.ID) {
 		t.Fatal("like left a stale like_count in the cache")
+	}
+}
+
+func TestSearchPostsValidatesQuery(t *testing.T) {
+	svc := NewPostService(newFakePostRepo())
+
+	for _, query := range []string{"", "   ", strings.Repeat("a", models.MaxSearchQueryLength+1)} {
+		if _, err := svc.SearchPosts(context.Background(), query, 0); !errors.Is(err, models.ErrInvalidInput) {
+			t.Fatalf("SearchPosts(%q...): err = %v, want ErrInvalidInput", query[:min(len(query), 8)], err)
+		}
+	}
+}
+
+func TestSearchPostsClampsLimitAndForwardsHashtags(t *testing.T) {
+	repo := newFakePostRepo()
+	repo.searchResults = []models.Post{{ID: uuid.New(), Content: "found"}}
+	svc := NewPostService(repo)
+
+	for _, tc := range []struct {
+		name      string
+		requested int32
+		want      int
+	}{
+		{name: "default", requested: 0, want: defaultSearchPageSize},
+		{name: "negative", requested: -3, want: defaultSearchPageSize},
+		{name: "explicit", requested: 5, want: 5},
+		{name: "clamped", requested: 900, want: maxSearchPageSize},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			results, err := svc.SearchPosts(context.Background(), "  #golang performance  ", tc.requested)
+			if err != nil {
+				t.Fatalf("SearchPosts: %v", err)
+			}
+			if repo.lastSearchQuery != "#golang performance" {
+				t.Fatalf("query = %q, want the trimmed input", repo.lastSearchQuery)
+			}
+			if len(repo.lastSearchHashtags) != 1 || repo.lastSearchHashtags[0] != "golang" {
+				t.Fatalf("hashtags = %v, want [golang]", repo.lastSearchHashtags)
+			}
+			if repo.lastSearchLimit != tc.want {
+				t.Fatalf("limit = %d, want %d", repo.lastSearchLimit, tc.want)
+			}
+			if len(results) != 1 {
+				t.Fatalf("results = %d, want 1", len(results))
+			}
+		})
+	}
+}
+
+func TestSearchPostsReturnsEmptySliceNotNil(t *testing.T) {
+	svc := NewPostService(newFakePostRepo())
+
+	results, err := svc.SearchPosts(context.Background(), "nothing matches", 10)
+	if err != nil {
+		t.Fatalf("SearchPosts: %v", err)
+	}
+	if results == nil {
+		t.Fatal("an empty result should still serialise as [] for clients")
+	}
+}
+
+func TestSearchPostsPreservesRepositoryFailure(t *testing.T) {
+	repo := newFakePostRepo()
+	repo.searchErr = errors.New("connection reset")
+	svc := NewPostService(repo)
+
+	if _, err := svc.SearchPosts(context.Background(), "golang", 10); err == nil {
+		t.Fatal("expected the repository failure to surface")
 	}
 }

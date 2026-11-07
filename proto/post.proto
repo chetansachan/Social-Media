@@ -18,6 +18,7 @@ service PostService{
     rpc GetAllLikedPosts(GetAllLikedPostsRequest) returns (GetAllLikedPostsResponse);
     rpc GetLikeStates(GetLikeStatesRequest) returns (GetLikeStatesResponse);
     rpc GetUploadSignature(GetUploadSignatureRequest) returns (GetUploadSignatureResponse);
+    rpc SearchPosts(SearchPostsRequest) returns (SearchPostsResponse);
 }
 
 message Post {
@@ -153,4 +154,15 @@ message GetUploadSignatureResponse {
     string public_id = 6;
     string upload_url = 7;
     int64 expires_at = 8;
+}
+
+message SearchPostsRequest {
+    // Plain keywords or hashtags such as "#golang".
+    string query = 1;
+    int32 limit = 2;
+}
+
+message SearchPostsResponse {
+    // Ranked matches, best first. Public, non-deleted posts only.
+    repeated Post posts = 1;
 }

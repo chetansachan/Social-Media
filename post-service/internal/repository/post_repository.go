@@ -26,6 +26,7 @@ type PostRepository interface {
 	GetAllPostLikers(ctx context.Context, postId uuid.UUID) ([]string, error)
 	GetAllLikedPosts(ctx context.Context, userId uuid.UUID) ([]models.Post, error)
 	GetLikeStates(ctx context.Context, userId uuid.UUID, postIds []uuid.UUID) (map[string]bool, error)
+	SearchPosts(ctx context.Context, query string, hashtags []string, limit int) ([]models.Post, error)
 	SaveFiles(ctx context.Context, name string, ext string, mimeType string) error
 }
 
@@ -123,8 +124,8 @@ func (r *postRepository) CreatePost(ctx context.Context, input *models.CreatePos
 	defer tx.Rollback(ctx)
 
 	query := `
-		INSERT INTO posts(author_id, content, media_url, is_public)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO posts(author_id, content, media_url, is_public, hashtags)
+		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id, author_id, content, media_url, is_public, like_count, created_at, updated_at, deleted_at
 	`
 
@@ -134,6 +135,7 @@ func (r *postRepository) CreatePost(ctx context.Context, input *models.CreatePos
 		input.Content,
 		input.MediaURL,
 		input.IsPublic,
+		models.ExtractHashtags(input.Content),
 	).Scan(
 		&post.ID,
 		&post.AuthorID,
@@ -184,8 +186,8 @@ func preview(content string, limit int) string {
 func (r *postRepository) UpdatePost(ctx context.Context, input *models.UpdatePostInput, postId uuid.UUID, authorId uuid.UUID) (*models.Post, error) {
 	query := `
 		UPDATE posts
-		SET content = $1, is_public = $2, updated_at = CURRENT_TIMESTAMP
-		WHERE id = $3 AND author_id = $4
+		SET content = $1, is_public = $2, hashtags = $3, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $4 AND author_id = $5
 		RETURNING id, author_id, content, media_url, is_public, like_count, created_at, updated_at, deleted_at
 	`
 
@@ -193,6 +195,7 @@ func (r *postRepository) UpdatePost(ctx context.Context, input *models.UpdatePos
 	if err := r.writer.QueryRow(ctx, query,
 		input.Content,
 		input.IsPublic,
+		models.ExtractHashtags(*input.Content),
 		postId,
 		authorId,
 	).Scan(
@@ -538,6 +541,67 @@ func (r *postRepository) GetLikeStates(ctx context.Context, userId uuid.UUID, po
 		return nil, fmt.Errorf("error iterating like states: %w", err)
 	}
 	return states, nil
+}
+
+func (r *postRepository) SearchPosts(ctx context.Context, query string, hashtags []string, limit int) ([]models.Post, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+
+	// websearch_to_tsquery accepts user-shaped input ("golang performance",
+	// quoted phrases, OR) without raising syntax errors the way to_tsquery
+	// does. ILIKE and hashtags are the recall safety nets: tsquery handles
+	// stems but not partial words or tags the parser drops.
+	const searchQuery = `
+		WITH search AS (
+			SELECT websearch_to_tsquery('english', $1) AS tsq
+		)
+		SELECT p.id, p.author_id, p.content, p.media_url, p.is_public,
+		       p.like_count, p.created_at, p.updated_at, p.deleted_at
+		FROM posts p, search
+		WHERE p.deleted_at IS NULL
+		  AND p.is_public = TRUE
+		  AND (
+		      p.search_vector @@ search.tsq
+		      OR ($2::text[] <> '{}' AND p.hashtags && $2::text[])
+		      OR p.content ILIKE '%' || $1 || '%'
+		  )
+		ORDER BY
+		    ts_rank_cd(p.search_vector, search.tsq) DESC,
+		    similarity(p.content, $1) DESC,
+		    p.created_at DESC,
+		    p.id DESC
+		LIMIT $3
+	`
+
+	rows, err := r.reader.Query(ctx, searchQuery, query, hashtags, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to search posts: %w", err)
+	}
+	defer rows.Close()
+
+	posts := make([]models.Post, 0, limit)
+	for rows.Next() {
+		var post models.Post
+		if err := rows.Scan(
+			&post.ID,
+			&post.AuthorID,
+			&post.Content,
+			&post.MediaURL,
+			&post.IsPublic,
+			&post.LikeCount,
+			&post.CreatedAt,
+			&post.UpdatedAt,
+			&post.DeletedAt,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan search result: %w", err)
+		}
+		posts = append(posts, post)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating search results: %w", err)
+	}
+	return posts, nil
 }
 
 func (r *postRepository) SaveFiles(ctx context.Context, name string, ext string, mimeType string) error {

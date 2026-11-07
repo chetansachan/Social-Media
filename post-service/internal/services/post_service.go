@@ -36,6 +36,7 @@ type PostService interface {
 	GetAllPostLikers(ctx context.Context, postId string) ([]string, error)
 	GetAllLikedPosts(ctx context.Context, userId string) ([]models.Post, error)
 	GetLikeStates(ctx context.Context, userId string, postIds []string) (map[string]bool, error)
+	SearchPosts(ctx context.Context, query string, limit int32) ([]models.Post, error)
 	Upload(ctx context.Context, base64 string) (string, error)
 	CreateUploadSignature(ctx context.Context, userId, resourceType, folder string) (*models.UploadSignature, error)
 }
@@ -43,6 +44,13 @@ type PostService interface {
 // maxPostLength bounds the text of a single post. Media travels separately, so
 // this only limits the caption.
 const maxPostLength = 1000
+
+// Search pages stay small because every hit is a full post row and the gateway
+// resolves authors and like states through dataloaders on top of them.
+const (
+	defaultSearchPageSize = 20
+	maxSearchPageSize     = 50
+)
 
 type postService struct {
 	postRepo repository.PostRepository
@@ -183,6 +191,33 @@ func (s *postService) GetAllPost(ctx context.Context, authorId string) ([]models
 		return nil, fmt.Errorf("Internal Server Error: %w", err)
 	}
 
+	return posts, nil
+}
+
+// SearchPosts validates a query and clamps the page before touching the
+// database. Hashtags are extracted from the same string so "#golang" matches
+// the indexed tag array even when the text parser drops the '#'.
+func (s *postService) SearchPosts(ctx context.Context, query string, limit int32) ([]models.Post, error) {
+	normalized, ok := models.NormalizeSearchQuery(query)
+	if !ok {
+		return nil, fmt.Errorf("%w: search query must be 1-%d characters", models.ErrInvalidInput, models.MaxSearchQueryLength)
+	}
+
+	pageSize := int(limit)
+	if pageSize <= 0 {
+		pageSize = defaultSearchPageSize
+	}
+	if pageSize > maxSearchPageSize {
+		pageSize = maxSearchPageSize
+	}
+
+	posts, err := s.postRepo.SearchPosts(ctx, normalized, models.ExtractHashtags(normalized), pageSize)
+	if err != nil {
+		return nil, fmt.Errorf("failed to search posts: %w", err)
+	}
+	if posts == nil {
+		posts = []models.Post{}
+	}
 	return posts, nil
 }
 
