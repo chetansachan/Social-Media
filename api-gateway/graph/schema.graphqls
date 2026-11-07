@@ -105,6 +105,81 @@ type NotificationResponse {
     unreadCount: Int!
 }
 
+# One member of a thread. user resolves through the request-scoped user loader.
+type ConversationParticipant {
+    userId: String!
+    lastReadAt: String
+    user: User!
+}
+
+type Message {
+    id: ID!
+    conversationId: ID!
+    senderId: String!
+    content: String!
+    createdAt: String!
+    isDeleted: Boolean!
+    sender: User!
+}
+
+type Conversation {
+    id: ID!
+    type: String!
+    title: String!
+    createdBy: String!
+    participants: [ConversationParticipant!]!
+    # The newest message in the thread, or null while the thread is empty.
+    lastMessage: Message
+    unreadCount: Int!
+    createdAt: String!
+    updatedAt: String!
+}
+
+type ConversationConnection {
+    conversations: [Conversation!]!
+    nextCursor: String
+    hasMore: Boolean!
+    # Badge across every thread, not just this page.
+    totalUnread: Int!
+}
+
+type MessageConnection {
+    messages: [Message!]!
+    nextCursor: String
+    hasMore: Boolean!
+}
+
+# Presence payload: user id to the unix millisecond of the last heartbeat.
+# Absent ids are offline.
+scalar JSONObject
+
+# One realtime chat frame. type is "message.created", "message.deleted",
+# "typing", or "read"; the populated fields depend on it.
+type ChatEvent {
+    type: String!
+    conversationId: String
+    senderId: String
+    isTyping: Boolean!
+    message: Message
+    typingUserIds: [String!]!
+}
+
+input CreateConversationInput {
+    # Other members; one entry and no title opens the existing direct thread.
+    participantIds: [String!]!
+    title: String
+}
+
+input SendMessageInput {
+    conversationId: ID!
+    content: String!
+}
+
+input TypingInput {
+    conversationId: ID!
+    isTyping: Boolean!
+}
+
 type NotificationSettings {
     inappLikes: Boolean!
     inappComments: Boolean!
@@ -243,6 +318,14 @@ type Query {
     # separate index, so results are never more stale than the rows themselves.
     searchPosts(query: String!, limit: Int): [Post!]!
     searchUsers(query: String!, limit: Int): [User!]!
+
+    # Chat. Every read is scoped to the caller and membership is checked by the
+    # service, so the gateway never needs to know who belongs to a thread.
+    myConversations(limit: Int, cursor: String): ConversationConnection! @auth
+    getConversation(id: ID!): Conversation! @auth
+    getMessages(conversationId: ID!, limit: Int, cursor: String): MessageConnection! @auth
+    # Heartbeat timestamps in unix milliseconds; absent users are offline.
+    getPresence(userIds: [ID!]!): JSONObject! @auth
 }
 
 type Mutation {
@@ -276,10 +359,17 @@ type Mutation {
     reportContent(input: ReportContentInput!): ReportContentResponse! @auth
     # Admin-only. Moves an open report to REVIEWING, ACTIONED, or DISMISSED.
     resolveReport(id: ID!, status: ReportStatus!, note: String): Report! @auth
+
+    createConversation(input: CreateConversationInput!): Conversation! @auth
+    sendMessage(input: SendMessageInput!): Message! @auth
+    markConversationRead(conversationId: ID!): Boolean! @auth
+    setTyping(input: TypingInput!): [String!]! @auth
+    deleteMessage(id: ID!): Boolean! @auth
 }
 
 type Subscription {
     notificationReceived: NotificationItem! @auth
+    chatEvent: ChatEvent! @auth
 }
 
 input RegisterUserInput {

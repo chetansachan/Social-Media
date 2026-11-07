@@ -15,6 +15,7 @@ type Resolver struct {
 	FeedClient         socialflowpb.FeedServiceClient
 	NotificationClient socialflowpb.NotificationServiceClient
 	ModerationClient   socialflowpb.ModerationServiceClient
+	ChatClient         socialflowpb.ChatServiceClient
 
 	// Redis carries real-time notification frames from notification-service to
 	// GraphQL subscription clients through Pub/Sub channels.

@@ -43,6 +43,7 @@ const (
 	defaultFeedServiceAddr         = "localhost:50054"
 	defaultNotificationServiceAddr = "localhost:50055"
 	defaultModerationServiceAddr   = "localhost:50056"
+	defaultChatServiceAddr         = "localhost:50057"
 	defaultRedisAddr               = "localhost:6379"
 
 	shutdownTimeout = 15 * time.Second
@@ -144,6 +145,10 @@ func run() error {
 			// budget than the indexed feed read.
 			"searchPosts": {Limit: envInt("RATE_LIMIT_SEARCH_PER_MINUTE", 60), Window: time.Minute},
 			"searchUsers": {Limit: envInt("RATE_LIMIT_SEARCH_PER_MINUTE", 60), Window: time.Minute},
+			// Typing signals are high-frequency by nature but must stay on the
+			// WebSocket, so the budget is shared with sendMessage's caller.
+			"SendMessage": {Limit: envInt("RATE_LIMIT_CHAT_SEND_PER_MINUTE", 120), Window: time.Minute},
+			"SetTyping":   {Limit: envInt("RATE_LIMIT_CHAT_TYPING_PER_MINUTE", 240), Window: time.Minute},
 		},
 		ratelimit.Policy{Limit: envInt("RATE_LIMIT_AUTHENTICATED_PER_MINUTE", 600), Window: time.Minute},
 		ratelimit.Policy{Limit: envInt("RATE_LIMIT_ANONYMOUS_PER_MINUTE", 120), Window: time.Minute},
@@ -163,6 +168,7 @@ func run() error {
 		FeedClient:         socialflowpb.NewFeedServiceClient(connections["feed-service"]),
 		NotificationClient: socialflowpb.NewNotificationServiceClient(connections["notification-service"]),
 		ModerationClient:   socialflowpb.NewModerationServiceClient(connections["moderation-service"]),
+		ChatClient:         socialflowpb.NewChatServiceClient(connections["chat-service"]),
 		Redis:              redisClient,
 		Revocations:        revocations,
 		NewLoaders: func() *dataloader.Loaders {
@@ -282,6 +288,7 @@ func dialServices(logger *slog.Logger) (map[string]*connPool, error) {
 		{"feed-service", envOr("FEED_SERVICE_ADDR", defaultFeedServiceAddr)},
 		{"notification-service", envOr("NOTIFICATION_SERVICE_ADDR", defaultNotificationServiceAddr)},
 		{"moderation-service", envOr("MODERATION_SERVICE_ADDR", defaultModerationServiceAddr)},
+		{"chat-service", envOr("CHAT_SERVICE_ADDR", defaultChatServiceAddr)},
 	}
 
 	connections := make(map[string]*connPool, len(targets))

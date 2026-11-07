@@ -592,6 +592,103 @@ func (r *mutationResolver) ResolveReport(ctx context.Context, id string, status 
 	return toModelReport(res.GetReport()), nil
 }
 
+// CreateConversation is the resolver for the createConversation field.
+func (r *mutationResolver) CreateConversation(ctx context.Context, input model.CreateConversationInput) (*model.Conversation, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := r.ChatClient.CreateConversation(ctx, &socialflowpb.CreateConversationRequest{
+		CreatorId:      principal.UserID,
+		ParticipantIds: input.ParticipantIds,
+		Title:          derefString(input.Title),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return toModelConversation(res.GetConversation()), nil
+}
+
+// SendMessage is the resolver for the sendMessage field.
+func (r *mutationResolver) SendMessage(ctx context.Context, input model.SendMessageInput) (*model.Message, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := r.ChatClient.SendMessage(ctx, &socialflowpb.SendMessageRequest{
+		ConversationId: input.ConversationID,
+		SenderId:       principal.UserID,
+		Content:        input.Content,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return toModelMessage(res.GetMessage()), nil
+}
+
+// MarkConversationRead is the resolver for the markConversationRead field.
+func (r *mutationResolver) MarkConversationRead(ctx context.Context, conversationID string) (bool, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	res, err := r.ChatClient.MarkRead(ctx, &socialflowpb.MarkReadRequest{
+		ConversationId: conversationID,
+		UserId:         principal.UserID,
+	})
+	if err != nil {
+		return false, err
+	}
+
+	return res.GetSuccess(), nil
+}
+
+// SetTyping is the resolver for the setTyping field.
+func (r *mutationResolver) SetTyping(ctx context.Context, input model.TypingInput) ([]string, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := r.ChatClient.Typing(ctx, &socialflowpb.TypingRequest{
+		ConversationId: input.ConversationID,
+		UserId:         principal.UserID,
+		IsTyping:       input.IsTyping,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	typing := res.GetTypingUserIds()
+	if typing == nil {
+		typing = []string{}
+	}
+	return typing, nil
+}
+
+// DeleteMessage is the resolver for the deleteMessage field. The sender comes
+// from the verified principal so one user cannot retract another's message.
+func (r *mutationResolver) DeleteMessage(ctx context.Context, id string) (bool, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	if _, err := r.ChatClient.DeleteMessage(ctx, &socialflowpb.DeleteMessageRequest{
+		MessageId: id,
+		SenderId:  principal.UserID,
+	}); err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
 // HasLiked is the resolver for the hasLiked field.
 func (r *postResolver) HasLiked(ctx context.Context, obj *model.Post) (bool, error) {
 	return loadLikeState(ctx, obj.ID)
@@ -1173,6 +1270,111 @@ func (r *queryResolver) SearchUsers(ctx context.Context, query string, limit *in
 	return users, nil
 }
 
+// MyConversations is the resolver for the myConversations field.
+func (r *queryResolver) MyConversations(ctx context.Context, limit *int32, cursor *string) (*model.ConversationConnection, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := r.ChatClient.ListConversations(ctx, &socialflowpb.ListConversationsRequest{
+		ViewerId:       principal.UserID,
+		Limit:          clampPageSize(limit, defaultConversationPageSize, maxConversationPageSize),
+		Cursor:         derefString(cursor),
+		ExcludeUserIds: r.blockedUserIDs(ctx, principal),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	conversations := make([]*model.Conversation, 0, len(res.GetConversations()))
+	for _, conversation := range res.GetConversations() {
+		conversations = append(conversations, toModelConversation(conversation))
+	}
+
+	connection := &model.ConversationConnection{
+		Conversations: conversations,
+		HasMore:       res.GetHasMore(),
+		TotalUnread:   res.GetTotalUnread(),
+	}
+	if next := res.GetNextCursor(); next != "" {
+		connection.NextCursor = &next
+	}
+	return connection, nil
+}
+
+// GetConversation is the resolver for the getConversation field.
+func (r *queryResolver) GetConversation(ctx context.Context, id string) (*model.Conversation, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := r.ChatClient.GetConversation(ctx, &socialflowpb.GetConversationRequest{
+		Id:       id,
+		ViewerId: principal.UserID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return toModelConversation(res.GetConversation()), nil
+}
+
+// GetMessages is the resolver for the getMessages field.
+func (r *queryResolver) GetMessages(ctx context.Context, conversationID string, limit *int32, cursor *string) (*model.MessageConnection, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := r.ChatClient.GetMessages(ctx, &socialflowpb.GetMessagesRequest{
+		ConversationId: conversationID,
+		ViewerId:       principal.UserID,
+		Limit:          clampPageSize(limit, defaultMessagePageSize, maxMessagePageSize),
+		Cursor:         derefString(cursor),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	messages := make([]*model.Message, 0, len(res.GetMessages()))
+	for _, message := range res.GetMessages() {
+		messages = append(messages, toModelMessage(message))
+	}
+
+	connection := &model.MessageConnection{
+		Messages: messages,
+		HasMore:  res.GetHasMore(),
+	}
+	if next := res.GetNextCursor(); next != "" {
+		connection.NextCursor = &next
+	}
+	return connection, nil
+}
+
+// GetPresence is the resolver for the getPresence field. Only the caller is
+// required: presence is public metadata and the requested ids come from the
+// query itself, so there is nothing to scope beyond "be logged in".
+func (r *queryResolver) GetPresence(ctx context.Context, userIDs []string) (map[string]any, error) {
+	if _, err := requireViewer(ctx); err != nil {
+		return nil, err
+	}
+
+	res, err := r.ChatClient.GetPresence(ctx, &socialflowpb.GetPresenceRequest{
+		UserIds: userIDs,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	presence := make(map[string]any, len(res.GetPresence()))
+	for userID, seenAt := range res.GetPresence() {
+		presence[userID] = seenAt
+	}
+	return presence, nil
+}
+
 // NotificationReceived is the resolver for the notificationReceived field.
 // It relays the realtime frames notification-service publishes over Redis
 // Pub/Sub, so whichever gateway pod holds the socket can serve the stream.
@@ -1222,6 +1424,58 @@ func (r *subscriptionResolver) NotificationReceived(ctx context.Context) (<-chan
 	}()
 
 	return items, nil
+}
+
+// ChatEvent is the resolver for the chatEvent field. It relays the frames
+// chat-service publishes on the caller's own channel, so whichever gateway pod
+// holds the socket can serve the stream.
+func (r *subscriptionResolver) ChatEvent(ctx context.Context) (<-chan *model.ChatEvent, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if r.Redis == nil {
+		return nil, fmt.Errorf("realtime chat is not configured")
+	}
+
+	pubsub := r.Redis.Subscribe(ctx, chatChannel(principal.UserID))
+	// Wait for the subscription to be confirmed: otherwise a message published
+	// immediately after connect could race past this subscriber.
+	if _, err := pubsub.Receive(ctx); err != nil {
+		_ = pubsub.Close()
+		return nil, fmt.Errorf("subscribe to realtime chat: %w", err)
+	}
+
+	events := make(chan *model.ChatEvent)
+	go func() {
+		defer close(events)
+		defer pubsub.Close()
+
+		messages := pubsub.Channel()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case message, ok := <-messages:
+				if !ok {
+					return
+				}
+				event, err := chatEventFromFrame([]byte(message.Payload))
+				if err != nil {
+					// A malformed or unknown frame must not tear down a healthy
+					// stream; the next frame will carry the same thread state.
+					continue
+				}
+				select {
+				case events <- event:
+				case <-ctx.Done():
+					return
+				}
+			}
+		}
+	}()
+
+	return events, nil
 }
 
 // Comment returns CommentResolver implementation.

@@ -9,6 +9,15 @@ import (
 	"strconv"
 )
 
+type ChatEvent struct {
+	Type           string   `json:"type"`
+	ConversationID *string  `json:"conversationId,omitempty"`
+	SenderID       *string  `json:"senderId,omitempty"`
+	IsTyping       bool     `json:"isTyping"`
+	Message        *Message `json:"message,omitempty"`
+	TypingUserIds  []string `json:"typingUserIds"`
+}
+
 type Comment struct {
 	ID         string  `json:"id"`
 	PostID     string  `json:"postId"`
@@ -31,10 +40,40 @@ type CommentConnection struct {
 	HasMore    bool       `json:"hasMore"`
 }
 
+type Conversation struct {
+	ID           string                     `json:"id"`
+	Type         string                     `json:"type"`
+	Title        string                     `json:"title"`
+	CreatedBy    string                     `json:"createdBy"`
+	Participants []*ConversationParticipant `json:"participants"`
+	LastMessage  *Message                   `json:"lastMessage,omitempty"`
+	UnreadCount  int32                      `json:"unreadCount"`
+	CreatedAt    string                     `json:"createdAt"`
+	UpdatedAt    string                     `json:"updatedAt"`
+}
+
+type ConversationConnection struct {
+	Conversations []*Conversation `json:"conversations"`
+	NextCursor    *string         `json:"nextCursor,omitempty"`
+	HasMore       bool            `json:"hasMore"`
+	TotalUnread   int32           `json:"totalUnread"`
+}
+
+type ConversationParticipant struct {
+	UserID     string  `json:"userId"`
+	LastReadAt *string `json:"lastReadAt,omitempty"`
+	User       *User   `json:"user"`
+}
+
 type CreateCommentInput struct {
 	PostID   string  `json:"postId"`
 	ParentID *string `json:"parentId,omitempty"`
 	Content  string  `json:"content"`
+}
+
+type CreateConversationInput struct {
+	ParticipantIds []string `json:"participantIds"`
+	Title          *string  `json:"title,omitempty"`
 }
 
 type CreatePostInput struct {
@@ -120,6 +159,22 @@ type LoginResponse struct {
 	AccessToken  string `json:"accessToken"`
 	RefressToken string `json:"refressToken"`
 	Message      string `json:"message"`
+}
+
+type Message struct {
+	ID             string `json:"id"`
+	ConversationID string `json:"conversationId"`
+	SenderID       string `json:"senderId"`
+	Content        string `json:"content"`
+	CreatedAt      string `json:"createdAt"`
+	IsDeleted      bool   `json:"isDeleted"`
+	Sender         *User  `json:"sender"`
+}
+
+type MessageConnection struct {
+	Messages   []*Message `json:"messages"`
+	NextCursor *string    `json:"nextCursor,omitempty"`
+	HasMore    bool       `json:"hasMore"`
 }
 
 type ModerationActionResponse struct {
@@ -251,7 +306,17 @@ type ReportContentResponse struct {
 	Duplicate bool    `json:"duplicate"`
 }
 
+type SendMessageInput struct {
+	ConversationID string `json:"conversationId"`
+	Content        string `json:"content"`
+}
+
 type Subscription struct {
+}
+
+type TypingInput struct {
+	ConversationID string `json:"conversationId"`
+	IsTyping       bool   `json:"isTyping"`
 }
 
 type UnfollowUserInput struct {

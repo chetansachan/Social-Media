@@ -22,6 +22,10 @@ const (
 	maxSearchPageSize           = 50
 	defaultReportPageSize       = 20
 	maxReportPageSize           = 100
+	defaultConversationPageSize = 20
+	maxConversationPageSize     = 50
+	defaultMessagePageSize      = 50
+	maxMessagePageSize          = 100
 	defaultNotificationPageSize = 20
 	maxNotificationPageSize     = 50
 )
@@ -594,10 +598,170 @@ func (r *Resolver) requirePostOwnership(ctx context.Context, principal auth.Prin
 	return requirePostOwner(principal, res.GetPost().GetAuthorId())
 }
 
+// blockedUserIDs returns the ids the viewer asked to hide. Only the viewer's own
+// block list is passed on: moderation-service never reveals who blocked the
+// viewer, so the set is deliberately one-directional here and chat-service
+// simply drops the threads that contain any of them.
+func (r *Resolver) blockedUserIDs(ctx context.Context, principal auth.Principal) []string {
+	if r.ModerationClient == nil {
+		return nil
+	}
+	res, err := r.ModerationClient.ListBlockedUsers(ctx, &socialflowpb.ListRelationshipsRequest{
+		UserId: principal.UserID,
+	})
+	if err != nil {
+		// A block list that cannot be loaded degrades to "no blocks" rather
+		// than failing the chat read, which is the safe direction for a
+		// visibility feature the viewer already saw.
+		return nil
+	}
+	return res.GetUserIds()
+}
+
 // realtimeChannel is the Redis Pub/Sub channel notification-service publishes
 // one user's frames to.
 func realtimeChannel(userID string) string {
 	return "notify:" + strings.TrimSpace(userID)
+}
+
+// chatChannel is the Redis Pub/Sub channel chat-service publishes one user's
+// frames to. It is separate from the notification channel so a client can
+// subscribe to one stream without paying for the other's frames.
+func chatChannel(userID string) string {
+	return "chat:" + strings.TrimSpace(userID)
+}
+
+// chatFrame mirrors the envelope chat-service publishes. Data is kept raw so a
+// new frame type does not need a schema change to reach the relay.
+type chatFrame struct {
+	Type string          `json:"type"`
+	Data json.RawMessage `json:"data"`
+}
+
+type chatEventData struct {
+	ConversationID string `json:"conversation_id"`
+	SenderID       string `json:"sender_id"`
+	UserID         string `json:"user_id"`
+	IsTyping       bool   `json:"is_typing"`
+	CreatedAt      string `json:"created_at"`
+
+	// A message frame carries the body inline so a client can render without
+	// refetching the thread it is already looking at.
+	MessageID string `json:"message_id"`
+	Content   string `json:"content"`
+	IsDeleted bool   `json:"is_deleted"`
+}
+
+// chatEventFromFrame converts one chat frame into the GraphQL type. Frames this
+// version does not understand are dropped rather than surfaced as half-empty
+// events.
+func chatEventFromFrame(payload []byte) (*model.ChatEvent, error) {
+	var frame chatFrame
+	if err := json.Unmarshal(payload, &frame); err != nil {
+		return nil, fmt.Errorf("decode chat frame: %w", err)
+	}
+
+	switch frame.Type {
+	case "message.created", "message.deleted", "read", "typing":
+	default:
+		return nil, fmt.Errorf("unsupported chat frame type %q", frame.Type)
+	}
+
+	var data chatEventData
+	if err := json.Unmarshal(frame.Data, &data); err != nil {
+		return nil, fmt.Errorf("decode chat frame payload: %w", err)
+	}
+
+	event := &model.ChatEvent{
+		Type:           frame.Type,
+		ConversationID: optionalString(data.ConversationID),
+		SenderID:       optionalString(data.SenderID),
+		IsTyping:       data.IsTyping,
+		TypingUserIds:  []string{},
+	}
+
+	senderID := data.SenderID
+	if senderID == "" {
+		senderID = data.UserID
+	}
+	if senderID != "" {
+		event.SenderID = &[]string{senderID}[0]
+	}
+
+	if frame.Type == "message.created" || frame.Type == "message.deleted" {
+		if data.MessageID == "" {
+			return nil, fmt.Errorf("chat %s frame has no message id", frame.Type)
+		}
+		event.Message = &model.Message{
+			ID:             data.MessageID,
+			ConversationID: data.ConversationID,
+			SenderID:       senderID,
+			Content:        data.Content,
+			CreatedAt:      data.CreatedAt,
+			IsDeleted:      frame.Type == "message.deleted",
+		}
+	}
+
+	return event, nil
+}
+
+// toModelParticipant maps one membership row. user stays nil and is filled by
+// the field resolver through the request-scoped loader.
+func toModelParticipant(participant *socialflowpb.Participant) *model.ConversationParticipant {
+	if participant == nil {
+		return nil
+	}
+	mapped := &model.ConversationParticipant{UserID: participant.GetUserId()}
+	if lastReadAt := participant.GetLastReadAt(); lastReadAt != "" {
+		mapped.LastReadAt = &lastReadAt
+	}
+	return mapped
+}
+
+func toModelMessage(message *socialflowpb.Message) *model.Message {
+	if message == nil {
+		return nil
+	}
+	return &model.Message{
+		ID:             message.GetId(),
+		ConversationID: message.GetConversationId(),
+		SenderID:       message.GetSenderId(),
+		Content:        message.GetContent(),
+		CreatedAt:      message.GetCreatedAt(),
+		IsDeleted:      message.GetIsDeleted(),
+	}
+}
+
+// conversationTypeFromProto returns the short scheme-independent name, not the
+// generated enum's full constant, so clients see "DIRECT" and "GROUP".
+func conversationTypeFromProto(value socialflowpb.ConversationType) string {
+	if value == socialflowpb.ConversationType_CONVERSATION_TYPE_GROUP {
+		return "GROUP"
+	}
+	return "DIRECT"
+}
+
+func toModelConversation(conversation *socialflowpb.Conversation) *model.Conversation {
+	if conversation == nil {
+		return nil
+	}
+
+	participants := make([]*model.ConversationParticipant, 0, len(conversation.GetParticipants()))
+	for _, participant := range conversation.GetParticipants() {
+		participants = append(participants, toModelParticipant(participant))
+	}
+
+	return &model.Conversation{
+		ID:           conversation.GetId(),
+		Type:         conversationTypeFromProto(conversation.GetType()),
+		Title:        conversation.GetTitle(),
+		CreatedBy:    conversation.GetCreatedBy(),
+		Participants: participants,
+		LastMessage:  toModelMessage(conversation.GetLastMessage()),
+		UnreadCount:  conversation.GetUnreadCount(),
+		CreatedAt:    conversation.GetCreatedAt(),
+		UpdatedAt:    conversation.GetUpdatedAt(),
+	}
 }
 
 // realtimeFrame mirrors the WebSocket envelope published by notification-service.
