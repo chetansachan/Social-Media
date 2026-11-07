@@ -1,0 +1,147 @@
+syntax = "proto3";
+
+package chat;
+
+option go_package = "github.com/chetansachan/socialflow/proto";
+
+// ChatService owns conversation membership, durable message logs, read state,
+// and the short-lived presence and typing signals that sit on Redis.
+service ChatService {
+    rpc CreateConversation(CreateConversationRequest) returns (ConversationResponse);
+    rpc GetConversation(GetConversationRequest) returns (ConversationResponse);
+    rpc ListConversations(ListConversationsRequest) returns (ListConversationsResponse);
+    rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
+    rpc GetMessages(GetMessagesRequest) returns (GetMessagesResponse);
+    rpc MarkRead(MarkReadRequest) returns (MarkReadResponse);
+    rpc Typing(TypingRequest) returns (TypingResponse);
+    rpc Heartbeat(HeartbeatRequest) returns (PresenceResponse);
+    rpc GetPresence(GetPresenceRequest) returns (PresenceResponse);
+}
+
+enum ConversationType {
+    CONVERSATION_TYPE_UNSPECIFIED = 0;
+    CONVERSATION_TYPE_DIRECT = 1;
+    CONVERSATION_TYPE_GROUP = 2;
+}
+
+message Participant {
+    string user_id = 1;
+    // Set by the gateway so a client can render a display name without a second
+    // round trip; empty when the caller does not need profiles.
+    string username = 2;
+    string display_name = 3;
+    string last_read_at = 4;
+}
+
+// Conversation is the inbox row: membership plus the denormalised last message
+// and unread count so an inbox page issues no per-conversation queries.
+message Conversation {
+    string id = 1;
+    ConversationType type = 2;
+    string title = 3;
+    string created_by = 4;
+    repeated Participant participants = 5;
+    Message last_message = 6;
+    int32 unread_count = 7;
+    string created_at = 8;
+    string updated_at = 9;
+}
+
+message Message {
+    string id = 1;
+    string conversation_id = 2;
+    string sender_id = 3;
+    string content = 4;
+    string created_at = 5;
+    bool is_deleted = 6;
+}
+
+message CreateConversationRequest {
+    string creator_id = 1;
+    // Other members, excluding the creator. DIRECT conversations take exactly
+    // one and reuse any existing thread between the same pair.
+    repeated string participant_ids = 2;
+    string title = 3;
+}
+
+message GetConversationRequest {
+    string id = 1;
+    // Membership check is done against the viewer, never a client-supplied role.
+    string viewer_id = 2;
+}
+
+message ConversationResponse {
+    Conversation conversation = 1;
+}
+
+message ListConversationsRequest {
+    string viewer_id = 1;
+    int32 limit = 2;
+    string cursor = 3;
+    // Ids to drop, used by the gateway to hide blocked users' threads.
+    repeated string exclude_user_ids = 4;
+}
+
+message ListConversationsResponse {
+    repeated Conversation conversations = 1;
+    string next_cursor = 2;
+    bool has_more = 3;
+    int32 total_unread = 4;
+}
+
+message SendMessageRequest {
+    string conversation_id = 1;
+    string sender_id = 2;
+    string content = 3;
+}
+
+message SendMessageResponse {
+    Message message = 1;
+}
+
+message GetMessagesRequest {
+    string conversation_id = 1;
+    string viewer_id = 2;
+    int32 limit = 3;
+    string cursor = 4;
+}
+
+message GetMessagesResponse {
+    repeated Message messages = 1;
+    string next_cursor = 2;
+    bool has_more = 3;
+}
+
+message MarkReadRequest {
+    string conversation_id = 1;
+    string user_id = 2;
+}
+
+message MarkReadResponse {
+    bool success = 1;
+    string last_read_at = 2;
+}
+
+message TypingRequest {
+    string conversation_id = 1;
+    string user_id = 2;
+    bool is_typing = 3;
+}
+
+message TypingResponse {
+    // Users currently typing, excluding the caller.
+    repeated string typing_user_ids = 1;
+}
+
+message HeartbeatRequest {
+    string user_id = 1;
+}
+
+message GetPresenceRequest {
+    repeated string user_ids = 1;
+}
+
+message PresenceResponse {
+    // user_id to the unix timestamp of the last heartbeat. Absent ids are offline.
+    map<string, int64> presence = 1;
+}
