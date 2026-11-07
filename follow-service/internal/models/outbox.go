@@ -33,12 +33,18 @@ type Envelope struct {
 	EventID string          `json:"event_id,omitempty"`
 }
 
+// MarshalEnvelope writes the wire envelope. The event id is omitted when the row
+// has none, because omitempty does not cover a string and the nil UUID would
+// otherwise reach consumers as a real id.
 func (e OutboxEvent) MarshalEnvelope() ([]byte, error) {
-	return json.Marshal(Envelope{
+	envelope := Envelope{
 		Type:    e.EventType,
 		Payload: e.Payload,
-		EventID: e.ID.String(),
-	})
+	}
+	if e.ID != uuid.Nil {
+		envelope.EventID = e.ID.String()
+	}
+	return json.Marshal(envelope)
 }
 
 // UserFollowedEvent is consumed by feed fanout and notifications.
