@@ -11,6 +11,7 @@ require (
 	github.com/graph-gophers/dataloader/v7 v7.1.0
 	github.com/joho/godotenv v1.5.1
 	github.com/redis/go-redis/v9 v9.23.0
+	github.com/sony/gobreaker/v2 v2.4.0
 	github.com/vektah/gqlparser/v2 v2.5.37
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.72.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.72.0
@@ -37,7 +38,6 @@ require (
 	github.com/prometheus/client_model v0.6.3 // indirect
 	github.com/prometheus/common v0.72.0 // indirect
 	github.com/prometheus/procfs v0.22.0 // indirect
-	github.com/sony/gobreaker/v2 v2.4.0 // indirect
 	github.com/sosodev/duration v1.4.0 // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
