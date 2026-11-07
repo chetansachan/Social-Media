@@ -183,6 +183,21 @@ func TestHandlerPassesPaginationAndBadge(t *testing.T) {
 	}
 }
 
+func TestHandlerPassesBlockExclusions(t *testing.T) {
+	service := &fakeChatService{inbox: &models.InboxPage{}}
+	h := NewChatHandler(service)
+
+	if _, err := h.ListConversations(context.Background(), &chatpb.ListConversationsRequest{
+		ViewerId:       "u1",
+		ExcludeUserIds: []string{"blocked-1", "blocked-2"},
+	}); err != nil {
+		t.Fatalf("ListConversations: %v", err)
+	}
+	if len(service.lastExcluded) != 2 || service.lastExcluded[0] != "blocked-1" {
+		t.Fatalf("excluded = %v, want both hidden ids", service.lastExcluded)
+	}
+}
+
 func TestHandlerMessagesPageMapsTombstone(t *testing.T) {
 	deletedAt := time.Now().UTC()
 	h := NewChatHandler(&fakeChatService{page: &models.MessagePage{

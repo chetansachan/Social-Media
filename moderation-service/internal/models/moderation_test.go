@@ -48,23 +48,6 @@ func TestDecodeReportCursorRejectsMalformedInput(t *testing.T) {
 	}
 }
 
-func TestVisibilityIsHidden(t *testing.T) {
-	cases := []struct {
-		visibility Visibility
-		want       bool
-	}{
-		{Visibility{}, false},
-		{Visibility{IsBlocked: true}, true},
-		{Visibility{HasBlockedViewer: true}, true},
-		{Visibility{IsMuted: true}, false},
-	}
-	for _, tc := range cases {
-		if got := tc.visibility.IsHidden(); got != tc.want {
-			t.Fatalf("IsHidden(%+v) = %v, want %v", tc.visibility, got, tc.want)
-		}
-	}
-}
-
 func TestEnumHelpers(t *testing.T) {
 	if !IsTargetType(TargetPost) || IsTargetType("post") || IsTargetType("") {
 		t.Fatal("target type helper accepted or rejected the wrong value")

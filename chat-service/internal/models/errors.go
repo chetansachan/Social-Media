@@ -4,7 +4,6 @@ import "errors"
 
 var (
 	ErrInvalidInput = errors.New("invalid input")
-	ErrUserNotFound = errors.New("user not found")
 	// ErrNotParticipant is returned when a caller reads or writes a
 	// conversation they are not a member of. It is deliberately generic: it
 	// must not reveal whether the conversation exists.

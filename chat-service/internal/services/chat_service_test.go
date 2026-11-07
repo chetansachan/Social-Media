@@ -165,7 +165,18 @@ func (r *fakeChatRepo) SendMessage(ctx context.Context, conversationID, senderID
 
 func (r *fakeChatRepo) DeleteMessage(ctx context.Context, messageID, senderID uuid.UUID) (*models.Message, error) {
 	r.deleted = messageID
-	return &models.Message{ID: messageID, Content: "", SenderID: senderID}, nil
+	for _, messages := range r.messages {
+		for i := range messages {
+			if messages[i].ID == messageID {
+				message := messages[i]
+				message.Content = ""
+				message.DeletedAt = &message.CreatedAt
+				messages[i] = message
+				return &message, nil
+			}
+		}
+	}
+	return &models.Message{ID: messageID, SenderID: senderID}, nil
 }
 
 func (r *fakeChatRepo) MarkRead(ctx context.Context, conversationID, userID uuid.UUID) (*time.Time, error) {
@@ -387,5 +398,101 @@ func TestTypingRejectsNonMembers(t *testing.T) {
 
 	if _, err := service.SetTyping(context.Background(), conversation.ID.String(), uuid.New().String(), true); !errors.Is(err, models.ErrNotParticipant) {
 		t.Fatalf("typing err = %v, want ErrNotParticipant", err)
+	}
+}
+
+// fakePublisher records the frames the service would relay, so tests can assert
+// that realtime fan-out actually happens rather than only that the flag was set.
+type fakePublisher struct {
+	typingMembers      []uuid.UUID
+	typingConversation uuid.UUID
+	typingUser         uuid.UUID
+	typingIsTyping     bool
+
+	readMembers      []uuid.UUID
+	readConversation uuid.UUID
+	readUser         uuid.UUID
+
+	createdMembers []uuid.UUID
+	deletedMembers []uuid.UUID
+	deletedMessage uuid.UUID
+}
+
+func (p *fakePublisher) PublishMessageCreated(ctx context.Context, members []uuid.UUID, payload map[string]any) error {
+	p.createdMembers = members
+	return nil
+}
+
+func (p *fakePublisher) PublishMessageDeleted(ctx context.Context, members []uuid.UUID, conversationID, messageID uuid.UUID) error {
+	p.deletedMembers = members
+	p.deletedMessage = messageID
+	return nil
+}
+
+func (p *fakePublisher) PublishTyping(ctx context.Context, members []uuid.UUID, conversationID, userID uuid.UUID, isTyping bool) error {
+	p.typingMembers = members
+	p.typingConversation = conversationID
+	p.typingUser = userID
+	p.typingIsTyping = isTyping
+	return nil
+}
+
+func (p *fakePublisher) PublishRead(ctx context.Context, members []uuid.UUID, conversationID, userID uuid.UUID) error {
+	p.readMembers = members
+	p.readConversation = conversationID
+	p.readUser = userID
+	return nil
+}
+
+func TestTypingIsRelayedToOtherMembers(t *testing.T) {
+	repo := newFakeChatRepo()
+	alice, bob := uuid.New(), uuid.New()
+	conversation := repo.storeConversation(models.ConversationDirect, "", alice, bob)
+
+	service := NewChatService(repo, nil, nil)
+	service.(*chatService).publisher = &fakePublisher{}
+
+	if _, err := service.SetTyping(context.Background(), conversation.ID.String(), alice.String(), true); err != nil {
+		t.Fatalf("SetTyping: %v", err)
+	}
+
+	publisher := service.(*chatService).publisher.(*fakePublisher)
+	if len(publisher.typingMembers) != 1 || publisher.typingMembers[0] != bob {
+		t.Fatalf("typing fanned out to %v, want [bob]", publisher.typingMembers)
+	}
+	if publisher.typingUser != alice || !publisher.typingIsTyping {
+		t.Fatalf("frame = %s/%v", publisher.typingUser, publisher.typingIsTyping)
+	}
+}
+
+func TestMarkReadAndDeleteAreRelayedToOtherMembers(t *testing.T) {
+	repo := newFakeChatRepo()
+	alice, bob := uuid.New(), uuid.New()
+	conversation := repo.storeConversation(models.ConversationDirect, "", alice, bob)
+
+	service := NewChatService(repo, nil, nil)
+	publisher := &fakePublisher{}
+	service.(*chatService).publisher = publisher
+
+	if err := service.MarkRead(context.Background(), conversation.ID.String(), alice.String()); err != nil {
+		t.Fatalf("MarkRead: %v", err)
+	}
+	if len(publisher.readMembers) != 1 || publisher.readMembers[0] != bob {
+		t.Fatalf("read fanned out to %v, want [bob]", publisher.readMembers)
+	}
+
+	// Send first so the fake has a row to look the conversation up from.
+	message, err := service.SendMessage(context.Background(), conversation.ID.String(), alice.String(), "hello")
+	if err != nil {
+		t.Fatalf("SendMessage: %v", err)
+	}
+	if _, err := service.DeleteMessage(context.Background(), message.ID.String(), alice.String()); err != nil {
+		t.Fatalf("DeleteMessage: %v", err)
+	}
+	if len(publisher.deletedMembers) != 1 || publisher.deletedMembers[0] != bob {
+		t.Fatalf("deletion fanned out to %v, want [bob]", publisher.deletedMembers)
+	}
+	if publisher.deletedMessage != message.ID {
+		t.Fatalf("deleted frame named %s, want %s", publisher.deletedMessage, message.ID)
 	}
 }

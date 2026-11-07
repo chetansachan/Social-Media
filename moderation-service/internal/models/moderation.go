@@ -60,12 +60,6 @@ type Visibility struct {
 	IsMuted          bool
 }
 
-// IsHidden reports whether either side blocked the other. Blocking is
-// symmetric in effect even though only one row exists.
-func (v Visibility) IsHidden() bool {
-	return v.IsBlocked || v.HasBlockedViewer
-}
-
 // IsTargetType reports whether value is a supported report target.
 func IsTargetType(value string) bool {
 	switch value {

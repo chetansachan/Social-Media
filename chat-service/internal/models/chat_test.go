@@ -73,12 +73,3 @@ func TestCursorsTreatBlankAsFirstPage(t *testing.T) {
 		}
 	}
 }
-
-func TestIsConversationType(t *testing.T) {
-	if !IsConversationType(ConversationDirect) || !IsConversationType(ConversationGroup) {
-		t.Fatal("supported conversation types were rejected")
-	}
-	if IsConversationType("direct") || IsConversationType("") {
-		t.Fatal("unsupported conversation type was accepted")
-	}
-}

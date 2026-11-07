@@ -16,7 +16,6 @@ const (
 	EventMessageCreated = "message.created"
 	EventMessageDeleted = "message.deleted"
 	EventTyping         = "typing"
-	EventPresence       = "presence"
 	EventRead           = "read"
 )
 

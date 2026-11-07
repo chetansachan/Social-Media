@@ -154,8 +154,3 @@ type InboxPage struct {
 	HasMore       bool
 	TotalUnread   int
 }
-
-// IsConversationType reports whether value is a supported conversation type.
-func IsConversationType(value string) bool {
-	return value == ConversationDirect || value == ConversationGroup
-}

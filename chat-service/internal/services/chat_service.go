@@ -37,13 +37,22 @@ const (
 	maxPageSize      = 50
 )
 
+// Publisher is the fan-out the service needs. It is an interface so tests can
+// assert what would be relayed without standing up Redis.
+type Publisher interface {
+	PublishMessageCreated(ctx context.Context, members []uuid.UUID, payload map[string]any) error
+	PublishMessageDeleted(ctx context.Context, members []uuid.UUID, conversationID, messageID uuid.UUID) error
+	PublishTyping(ctx context.Context, members []uuid.UUID, conversationID, userID uuid.UUID, isTyping bool) error
+	PublishRead(ctx context.Context, members []uuid.UUID, conversationID, userID uuid.UUID) error
+}
+
 type chatService struct {
 	repo repository.ChatRepository
 
 	// Both are optional: a deployment without Redis still serves chat, it just
 	// has no presence or typing signals and no realtime relay.
 	presence  *presence.Store
-	publisher *realtime.Publisher
+	publisher Publisher
 }
 
 // NewChatService wires the durable store to the ephemeral ones. A nil presence
@@ -53,7 +62,11 @@ func NewChatService(
 	presenceStore *presence.Store,
 	publisher *realtime.Publisher,
 ) ChatService {
-	return &chatService{repo: repo, presence: presenceStore, publisher: publisher}
+	service := &chatService{repo: repo, presence: presenceStore}
+	if publisher != nil {
+		service.publisher = publisher
+	}
+	return service
 }
 
 // parseUUIDs parses and de-duplicates ids in order, skipping anything malformed
@@ -455,21 +468,40 @@ func (s *chatService) SetTyping(ctx context.Context, conversationID, userID stri
 		return nil, models.ErrNotParticipant
 	}
 
-	if s.presence == nil {
+	// No presence store means the flag cannot be set at all, which only
+	// happens when Redis is absent; there is still nothing to report.
+	if s.presence == nil && s.publisher == nil {
 		return nil, nil
 	}
 
 	var typing []uuid.UUID
-	if isTyping {
-		typing, err = s.presence.StartTyping(ctx, id, viewer)
-	} else {
-		if err := s.presence.StopTyping(ctx, id, viewer); err != nil {
+	if s.presence != nil {
+		if isTyping {
+			typing, err = s.presence.StartTyping(ctx, id, viewer)
+		} else {
+			if err := s.presence.StopTyping(ctx, id, viewer); err != nil {
+				return nil, err
+			}
+			typing, err = s.presence.TypingMembers(ctx, id, viewer)
+		}
+		if err != nil {
 			return nil, err
 		}
-		typing, err = s.presence.TypingMembers(ctx, id, viewer)
 	}
-	if err != nil {
-		return nil, err
+
+	// Without this frame the flag is only visible to whoever asks, so a
+	// teammate's typing indicator would never appear on its own.
+	if s.publisher != nil {
+		members, err := s.memberIDs(ctx, id)
+		if err == nil {
+			recipients := make([]uuid.UUID, 0, len(members))
+			for _, member := range members {
+				if member != viewer {
+					recipients = append(recipients, member)
+				}
+			}
+			_ = s.publisher.PublishTyping(ctx, recipients, id, viewer, isTyping)
+		}
 	}
 
 	results := make([]string, 0, len(typing))

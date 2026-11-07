@@ -32,8 +32,6 @@ func chatStatus(err error) error {
 		return status.Error(codes.NotFound, err.Error())
 	case errors.Is(err, models.ErrInvalidInput), errors.Is(err, models.ErrCannotModerateSelf):
 		return status.Error(codes.InvalidArgument, err.Error())
-	case errors.Is(err, models.ErrUserNotFound):
-		return status.Error(codes.NotFound, err.Error())
 	default:
 		return status.Error(codes.Internal, err.Error())
 	}
