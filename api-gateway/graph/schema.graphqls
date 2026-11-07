@@ -238,6 +238,11 @@ type Query {
     # Admin-only review queue. Open reports (PENDING plus REVIEWING) are the
     # default when status is omitted.
     getReports(status: ReportStatus, limit: Int, cursor: String): ReportConnection! @auth
+
+    # Search runs inside the owning service (tsvector and pg_trgm) rather than a
+    # separate index, so results are never more stale than the rows themselves.
+    searchPosts(query: String!, limit: Int): [Post!]!
+    searchUsers(query: String!, limit: Int): [User!]!
 }
 
 type Mutation {

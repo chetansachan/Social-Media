@@ -140,6 +140,10 @@ func run() error {
 			"CreatePost":    {Limit: envInt("RATE_LIMIT_CREATE_POST_PER_MINUTE", 10), Window: time.Minute},
 			"CreateComment": {Limit: envInt("RATE_LIMIT_CREATE_COMMENT_PER_MINUTE", 30), Window: time.Minute},
 			"getFeed":       {Limit: envInt("RATE_LIMIT_FEED_PER_MINUTE", 120), Window: time.Minute},
+			// Search hits trigram and tsvector scans, so it gets a tighter
+			// budget than the indexed feed read.
+			"searchPosts": {Limit: envInt("RATE_LIMIT_SEARCH_PER_MINUTE", 60), Window: time.Minute},
+			"searchUsers": {Limit: envInt("RATE_LIMIT_SEARCH_PER_MINUTE", 60), Window: time.Minute},
 		},
 		ratelimit.Policy{Limit: envInt("RATE_LIMIT_AUTHENTICATED_PER_MINUTE", 600), Window: time.Minute},
 		ratelimit.Policy{Limit: envInt("RATE_LIMIT_ANONYMOUS_PER_MINUTE", 120), Window: time.Minute},

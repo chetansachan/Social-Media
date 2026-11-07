@@ -1137,6 +1137,42 @@ func (r *queryResolver) GetReports(ctx context.Context, status *model.ReportStat
 	return connection, nil
 }
 
+// SearchPosts is the resolver for the searchPosts field. Search is public data:
+// the query is validated by post-service, and the gateway still passes the
+// authenticated viewer through so authors and like states can be hydrated.
+func (r *queryResolver) SearchPosts(ctx context.Context, query string, limit *int32) ([]*model.Post, error) {
+	res, err := r.PostClient.SearchPosts(ctx, &socialflowpb.SearchPostsRequest{
+		Query: query,
+		Limit: clampPageSize(limit, defaultSearchPageSize, maxSearchPageSize),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	posts := make([]*model.Post, 0, len(res.GetPosts()))
+	for _, post := range res.GetPosts() {
+		posts = append(posts, toModelPost(post))
+	}
+	return posts, nil
+}
+
+// SearchUsers is the resolver for the searchUsers field.
+func (r *queryResolver) SearchUsers(ctx context.Context, query string, limit *int32) ([]*model.User, error) {
+	res, err := r.UserClient.SearchUsers(ctx, &socialflowpb.SearchUsersRequest{
+		Query: query,
+		Limit: clampPageSize(limit, defaultSearchPageSize, maxSearchPageSize),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	users := make([]*model.User, 0, len(res.GetUsers()))
+	for _, user := range res.GetUsers() {
+		users = append(users, toModelUser(user))
+	}
+	return users, nil
+}
+
 // NotificationReceived is the resolver for the notificationReceived field.
 // It relays the realtime frames notification-service publishes over Redis
 // Pub/Sub, so whichever gateway pod holds the socket can serve the stream.

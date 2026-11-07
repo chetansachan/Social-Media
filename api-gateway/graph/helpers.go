@@ -18,6 +18,8 @@ const (
 	maxFeedPageSize             = 50
 	defaultCommentPageSize      = 20
 	maxCommentPageSize          = 50
+	defaultSearchPageSize       = 20
+	maxSearchPageSize           = 50
 	defaultReportPageSize       = 20
 	maxReportPageSize           = 100
 	defaultNotificationPageSize = 20
