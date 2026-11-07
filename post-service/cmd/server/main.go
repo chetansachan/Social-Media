@@ -20,6 +20,7 @@ import (
 	"github.com/chetansachan/socialflow/post-service/internal/handler"
 	"github.com/chetansachan/socialflow/post-service/internal/repository"
 	"github.com/chetansachan/socialflow/post-service/internal/services"
+	commentpb "github.com/chetansachan/socialflow/proto"
 	postpb "github.com/chetansachan/socialflow/proto"
 	"github.com/redis/go-redis/v9"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
@@ -29,8 +30,9 @@ import (
 )
 
 const (
-	postServiceName = "post-service"
-	grpcServiceName = "post.PostService"
+	postServiceName    = "post-service"
+	grpcServiceName    = "post.PostService"
+	commentServiceName = "comment.CommentService"
 
 	shutdownTimeout = 15 * time.Second
 )
@@ -119,6 +121,9 @@ func run() error {
 	postService := services.NewPostService(postRepo, postOptions...)
 	postHandler := handler.NewPostHandler(postService)
 
+	commentService := services.NewCommentService(repository.NewCommentRepository(dbPool))
+	commentHandler := handler.NewCommentHandler(commentService)
+
 	// -------------------------------------------------------------------------
 	// Transactional outbox relay
 	// -------------------------------------------------------------------------
@@ -154,9 +159,11 @@ func run() error {
 		grpc.ChainStreamInterceptor(metrics.StreamServerInterceptor()),
 	)
 	postpb.RegisterPostServiceServer(grpcServer, postHandler)
+	commentpb.RegisterCommentServiceServer(grpcServer, commentHandler)
 
 	healthServer := health.NewServer()
 	healthServer.SetServingStatus(grpcServiceName, healthpb.HealthCheckResponse_SERVING)
+	healthServer.SetServingStatus(commentServiceName, healthpb.HealthCheckResponse_SERVING)
 	healthpb.RegisterHealthServer(grpcServer, healthServer)
 
 	listener, err := net.Listen("tcp", ":"+port)
@@ -195,6 +202,7 @@ func run() error {
 
 	healthTracker.SetReady(false)
 	healthServer.SetServingStatus(grpcServiceName, healthpb.HealthCheckResponse_NOT_SERVING)
+	healthServer.SetServingStatus(commentServiceName, healthpb.HealthCheckResponse_NOT_SERVING)
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()

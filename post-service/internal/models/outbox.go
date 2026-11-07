@@ -73,3 +73,36 @@ type PostReactionEvent struct {
 	ActorID      string `json:"actor_id"`
 	PostPreview  string `json:"post_preview,omitempty"`
 }
+
+// CommentCreatedEvent tells notification-service that a comment was written.
+// A top-level comment uses type post.commented and targets the post author; a
+// reply uses comment.replied and targets the parent comment's author. The
+// notification consumer already understands both spellings and every field
+// below.
+type CommentCreatedEvent struct {
+	PostID          string `json:"post_id"`
+	CommentID       string `json:"comment_id"`
+	PostAuthorID    string `json:"post_author_id"`
+	ParentCommentID string `json:"parent_comment_id,omitempty"`
+	ParentAuthorID  string `json:"parent_author_id,omitempty"`
+	ActorID         string `json:"actor_id"`
+	ContentPreview  string `json:"content_preview,omitempty"`
+	CreatedAt       int64  `json:"created_at"`
+}
+
+// CommentDeletedEvent lets downstream indexes purge a comment.
+type CommentDeletedEvent struct {
+	PostID    string `json:"post_id"`
+	CommentID string `json:"comment_id"`
+	AuthorID  string `json:"author_id"`
+}
+
+// CommentReactionEvent covers comment.liked and comment.unliked. The actor is
+// the user who toggled the like; the recipient is the comment author.
+type CommentReactionEvent struct {
+	PostID          string `json:"post_id"`
+	CommentID       string `json:"comment_id"`
+	CommentAuthorID string `json:"comment_author_id"`
+	ActorID         string `json:"actor_id"`
+	ContentPreview  string `json:"content_preview,omitempty"`
+}
