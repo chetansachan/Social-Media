@@ -122,6 +122,16 @@ type LoginResponse struct {
 	Message      string `json:"message"`
 }
 
+type ModerationActionResponse struct {
+	Message string `json:"message"`
+}
+
+type ModerationStatus struct {
+	IsBlocked        bool `json:"isBlocked"`
+	HasBlockedViewer bool `json:"hasBlockedViewer"`
+	IsMuted          bool `json:"isMuted"`
+}
+
 type MovePostToArchivedResponse struct {
 	Message string `json:"message"`
 }
@@ -207,6 +217,38 @@ type RemoveFollowerInput struct {
 
 type RemoveFollowerResponse struct {
 	Message string `json:"message"`
+}
+
+type Report struct {
+	ID         string           `json:"id"`
+	ReporterID string           `json:"reporterId"`
+	TargetType ReportTargetType `json:"targetType"`
+	TargetID   string           `json:"targetId"`
+	Reason     ReportReason     `json:"reason"`
+	Details    string           `json:"details"`
+	Status     ReportStatus     `json:"status"`
+	CreatedAt  string           `json:"createdAt"`
+	ReviewedAt *string          `json:"reviewedAt,omitempty"`
+	ReviewerID *string          `json:"reviewerId,omitempty"`
+	ReviewNote string           `json:"reviewNote"`
+}
+
+type ReportConnection struct {
+	Reports    []*Report `json:"reports"`
+	NextCursor *string   `json:"nextCursor,omitempty"`
+	HasMore    bool      `json:"hasMore"`
+}
+
+type ReportContentInput struct {
+	TargetType ReportTargetType `json:"targetType"`
+	TargetID   string           `json:"targetId"`
+	Reason     ReportReason     `json:"reason"`
+	Details    *string          `json:"details,omitempty"`
+}
+
+type ReportContentResponse struct {
+	Report    *Report `json:"report"`
+	Duplicate bool    `json:"duplicate"`
 }
 
 type Subscription struct {
@@ -347,6 +389,189 @@ func (e *NotificationType) UnmarshalJSON(b []byte) error {
 }
 
 func (e NotificationType) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type ReportReason string
+
+const (
+	ReportReasonSpam          ReportReason = "SPAM"
+	ReportReasonHarassment    ReportReason = "HARASSMENT"
+	ReportReasonHate          ReportReason = "HATE"
+	ReportReasonViolence      ReportReason = "VIOLENCE"
+	ReportReasonNsfw          ReportReason = "NSFW"
+	ReportReasonImpersonation ReportReason = "IMPERSONATION"
+	ReportReasonSelfHarm      ReportReason = "SELF_HARM"
+	ReportReasonOther         ReportReason = "OTHER"
+)
+
+var AllReportReason = []ReportReason{
+	ReportReasonSpam,
+	ReportReasonHarassment,
+	ReportReasonHate,
+	ReportReasonViolence,
+	ReportReasonNsfw,
+	ReportReasonImpersonation,
+	ReportReasonSelfHarm,
+	ReportReasonOther,
+}
+
+func (e ReportReason) IsValid() bool {
+	switch e {
+	case ReportReasonSpam, ReportReasonHarassment, ReportReasonHate, ReportReasonViolence, ReportReasonNsfw, ReportReasonImpersonation, ReportReasonSelfHarm, ReportReasonOther:
+		return true
+	}
+	return false
+}
+
+func (e ReportReason) String() string {
+	return string(e)
+}
+
+func (e *ReportReason) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = ReportReason(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid ReportReason", str)
+	}
+	return nil
+}
+
+func (e ReportReason) MarshalGQL(w io.Writer) {
+	_, _ = fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *ReportReason) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e ReportReason) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type ReportStatus string
+
+const (
+	ReportStatusPending   ReportStatus = "PENDING"
+	ReportStatusReviewing ReportStatus = "REVIEWING"
+	ReportStatusActioned  ReportStatus = "ACTIONED"
+	ReportStatusDismissed ReportStatus = "DISMISSED"
+)
+
+var AllReportStatus = []ReportStatus{
+	ReportStatusPending,
+	ReportStatusReviewing,
+	ReportStatusActioned,
+	ReportStatusDismissed,
+}
+
+func (e ReportStatus) IsValid() bool {
+	switch e {
+	case ReportStatusPending, ReportStatusReviewing, ReportStatusActioned, ReportStatusDismissed:
+		return true
+	}
+	return false
+}
+
+func (e ReportStatus) String() string {
+	return string(e)
+}
+
+func (e *ReportStatus) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = ReportStatus(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid ReportStatus", str)
+	}
+	return nil
+}
+
+func (e ReportStatus) MarshalGQL(w io.Writer) {
+	_, _ = fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *ReportStatus) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e ReportStatus) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type ReportTargetType string
+
+const (
+	ReportTargetTypePost    ReportTargetType = "POST"
+	ReportTargetTypeComment ReportTargetType = "COMMENT"
+	ReportTargetTypeUser    ReportTargetType = "USER"
+)
+
+var AllReportTargetType = []ReportTargetType{
+	ReportTargetTypePost,
+	ReportTargetTypeComment,
+	ReportTargetTypeUser,
+}
+
+func (e ReportTargetType) IsValid() bool {
+	switch e {
+	case ReportTargetTypePost, ReportTargetTypeComment, ReportTargetTypeUser:
+		return true
+	}
+	return false
+}
+
+func (e ReportTargetType) String() string {
+	return string(e)
+}
+
+func (e *ReportTargetType) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = ReportTargetType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid ReportTargetType", str)
+	}
+	return nil
+}
+
+func (e ReportTargetType) MarshalGQL(w io.Writer) {
+	_, _ = fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *ReportTargetType) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e ReportTargetType) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

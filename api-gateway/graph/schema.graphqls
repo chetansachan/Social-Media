@@ -138,6 +138,68 @@ type UploadSignature {
     expiresAt: String!
 }
 
+# The caller's moderation view of another user. hasBlockedViewer is exposed
+# instead of the other party's block list so a block stays one-sided in public.
+type ModerationStatus {
+    isBlocked: Boolean!
+    hasBlockedViewer: Boolean!
+    isMuted: Boolean!
+}
+
+enum ReportTargetType {
+    POST
+    COMMENT
+    USER
+}
+
+enum ReportReason {
+    SPAM
+    HARASSMENT
+    HATE
+    VIOLENCE
+    NSFW
+    IMPERSONATION
+    SELF_HARM
+    OTHER
+}
+
+enum ReportStatus {
+    PENDING
+    REVIEWING
+    ACTIONED
+    DISMISSED
+}
+
+type Report {
+    id: ID!
+    reporterId: String!
+    targetType: ReportTargetType!
+    targetId: ID!
+    reason: ReportReason!
+    details: String!
+    status: ReportStatus!
+    createdAt: String!
+    reviewedAt: String
+    reviewerId: String
+    reviewNote: String!
+}
+
+type ReportConnection {
+    reports: [Report!]!
+    nextCursor: String
+    hasMore: Boolean!
+}
+
+type ModerationActionResponse {
+    message: String!
+}
+
+type ReportContentResponse {
+    report: Report!
+    # True when the caller already had an open report for this target.
+    duplicate: Boolean!
+}
+
 type Query {
     getUserById(id: ID!): User! @auth
     getUserByEmail(email: String!): User! @auth
@@ -167,6 +229,15 @@ type Query {
     getUnreadNotificationCount: Int! @auth
     getNotificationSettings: NotificationSettings! @auth
     getUploadSignature(resourceType: String, folder: String): UploadSignature! @auth
+
+    # Moderation reads are scoped to the caller; there is no user argument, so
+    # a client cannot enumerate somebody else's block list.
+    getModerationStatus(userId: ID!): ModerationStatus! @auth
+    getBlockedUsers: [String!]! @auth
+    getMutedUsers: [String!]! @auth
+    # Admin-only review queue. Open reports (PENDING plus REVIEWING) are the
+    # default when status is omitted.
+    getReports(status: ReportStatus, limit: Int, cursor: String): ReportConnection! @auth
 }
 
 type Mutation {
@@ -192,6 +263,14 @@ type Mutation {
     revokeDeviceToken(token: String!): Boolean! @auth
     # Blacklists the caller's current access token for its remaining lifetime.
     logout: Boolean! @auth
+
+    blockUser(userId: ID!): ModerationActionResponse! @auth
+    unblockUser(userId: ID!): ModerationActionResponse! @auth
+    muteUser(userId: ID!): ModerationActionResponse! @auth
+    unmuteUser(userId: ID!): ModerationActionResponse! @auth
+    reportContent(input: ReportContentInput!): ReportContentResponse! @auth
+    # Admin-only. Moves an open report to REVIEWING, ACTIONED, or DISMISSED.
+    resolveReport(id: ID!, status: ReportStatus!, note: String): Report! @auth
 }
 
 type Subscription {
@@ -282,6 +361,13 @@ input UpdateCommentInput {
 
 input LikeCommentInput {
     commentId: ID!
+}
+
+input ReportContentInput {
+    targetType: ReportTargetType!
+    targetId: ID!
+    reason: ReportReason!
+    details: String
 }
 
 type LikeCommentResponse {

@@ -123,11 +123,22 @@ type ComplexityRoot struct {
 		RefressToken func(childComplexity int) int
 	}
 
+	ModerationActionResponse struct {
+		Message func(childComplexity int) int
+	}
+
+	ModerationStatus struct {
+		HasBlockedViewer func(childComplexity int) int
+		IsBlocked        func(childComplexity int) int
+		IsMuted          func(childComplexity int) int
+	}
+
 	MovePostToArchivedResponse struct {
 		Message func(childComplexity int) int
 	}
 
 	Mutation struct {
+		BlockUser                  func(childComplexity int, userID string) int
 		CreateComment              func(childComplexity int, input model.CreateCommentInput) int
 		CreatePost                 func(childComplexity int, input model.CreatePostInput) int
 		DeleteComment              func(childComplexity int, id string) int
@@ -139,11 +150,16 @@ type ComplexityRoot struct {
 		Logout                     func(childComplexity int) int
 		MarkAllNotificationsAsRead func(childComplexity int) int
 		MarkNotificationAsRead     func(childComplexity int, notificationIds []string) int
+		MuteUser                   func(childComplexity int, userID string) int
 		Register                   func(childComplexity int, input model.RegisterUserInput) int
 		RegisterDeviceToken        func(childComplexity int, token string, platform string, deviceName *string, appVersion *string) int
 		RemoveFollower             func(childComplexity int, input model.RemoveFollowerInput) int
+		ReportContent              func(childComplexity int, input model.ReportContentInput) int
+		ResolveReport              func(childComplexity int, id string, status model.ReportStatus, note *string) int
 		RevokeDeviceToken          func(childComplexity int, token string) int
+		UnblockUser                func(childComplexity int, userID string) int
 		UnfollowUser               func(childComplexity int, input model.UnfollowUserInput) int
+		UnmuteUser                 func(childComplexity int, userID string) int
 		UpdateComment              func(childComplexity int, input model.UpdateCommentInput) int
 		UpdateNotificationSettings func(childComplexity int, input model.UpdateNotificationSettingsInput) int
 		UpdatePost                 func(childComplexity int, input model.UpdatePostInput) int
@@ -218,6 +234,7 @@ type ComplexityRoot struct {
 		GetAllPost                 func(childComplexity int, authorID string) int
 		GetAllPostLikers           func(childComplexity int, postID string) int
 		GetArchivedPostByID        func(childComplexity int, id string) int
+		GetBlockedUsers            func(childComplexity int) int
 		GetComment                 func(childComplexity int, id string) int
 		GetComments                func(childComplexity int, postID string, parentID *string, limit *int32, cursor *string) int
 		GetFeed                    func(childComplexity int, limit *int32, cursor *string) int
@@ -225,9 +242,12 @@ type ComplexityRoot struct {
 		GetFollowStatus            func(childComplexity int, followerID string, followingID string) int
 		GetFollowers               func(childComplexity int, userID string) int
 		GetFollowing               func(childComplexity int, userID string) int
+		GetModerationStatus        func(childComplexity int, userID string) int
+		GetMutedUsers              func(childComplexity int) int
 		GetNotificationSettings    func(childComplexity int) int
 		GetNotifications           func(childComplexity int, limit *int32, cursor *string, filter *model.NotificationType) int
 		GetPostByID                func(childComplexity int, id string) int
+		GetReports                 func(childComplexity int, status *model.ReportStatus, limit *int32, cursor *string) int
 		GetUnreadNotificationCount func(childComplexity int) int
 		GetUploadSignature         func(childComplexity int, resourceType *string, folder *string) int
 		GetUserByEmail             func(childComplexity int, email string) int
@@ -239,6 +259,31 @@ type ComplexityRoot struct {
 
 	RemoveFollowerResponse struct {
 		Message func(childComplexity int) int
+	}
+
+	Report struct {
+		CreatedAt  func(childComplexity int) int
+		Details    func(childComplexity int) int
+		ID         func(childComplexity int) int
+		Reason     func(childComplexity int) int
+		ReporterID func(childComplexity int) int
+		ReviewNote func(childComplexity int) int
+		ReviewedAt func(childComplexity int) int
+		ReviewerID func(childComplexity int) int
+		Status     func(childComplexity int) int
+		TargetID   func(childComplexity int) int
+		TargetType func(childComplexity int) int
+	}
+
+	ReportConnection struct {
+		HasMore    func(childComplexity int) int
+		NextCursor func(childComplexity int) int
+		Reports    func(childComplexity int) int
+	}
+
+	ReportContentResponse struct {
+		Duplicate func(childComplexity int) int
+		Report    func(childComplexity int) int
 	}
 
 	Subscription struct {
@@ -311,6 +356,12 @@ type MutationResolver interface {
 	RegisterDeviceToken(ctx context.Context, token string, platform string, deviceName *string, appVersion *string) (bool, error)
 	RevokeDeviceToken(ctx context.Context, token string) (bool, error)
 	Logout(ctx context.Context) (bool, error)
+	BlockUser(ctx context.Context, userID string) (*model.ModerationActionResponse, error)
+	UnblockUser(ctx context.Context, userID string) (*model.ModerationActionResponse, error)
+	MuteUser(ctx context.Context, userID string) (*model.ModerationActionResponse, error)
+	UnmuteUser(ctx context.Context, userID string) (*model.ModerationActionResponse, error)
+	ReportContent(ctx context.Context, input model.ReportContentInput) (*model.ReportContentResponse, error)
+	ResolveReport(ctx context.Context, id string, status model.ReportStatus, note *string) (*model.Report, error)
 }
 type PostResolver interface {
 	HasLiked(ctx context.Context, obj *model.Post) (bool, error)
@@ -342,6 +393,10 @@ type QueryResolver interface {
 	GetUnreadNotificationCount(ctx context.Context) (int32, error)
 	GetNotificationSettings(ctx context.Context) (*model.NotificationSettings, error)
 	GetUploadSignature(ctx context.Context, resourceType *string, folder *string) (*model.UploadSignature, error)
+	GetModerationStatus(ctx context.Context, userID string) (*model.ModerationStatus, error)
+	GetBlockedUsers(ctx context.Context) ([]string, error)
+	GetMutedUsers(ctx context.Context) ([]string, error)
+	GetReports(ctx context.Context, status *model.ReportStatus, limit *int32, cursor *string) (*model.ReportConnection, error)
 }
 type SubscriptionResolver interface {
 	NotificationReceived(ctx context.Context) (<-chan *model.NotificationItem, error)
@@ -630,6 +685,32 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.LoginResponse.RefressToken(childComplexity), true
 
+	case "ModerationActionResponse.message":
+		if e.ComplexityRoot.ModerationActionResponse.Message == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ModerationActionResponse.Message(childComplexity), true
+
+	case "ModerationStatus.hasBlockedViewer":
+		if e.ComplexityRoot.ModerationStatus.HasBlockedViewer == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ModerationStatus.HasBlockedViewer(childComplexity), true
+	case "ModerationStatus.isBlocked":
+		if e.ComplexityRoot.ModerationStatus.IsBlocked == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ModerationStatus.IsBlocked(childComplexity), true
+	case "ModerationStatus.isMuted":
+		if e.ComplexityRoot.ModerationStatus.IsMuted == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ModerationStatus.IsMuted(childComplexity), true
+
 	case "MovePostToArchivedResponse.message":
 		if e.ComplexityRoot.MovePostToArchivedResponse.Message == nil {
 			break
@@ -637,6 +718,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.MovePostToArchivedResponse.Message(childComplexity), true
 
+	case "Mutation.blockUser":
+		if e.ComplexityRoot.Mutation.BlockUser == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_blockUser_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.BlockUser(childComplexity, args["userId"].(string)), true
 	case "Mutation.createComment":
 		if e.ComplexityRoot.Mutation.CreateComment == nil {
 			break
@@ -748,6 +840,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.MarkNotificationAsRead(childComplexity, args["notificationIds"].([]string)), true
+	case "Mutation.muteUser":
+		if e.ComplexityRoot.Mutation.MuteUser == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_muteUser_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.MuteUser(childComplexity, args["userId"].(string)), true
 	case "Mutation.register":
 		if e.ComplexityRoot.Mutation.Register == nil {
 			break
@@ -781,6 +884,28 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.RemoveFollower(childComplexity, args["input"].(model.RemoveFollowerInput)), true
+	case "Mutation.reportContent":
+		if e.ComplexityRoot.Mutation.ReportContent == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_reportContent_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.ReportContent(childComplexity, args["input"].(model.ReportContentInput)), true
+	case "Mutation.resolveReport":
+		if e.ComplexityRoot.Mutation.ResolveReport == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_resolveReport_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.ResolveReport(childComplexity, args["id"].(string), args["status"].(model.ReportStatus), args["note"].(*string)), true
 	case "Mutation.revokeDeviceToken":
 		if e.ComplexityRoot.Mutation.RevokeDeviceToken == nil {
 			break
@@ -792,6 +917,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.RevokeDeviceToken(childComplexity, args["token"].(string)), true
+	case "Mutation.unblockUser":
+		if e.ComplexityRoot.Mutation.UnblockUser == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_unblockUser_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.UnblockUser(childComplexity, args["userId"].(string)), true
 	case "Mutation.unfollowUser":
 		if e.ComplexityRoot.Mutation.UnfollowUser == nil {
 			break
@@ -803,6 +939,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.UnfollowUser(childComplexity, args["input"].(model.UnfollowUserInput)), true
+	case "Mutation.unmuteUser":
+		if e.ComplexityRoot.Mutation.UnmuteUser == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_unmuteUser_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.UnmuteUser(childComplexity, args["userId"].(string)), true
 	case "Mutation.updateComment":
 		if e.ComplexityRoot.Mutation.UpdateComment == nil {
 			break
@@ -1200,6 +1347,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.GetArchivedPostByID(childComplexity, args["id"].(string)), true
+	case "Query.getBlockedUsers":
+		if e.ComplexityRoot.Query.GetBlockedUsers == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Query.GetBlockedUsers(childComplexity), true
 	case "Query.getComment":
 		if e.ComplexityRoot.Query.GetComment == nil {
 			break
@@ -1277,6 +1430,23 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.GetFollowing(childComplexity, args["userId"].(string)), true
+	case "Query.getModerationStatus":
+		if e.ComplexityRoot.Query.GetModerationStatus == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getModerationStatus_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.GetModerationStatus(childComplexity, args["userId"].(string)), true
+	case "Query.getMutedUsers":
+		if e.ComplexityRoot.Query.GetMutedUsers == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Query.GetMutedUsers(childComplexity), true
 	case "Query.getNotificationSettings":
 		if e.ComplexityRoot.Query.GetNotificationSettings == nil {
 			break
@@ -1305,6 +1475,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.GetPostByID(childComplexity, args["id"].(string)), true
+	case "Query.getReports":
+		if e.ComplexityRoot.Query.GetReports == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getReports_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.GetReports(childComplexity, args["status"].(*model.ReportStatus), args["limit"].(*int32), args["cursor"].(*string)), true
 	case "Query.getUnreadNotificationCount":
 		if e.ComplexityRoot.Query.GetUnreadNotificationCount == nil {
 			break
@@ -1385,6 +1566,105 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.RemoveFollowerResponse.Message(childComplexity), true
+
+	case "Report.createdAt":
+		if e.ComplexityRoot.Report.CreatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Report.CreatedAt(childComplexity), true
+	case "Report.details":
+		if e.ComplexityRoot.Report.Details == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Report.Details(childComplexity), true
+	case "Report.id":
+		if e.ComplexityRoot.Report.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Report.ID(childComplexity), true
+	case "Report.reason":
+		if e.ComplexityRoot.Report.Reason == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Report.Reason(childComplexity), true
+	case "Report.reporterId":
+		if e.ComplexityRoot.Report.ReporterID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Report.ReporterID(childComplexity), true
+	case "Report.reviewNote":
+		if e.ComplexityRoot.Report.ReviewNote == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Report.ReviewNote(childComplexity), true
+	case "Report.reviewedAt":
+		if e.ComplexityRoot.Report.ReviewedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Report.ReviewedAt(childComplexity), true
+	case "Report.reviewerId":
+		if e.ComplexityRoot.Report.ReviewerID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Report.ReviewerID(childComplexity), true
+	case "Report.status":
+		if e.ComplexityRoot.Report.Status == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Report.Status(childComplexity), true
+	case "Report.targetId":
+		if e.ComplexityRoot.Report.TargetID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Report.TargetID(childComplexity), true
+	case "Report.targetType":
+		if e.ComplexityRoot.Report.TargetType == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Report.TargetType(childComplexity), true
+
+	case "ReportConnection.hasMore":
+		if e.ComplexityRoot.ReportConnection.HasMore == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ReportConnection.HasMore(childComplexity), true
+	case "ReportConnection.nextCursor":
+		if e.ComplexityRoot.ReportConnection.NextCursor == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ReportConnection.NextCursor(childComplexity), true
+	case "ReportConnection.reports":
+		if e.ComplexityRoot.ReportConnection.Reports == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ReportConnection.Reports(childComplexity), true
+
+	case "ReportContentResponse.duplicate":
+		if e.ComplexityRoot.ReportContentResponse.Duplicate == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ReportContentResponse.Duplicate(childComplexity), true
+	case "ReportContentResponse.report":
+		if e.ComplexityRoot.ReportContentResponse.Report == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ReportContentResponse.Report(childComplexity), true
 
 	case "Subscription.notificationReceived":
 		if e.ComplexityRoot.Subscription.NotificationReceived == nil {
@@ -1521,6 +1801,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputLoginInput,
 		ec.unmarshalInputRegisterUserInput,
 		ec.unmarshalInputRemoveFollowerInput,
+		ec.unmarshalInputReportContentInput,
 		ec.unmarshalInputUnfollowUserInput,
 		ec.unmarshalInputUpdateCommentInput,
 		ec.unmarshalInputUpdateNotificationSettingsInput,
@@ -1799,6 +2080,26 @@ func (ec *executionContext) childFields_LoginResponse(ctx context.Context, field
 	return nil, fmt.Errorf("no field named %q was found under type LoginResponse", field.Name)
 }
 
+func (ec *executionContext) childFields_ModerationActionResponse(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "message":
+		return ec.fieldContext_ModerationActionResponse_message(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type ModerationActionResponse", field.Name)
+}
+
+func (ec *executionContext) childFields_ModerationStatus(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "isBlocked":
+		return ec.fieldContext_ModerationStatus_isBlocked(ctx, field)
+	case "hasBlockedViewer":
+		return ec.fieldContext_ModerationStatus_hasBlockedViewer(ctx, field)
+	case "isMuted":
+		return ec.fieldContext_ModerationStatus_isMuted(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type ModerationStatus", field.Name)
+}
+
 func (ec *executionContext) childFields_MovePostToArchivedResponse(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 	switch field.Name {
 	case "message":
@@ -1933,6 +2234,56 @@ func (ec *executionContext) childFields_RemoveFollowerResponse(ctx context.Conte
 		return ec.fieldContext_RemoveFollowerResponse_message(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type RemoveFollowerResponse", field.Name)
+}
+
+func (ec *executionContext) childFields_Report(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_Report_id(ctx, field)
+	case "reporterId":
+		return ec.fieldContext_Report_reporterId(ctx, field)
+	case "targetType":
+		return ec.fieldContext_Report_targetType(ctx, field)
+	case "targetId":
+		return ec.fieldContext_Report_targetId(ctx, field)
+	case "reason":
+		return ec.fieldContext_Report_reason(ctx, field)
+	case "details":
+		return ec.fieldContext_Report_details(ctx, field)
+	case "status":
+		return ec.fieldContext_Report_status(ctx, field)
+	case "createdAt":
+		return ec.fieldContext_Report_createdAt(ctx, field)
+	case "reviewedAt":
+		return ec.fieldContext_Report_reviewedAt(ctx, field)
+	case "reviewerId":
+		return ec.fieldContext_Report_reviewerId(ctx, field)
+	case "reviewNote":
+		return ec.fieldContext_Report_reviewNote(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type Report", field.Name)
+}
+
+func (ec *executionContext) childFields_ReportConnection(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "reports":
+		return ec.fieldContext_ReportConnection_reports(ctx, field)
+	case "nextCursor":
+		return ec.fieldContext_ReportConnection_nextCursor(ctx, field)
+	case "hasMore":
+		return ec.fieldContext_ReportConnection_hasMore(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type ReportConnection", field.Name)
+}
+
+func (ec *executionContext) childFields_ReportContentResponse(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "report":
+		return ec.fieldContext_ReportContentResponse_report(ctx, field)
+	case "duplicate":
+		return ec.fieldContext_ReportContentResponse_duplicate(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type ReportContentResponse", field.Name)
 }
 
 func (ec *executionContext) childFields_UnfollowUserResponse(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
@@ -2167,6 +2518,20 @@ func (ec *executionContext) field_Mutation_UpdateUser_args(ctx context.Context, 
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_blockUser_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "userId",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["userId"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_createComment_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -2265,6 +2630,20 @@ func (ec *executionContext) field_Mutation_markNotificationAsRead_args(ctx conte
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_muteUser_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "userId",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["userId"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_registerDeviceToken_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -2331,6 +2710,50 @@ func (ec *executionContext) field_Mutation_removeFollower_args(ctx context.Conte
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_reportContent_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (model.ReportContentInput, error) {
+			return ec.unmarshalNReportContentInput2githubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐReportContentInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_resolveReport_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "status",
+		func(ctx context.Context, v any) (model.ReportStatus, error) {
+			return ec.unmarshalNReportStatus2githubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐReportStatus(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["status"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "note",
+		func(ctx context.Context, v any) (*string, error) {
+			return ec.unmarshalOString2ᚖstring(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["note"] = arg2
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_revokeDeviceToken_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -2345,6 +2768,20 @@ func (ec *executionContext) field_Mutation_revokeDeviceToken_args(ctx context.Co
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_unblockUser_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "userId",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["userId"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_unfollowUser_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -2356,6 +2793,20 @@ func (ec *executionContext) field_Mutation_unfollowUser_args(ctx context.Context
 		return nil, err
 	}
 	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_unmuteUser_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "userId",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["userId"] = arg0
 	return args, nil
 }
 
@@ -2637,6 +3088,20 @@ func (ec *executionContext) field_Query_getFollowing_args(ctx context.Context, r
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_getModerationStatus_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "userId",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["userId"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_getNotifications_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -2678,6 +3143,36 @@ func (ec *executionContext) field_Query_getPostById_args(ctx context.Context, ra
 		return nil, err
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_getReports_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "status",
+		func(ctx context.Context, v any) (*model.ReportStatus, error) {
+			return ec.unmarshalOReportStatus2ᚖgithubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐReportStatus(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["status"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*int32, error) {
+			return ec.unmarshalOInt2ᚖint32(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "cursor",
+		func(ctx context.Context, v any) (*string, error) {
+			return ec.unmarshalOString2ᚖstring(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["cursor"] = arg2
 	return args, nil
 }
 
@@ -3835,6 +4330,98 @@ func (ec *executionContext) fieldContext_LoginResponse_message(_ context.Context
 	return graphql.NewScalarFieldContext("LoginResponse", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
+func (ec *executionContext) _ModerationActionResponse_message(ctx context.Context, field graphql.CollectedField, obj *model.ModerationActionResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_ModerationActionResponse_message(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_ModerationActionResponse_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("ModerationActionResponse", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _ModerationStatus_isBlocked(ctx context.Context, field graphql.CollectedField, obj *model.ModerationStatus) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_ModerationStatus_isBlocked(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.IsBlocked, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_ModerationStatus_isBlocked(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("ModerationStatus", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _ModerationStatus_hasBlockedViewer(ctx context.Context, field graphql.CollectedField, obj *model.ModerationStatus) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_ModerationStatus_hasBlockedViewer(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.HasBlockedViewer, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_ModerationStatus_hasBlockedViewer(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("ModerationStatus", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _ModerationStatus_isMuted(ctx context.Context, field graphql.CollectedField, obj *model.ModerationStatus) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_ModerationStatus_isMuted(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.IsMuted, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_ModerationStatus_isMuted(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("ModerationStatus", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
 func (ec *executionContext) _MovePostToArchivedResponse_message(ctx context.Context, field graphql.CollectedField, obj *model.MovePostToArchivedResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -4928,6 +5515,348 @@ func (ec *executionContext) _Mutation_logout(ctx context.Context, field graphql.
 }
 func (ec *executionContext) fieldContext_Mutation_logout(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("Mutation", field, true, true, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _Mutation_blockUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_blockUser(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().BlockUser(ctx, fc.Args["userId"].(string))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				if ec.Directives.Auth == nil {
+					var zeroVal *model.ModerationActionResponse
+					return zeroVal, errors.New("directive auth is not implemented")
+				}
+				return ec.Directives.Auth(ctx, nil, directive0)
+			}
+
+			next = directive1
+			return next
+		},
+		func(ctx context.Context, selections ast.SelectionSet, v *model.ModerationActionResponse) graphql.Marshaler {
+			return ec.marshalNModerationActionResponse2ᚖgithubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐModerationActionResponse(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_blockUser(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_ModerationActionResponse(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_blockUser_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_unblockUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_unblockUser(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().UnblockUser(ctx, fc.Args["userId"].(string))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				if ec.Directives.Auth == nil {
+					var zeroVal *model.ModerationActionResponse
+					return zeroVal, errors.New("directive auth is not implemented")
+				}
+				return ec.Directives.Auth(ctx, nil, directive0)
+			}
+
+			next = directive1
+			return next
+		},
+		func(ctx context.Context, selections ast.SelectionSet, v *model.ModerationActionResponse) graphql.Marshaler {
+			return ec.marshalNModerationActionResponse2ᚖgithubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐModerationActionResponse(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_unblockUser(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_ModerationActionResponse(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_unblockUser_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_muteUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_muteUser(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().MuteUser(ctx, fc.Args["userId"].(string))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				if ec.Directives.Auth == nil {
+					var zeroVal *model.ModerationActionResponse
+					return zeroVal, errors.New("directive auth is not implemented")
+				}
+				return ec.Directives.Auth(ctx, nil, directive0)
+			}
+
+			next = directive1
+			return next
+		},
+		func(ctx context.Context, selections ast.SelectionSet, v *model.ModerationActionResponse) graphql.Marshaler {
+			return ec.marshalNModerationActionResponse2ᚖgithubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐModerationActionResponse(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_muteUser(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_ModerationActionResponse(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_muteUser_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_unmuteUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_unmuteUser(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().UnmuteUser(ctx, fc.Args["userId"].(string))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				if ec.Directives.Auth == nil {
+					var zeroVal *model.ModerationActionResponse
+					return zeroVal, errors.New("directive auth is not implemented")
+				}
+				return ec.Directives.Auth(ctx, nil, directive0)
+			}
+
+			next = directive1
+			return next
+		},
+		func(ctx context.Context, selections ast.SelectionSet, v *model.ModerationActionResponse) graphql.Marshaler {
+			return ec.marshalNModerationActionResponse2ᚖgithubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐModerationActionResponse(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_unmuteUser(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_ModerationActionResponse(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_unmuteUser_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_reportContent(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_reportContent(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().ReportContent(ctx, fc.Args["input"].(model.ReportContentInput))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				if ec.Directives.Auth == nil {
+					var zeroVal *model.ReportContentResponse
+					return zeroVal, errors.New("directive auth is not implemented")
+				}
+				return ec.Directives.Auth(ctx, nil, directive0)
+			}
+
+			next = directive1
+			return next
+		},
+		func(ctx context.Context, selections ast.SelectionSet, v *model.ReportContentResponse) graphql.Marshaler {
+			return ec.marshalNReportContentResponse2ᚖgithubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐReportContentResponse(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_reportContent(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_ReportContentResponse(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_reportContent_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_resolveReport(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_resolveReport(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().ResolveReport(ctx, fc.Args["id"].(string), fc.Args["status"].(model.ReportStatus), fc.Args["note"].(*string))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				if ec.Directives.Auth == nil {
+					var zeroVal *model.Report
+					return zeroVal, errors.New("directive auth is not implemented")
+				}
+				return ec.Directives.Auth(ctx, nil, directive0)
+			}
+
+			next = directive1
+			return next
+		},
+		func(ctx context.Context, selections ast.SelectionSet, v *model.Report) graphql.Marshaler {
+			return ec.marshalNReport2ᚖgithubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐReport(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_resolveReport(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Report(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_resolveReport_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
 }
 
 func (ec *executionContext) _NotificationActor_id(ctx context.Context, field graphql.CollectedField, obj *model.NotificationActor) (ret graphql.Marshaler) {
@@ -7197,6 +8126,192 @@ func (ec *executionContext) fieldContext_Query_getUploadSignature(ctx context.Co
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_getModerationStatus(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_getModerationStatus(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().GetModerationStatus(ctx, fc.Args["userId"].(string))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				if ec.Directives.Auth == nil {
+					var zeroVal *model.ModerationStatus
+					return zeroVal, errors.New("directive auth is not implemented")
+				}
+				return ec.Directives.Auth(ctx, nil, directive0)
+			}
+
+			next = directive1
+			return next
+		},
+		func(ctx context.Context, selections ast.SelectionSet, v *model.ModerationStatus) graphql.Marshaler {
+			return ec.marshalNModerationStatus2ᚖgithubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐModerationStatus(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_getModerationStatus(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_ModerationStatus(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getModerationStatus_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getBlockedUsers(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_getBlockedUsers(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Query().GetBlockedUsers(ctx)
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				if ec.Directives.Auth == nil {
+					var zeroVal []string
+					return zeroVal, errors.New("directive auth is not implemented")
+				}
+				return ec.Directives.Auth(ctx, nil, directive0)
+			}
+
+			next = directive1
+			return next
+		},
+		func(ctx context.Context, selections ast.SelectionSet, v []string) graphql.Marshaler {
+			return ec.marshalNString2ᚕstringᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_getBlockedUsers(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Query", field, true, true, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _Query_getMutedUsers(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_getMutedUsers(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Query().GetMutedUsers(ctx)
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				if ec.Directives.Auth == nil {
+					var zeroVal []string
+					return zeroVal, errors.New("directive auth is not implemented")
+				}
+				return ec.Directives.Auth(ctx, nil, directive0)
+			}
+
+			next = directive1
+			return next
+		},
+		func(ctx context.Context, selections ast.SelectionSet, v []string) graphql.Marshaler {
+			return ec.marshalNString2ᚕstringᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_getMutedUsers(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Query", field, true, true, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _Query_getReports(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_getReports(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().GetReports(ctx, fc.Args["status"].(*model.ReportStatus), fc.Args["limit"].(*int32), fc.Args["cursor"].(*string))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				if ec.Directives.Auth == nil {
+					var zeroVal *model.ReportConnection
+					return zeroVal, errors.New("directive auth is not implemented")
+				}
+				return ec.Directives.Auth(ctx, nil, directive0)
+			}
+
+			next = directive1
+			return next
+		},
+		func(ctx context.Context, selections ast.SelectionSet, v *model.ReportConnection) graphql.Marshaler {
+			return ec.marshalNReportConnection2ᚖgithubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐReportConnection(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_getReports(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_ReportConnection(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getReports_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -7294,6 +8409,392 @@ func (ec *executionContext) _RemoveFollowerResponse_message(ctx context.Context,
 }
 func (ec *executionContext) fieldContext_RemoveFollowerResponse_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("RemoveFollowerResponse", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _Report_id(ctx context.Context, field graphql.CollectedField, obj *model.Report) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Report_id(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Report_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Report", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _Report_reporterId(ctx context.Context, field graphql.CollectedField, obj *model.Report) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Report_reporterId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ReporterID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Report_reporterId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Report", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _Report_targetType(ctx context.Context, field graphql.CollectedField, obj *model.Report) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Report_targetType(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.TargetType, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.ReportTargetType) graphql.Marshaler {
+			return ec.marshalNReportTargetType2githubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐReportTargetType(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Report_targetType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Report", field, false, false, errors.New("field of type ReportTargetType does not have child fields"))
+}
+
+func (ec *executionContext) _Report_targetId(ctx context.Context, field graphql.CollectedField, obj *model.Report) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Report_targetId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.TargetID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Report_targetId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Report", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _Report_reason(ctx context.Context, field graphql.CollectedField, obj *model.Report) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Report_reason(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Reason, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.ReportReason) graphql.Marshaler {
+			return ec.marshalNReportReason2githubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐReportReason(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Report_reason(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Report", field, false, false, errors.New("field of type ReportReason does not have child fields"))
+}
+
+func (ec *executionContext) _Report_details(ctx context.Context, field graphql.CollectedField, obj *model.Report) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Report_details(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Details, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Report_details(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Report", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _Report_status(ctx context.Context, field graphql.CollectedField, obj *model.Report) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Report_status(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.ReportStatus) graphql.Marshaler {
+			return ec.marshalNReportStatus2githubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐReportStatus(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Report_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Report", field, false, false, errors.New("field of type ReportStatus does not have child fields"))
+}
+
+func (ec *executionContext) _Report_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.Report) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Report_createdAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Report_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Report", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _Report_reviewedAt(ctx context.Context, field graphql.CollectedField, obj *model.Report) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Report_reviewedAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ReviewedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Report_reviewedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Report", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _Report_reviewerId(ctx context.Context, field graphql.CollectedField, obj *model.Report) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Report_reviewerId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ReviewerID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Report_reviewerId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Report", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _Report_reviewNote(ctx context.Context, field graphql.CollectedField, obj *model.Report) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Report_reviewNote(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ReviewNote, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Report_reviewNote(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Report", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _ReportConnection_reports(ctx context.Context, field graphql.CollectedField, obj *model.ReportConnection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_ReportConnection_reports(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Reports, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*model.Report) graphql.Marshaler {
+			return ec.marshalNReport2ᚕᚖgithubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐReportᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_ReportConnection_reports(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ReportConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Report(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ReportConnection_nextCursor(ctx context.Context, field graphql.CollectedField, obj *model.ReportConnection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_ReportConnection_nextCursor(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.NextCursor, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_ReportConnection_nextCursor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("ReportConnection", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _ReportConnection_hasMore(ctx context.Context, field graphql.CollectedField, obj *model.ReportConnection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_ReportConnection_hasMore(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.HasMore, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_ReportConnection_hasMore(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("ReportConnection", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _ReportContentResponse_report(ctx context.Context, field graphql.CollectedField, obj *model.ReportContentResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_ReportContentResponse_report(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Report, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.Report) graphql.Marshaler {
+			return ec.marshalNReport2ᚖgithubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐReport(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_ReportContentResponse_report(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ReportContentResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Report(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ReportContentResponse_duplicate(ctx context.Context, field graphql.CollectedField, obj *model.ReportContentResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_ReportContentResponse_duplicate(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Duplicate, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_ReportContentResponse_duplicate(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("ReportContentResponse", field, false, false, errors.New("field of type Boolean does not have child fields"))
 }
 
 func (ec *executionContext) _Subscription_notificationReceived(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
@@ -9145,6 +10646,57 @@ func (ec *executionContext) unmarshalInputRemoveFollowerInput(ctx context.Contex
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputReportContentInput(ctx context.Context, obj any) (model.ReportContentInput, error) {
+	var it model.ReportContentInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"targetType", "targetId", "reason", "details"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "targetType":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("targetType"))
+			data, err := ec.unmarshalNReportTargetType2githubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐReportTargetType(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.TargetType = data
+		case "targetId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("targetId"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.TargetID = data
+		case "reason":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("reason"))
+			data, err := ec.unmarshalNReportReason2githubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐReportReason(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Reason = data
+		case "details":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("details"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Details = data
+		}
+	}
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputUnfollowUserInput(ctx context.Context, obj any) (model.UnfollowUserInput, error) {
 	var it model.UnfollowUserInput
 	if obj == nil {
@@ -10249,6 +11801,92 @@ func (ec *executionContext) _LoginResponse(ctx context.Context, sel ast.Selectio
 	return out
 }
 
+var moderationActionResponseImplementors = []string{"ModerationActionResponse"}
+
+func (ec *executionContext) _ModerationActionResponse(ctx context.Context, sel ast.SelectionSet, obj *model.ModerationActionResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, moderationActionResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ModerationActionResponse")
+		case "message":
+			out.Values[i] = ec._ModerationActionResponse_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var moderationStatusImplementors = []string{"ModerationStatus"}
+
+func (ec *executionContext) _ModerationStatus(ctx context.Context, sel ast.SelectionSet, obj *model.ModerationStatus) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, moderationStatusImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ModerationStatus")
+		case "isBlocked":
+			out.Values[i] = ec._ModerationStatus_isBlocked(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "hasBlockedViewer":
+			out.Values[i] = ec._ModerationStatus_hasBlockedViewer(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "isMuted":
+			out.Values[i] = ec._ModerationStatus_isMuted(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
 var movePostToArchivedResponseImplementors = []string{"MovePostToArchivedResponse"}
 
 func (ec *executionContext) _MovePostToArchivedResponse(ctx context.Context, sel ast.SelectionSet, obj *model.MovePostToArchivedResponse) graphql.Marshaler {
@@ -10443,6 +12081,48 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "logout":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_logout(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "blockUser":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_blockUser(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "unblockUser":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_unblockUser(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "muteUser":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_muteUser(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "unmuteUser":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_unmuteUser(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "reportContent":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_reportContent(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "resolveReport":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_resolveReport(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -11472,6 +13152,94 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getModerationStatus":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getModerationStatus(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getBlockedUsers":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getBlockedUsers(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getMutedUsers":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getMutedUsers(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getReports":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getReports(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "__type":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___type(ctx, field)
@@ -11521,6 +13289,185 @@ func (ec *executionContext) _RemoveFollowerResponse(ctx context.Context, sel ast
 			out.Values[i] = graphql.MarshalString("RemoveFollowerResponse")
 		case "message":
 			out.Values[i] = ec._RemoveFollowerResponse_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var reportImplementors = []string{"Report"}
+
+func (ec *executionContext) _Report(ctx context.Context, sel ast.SelectionSet, obj *model.Report) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, reportImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Report")
+		case "id":
+			out.Values[i] = ec._Report_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "reporterId":
+			out.Values[i] = ec._Report_reporterId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "targetType":
+			out.Values[i] = ec._Report_targetType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "targetId":
+			out.Values[i] = ec._Report_targetId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "reason":
+			out.Values[i] = ec._Report_reason(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "details":
+			out.Values[i] = ec._Report_details(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "status":
+			out.Values[i] = ec._Report_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._Report_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "reviewedAt":
+			out.Values[i] = ec._Report_reviewedAt(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "reviewerId":
+			out.Values[i] = ec._Report_reviewerId(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "reviewNote":
+			out.Values[i] = ec._Report_reviewNote(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var reportConnectionImplementors = []string{"ReportConnection"}
+
+func (ec *executionContext) _ReportConnection(ctx context.Context, sel ast.SelectionSet, obj *model.ReportConnection) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, reportConnectionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ReportConnection")
+		case "reports":
+			out.Values[i] = ec._ReportConnection_reports(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "nextCursor":
+			out.Values[i] = ec._ReportConnection_nextCursor(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "hasMore":
+			out.Values[i] = ec._ReportConnection_hasMore(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var reportContentResponseImplementors = []string{"ReportContentResponse"}
+
+func (ec *executionContext) _ReportContentResponse(ctx context.Context, sel ast.SelectionSet, obj *model.ReportContentResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, reportContentResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ReportContentResponse")
+		case "report":
+			out.Values[i] = ec._ReportContentResponse_report(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "duplicate":
+			out.Values[i] = ec._ReportContentResponse_duplicate(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -12448,6 +14395,26 @@ func (ec *executionContext) marshalNLoginResponse2ᚖgithubᚗcomᚋchetansachan
 	return ec._LoginResponse(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNModerationActionResponse2ᚖgithubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐModerationActionResponse(ctx context.Context, sel ast.SelectionSet, v *model.ModerationActionResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ModerationActionResponse(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNModerationStatus2ᚖgithubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐModerationStatus(ctx context.Context, sel ast.SelectionSet, v *model.ModerationStatus) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ModerationStatus(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNMovePostToArchivedResponse2ᚖgithubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐMovePostToArchivedResponse(ctx context.Context, sel ast.SelectionSet, v *model.MovePostToArchivedResponse) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -12584,6 +14551,87 @@ func (ec *executionContext) marshalNRemoveFollowerResponse2ᚖgithubᚗcomᚋche
 		return graphql.Null
 	}
 	return ec._RemoveFollowerResponse(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNReport2ᚕᚖgithubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐReportᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Report) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNReport2ᚖgithubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐReport(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNReport2ᚖgithubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐReport(ctx context.Context, sel ast.SelectionSet, v *model.Report) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Report(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNReportConnection2ᚖgithubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐReportConnection(ctx context.Context, sel ast.SelectionSet, v *model.ReportConnection) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ReportConnection(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNReportContentInput2githubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐReportContentInput(ctx context.Context, v any) (model.ReportContentInput, error) {
+	res, err := ec.unmarshalInputReportContentInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNReportContentResponse2ᚖgithubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐReportContentResponse(ctx context.Context, sel ast.SelectionSet, v *model.ReportContentResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ReportContentResponse(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNReportReason2githubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐReportReason(ctx context.Context, v any) (model.ReportReason, error) {
+	var res model.ReportReason
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNReportReason2githubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐReportReason(ctx context.Context, sel ast.SelectionSet, v model.ReportReason) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalNReportStatus2githubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐReportStatus(ctx context.Context, v any) (model.ReportStatus, error) {
+	var res model.ReportStatus
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNReportStatus2githubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐReportStatus(ctx context.Context, sel ast.SelectionSet, v model.ReportStatus) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalNReportTargetType2githubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐReportTargetType(ctx context.Context, v any) (model.ReportTargetType, error) {
+	var res model.ReportTargetType
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNReportTargetType2githubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐReportTargetType(ctx context.Context, sel ast.SelectionSet, v model.ReportTargetType) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v any) (string, error) {
@@ -12912,6 +14960,22 @@ func (ec *executionContext) unmarshalONotificationType2ᚖgithubᚗcomᚋchetans
 }
 
 func (ec *executionContext) marshalONotificationType2ᚖgithubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐNotificationType(ctx context.Context, sel ast.SelectionSet, v *model.NotificationType) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
+}
+
+func (ec *executionContext) unmarshalOReportStatus2ᚖgithubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐReportStatus(ctx context.Context, v any) (*model.ReportStatus, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(model.ReportStatus)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOReportStatus2ᚖgithubᚗcomᚋchetansachanᚋsocialflowᚋapiᚑgatewayᚋgraphᚋmodelᚐReportStatus(ctx context.Context, sel ast.SelectionSet, v *model.ReportStatus) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}

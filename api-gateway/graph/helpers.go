@@ -18,6 +18,8 @@ const (
 	maxFeedPageSize             = 50
 	defaultCommentPageSize      = 20
 	maxCommentPageSize          = 50
+	defaultReportPageSize       = 20
+	maxReportPageSize           = 100
 	defaultNotificationPageSize = 20
 	maxNotificationPageSize     = 50
 )
@@ -423,6 +425,149 @@ func loadCommentLikeState(ctx context.Context, commentID string) (bool, error) {
 		return false, err
 	}
 	return liked, nil
+}
+
+// requireAdmin rejects non-admin callers before they can read or change the
+// moderation queue. Role defaults to "user" when the token omits it.
+func requireAdmin(principal auth.Principal) error {
+	if principal.Role == "admin" {
+		return nil
+	}
+	return &gqlerror.Error{
+		Message:    "administrator role required",
+		Extensions: map[string]any{"code": "FORBIDDEN"},
+	}
+}
+
+// reportTargetTypeToProto maps the GraphQL enum onto the gRPC contract.
+func reportTargetTypeToProto(value model.ReportTargetType) socialflowpb.ReportTargetType {
+	switch value {
+	case model.ReportTargetTypePost:
+		return socialflowpb.ReportTargetType_REPORT_TARGET_TYPE_POST
+	case model.ReportTargetTypeComment:
+		return socialflowpb.ReportTargetType_REPORT_TARGET_TYPE_COMMENT
+	case model.ReportTargetTypeUser:
+		return socialflowpb.ReportTargetType_REPORT_TARGET_TYPE_USER
+	default:
+		return socialflowpb.ReportTargetType_REPORT_TARGET_TYPE_UNSPECIFIED
+	}
+}
+
+func reportTargetTypeFromProto(value socialflowpb.ReportTargetType) model.ReportTargetType {
+	switch value {
+	case socialflowpb.ReportTargetType_REPORT_TARGET_TYPE_POST:
+		return model.ReportTargetTypePost
+	case socialflowpb.ReportTargetType_REPORT_TARGET_TYPE_COMMENT:
+		return model.ReportTargetTypeComment
+	case socialflowpb.ReportTargetType_REPORT_TARGET_TYPE_USER:
+		return model.ReportTargetTypeUser
+	default:
+		return ""
+	}
+}
+
+func reportReasonToProto(value model.ReportReason) socialflowpb.ReportReason {
+	switch value {
+	case model.ReportReasonSpam:
+		return socialflowpb.ReportReason_REPORT_REASON_SPAM
+	case model.ReportReasonHarassment:
+		return socialflowpb.ReportReason_REPORT_REASON_HARASSMENT
+	case model.ReportReasonHate:
+		return socialflowpb.ReportReason_REPORT_REASON_HATE
+	case model.ReportReasonViolence:
+		return socialflowpb.ReportReason_REPORT_REASON_VIOLENCE
+	case model.ReportReasonNsfw:
+		return socialflowpb.ReportReason_REPORT_REASON_NSFW
+	case model.ReportReasonImpersonation:
+		return socialflowpb.ReportReason_REPORT_REASON_IMPERSONATION
+	case model.ReportReasonSelfHarm:
+		return socialflowpb.ReportReason_REPORT_REASON_SELF_HARM
+	case model.ReportReasonOther:
+		return socialflowpb.ReportReason_REPORT_REASON_OTHER
+	default:
+		return socialflowpb.ReportReason_REPORT_REASON_UNSPECIFIED
+	}
+}
+
+func reportReasonFromProto(value socialflowpb.ReportReason) model.ReportReason {
+	switch value {
+	case socialflowpb.ReportReason_REPORT_REASON_SPAM:
+		return model.ReportReasonSpam
+	case socialflowpb.ReportReason_REPORT_REASON_HARASSMENT:
+		return model.ReportReasonHarassment
+	case socialflowpb.ReportReason_REPORT_REASON_HATE:
+		return model.ReportReasonHate
+	case socialflowpb.ReportReason_REPORT_REASON_VIOLENCE:
+		return model.ReportReasonViolence
+	case socialflowpb.ReportReason_REPORT_REASON_NSFW:
+		return model.ReportReasonNsfw
+	case socialflowpb.ReportReason_REPORT_REASON_IMPERSONATION:
+		return model.ReportReasonImpersonation
+	case socialflowpb.ReportReason_REPORT_REASON_SELF_HARM:
+		return model.ReportReasonSelfHarm
+	case socialflowpb.ReportReason_REPORT_REASON_OTHER:
+		return model.ReportReasonOther
+	default:
+		return ""
+	}
+}
+
+func reportStatusToProto(value model.ReportStatus) socialflowpb.ReportStatus {
+	switch value {
+	case model.ReportStatusPending:
+		return socialflowpb.ReportStatus_REPORT_STATUS_PENDING
+	case model.ReportStatusReviewing:
+		return socialflowpb.ReportStatus_REPORT_STATUS_REVIEWING
+	case model.ReportStatusActioned:
+		return socialflowpb.ReportStatus_REPORT_STATUS_ACTIONED
+	case model.ReportStatusDismissed:
+		return socialflowpb.ReportStatus_REPORT_STATUS_DISMISSED
+	default:
+		return socialflowpb.ReportStatus_REPORT_STATUS_UNSPECIFIED
+	}
+}
+
+func reportStatusFromProto(value socialflowpb.ReportStatus) model.ReportStatus {
+	switch value {
+	case socialflowpb.ReportStatus_REPORT_STATUS_PENDING:
+		return model.ReportStatusPending
+	case socialflowpb.ReportStatus_REPORT_STATUS_REVIEWING:
+		return model.ReportStatusReviewing
+	case socialflowpb.ReportStatus_REPORT_STATUS_ACTIONED:
+		return model.ReportStatusActioned
+	case socialflowpb.ReportStatus_REPORT_STATUS_DISMISSED:
+		return model.ReportStatusDismissed
+	default:
+		return ""
+	}
+}
+
+// toModelReport maps a moderation report. The optional review metadata stays
+// nil when the report has not been reviewed so clients can tell open from
+// resolved without inspecting the status too.
+func toModelReport(report *socialflowpb.Report) *model.Report {
+	if report == nil {
+		return nil
+	}
+
+	mapped := &model.Report{
+		ID:         report.GetId(),
+		ReporterID: report.GetReporterId(),
+		TargetType: reportTargetTypeFromProto(report.GetTargetType()),
+		TargetID:   report.GetTargetId(),
+		Reason:     reportReasonFromProto(report.GetReason()),
+		Details:    report.GetDetails(),
+		Status:     reportStatusFromProto(report.GetStatus()),
+		CreatedAt:  report.GetCreatedAt(),
+		ReviewNote: report.GetReviewNote(),
+	}
+	if reviewedAt := report.GetReviewedAt(); reviewedAt != "" {
+		mapped.ReviewedAt = &reviewedAt
+	}
+	if reviewerID := report.GetReviewerId(); reviewerID != "" {
+		mapped.ReviewerID = &reviewerID
+	}
+	return mapped
 }
 
 // requirePostOwner rejects a mutation aimed at somebody else's post. The

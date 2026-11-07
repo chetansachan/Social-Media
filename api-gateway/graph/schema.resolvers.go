@@ -473,6 +473,125 @@ func (r *mutationResolver) Logout(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
+// BlockUser is the resolver for the blockUser field.
+func (r *mutationResolver) BlockUser(ctx context.Context, userID string) (*model.ModerationActionResponse, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := r.ModerationClient.BlockUser(ctx, &socialflowpb.BlockUserRequest{
+		BlockerId: principal.UserID,
+		BlockedId: userID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.ModerationActionResponse{Message: res.GetMessage()}, nil
+}
+
+// UnblockUser is the resolver for the unblockUser field.
+func (r *mutationResolver) UnblockUser(ctx context.Context, userID string) (*model.ModerationActionResponse, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := r.ModerationClient.UnblockUser(ctx, &socialflowpb.BlockUserRequest{
+		BlockerId: principal.UserID,
+		BlockedId: userID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.ModerationActionResponse{Message: res.GetMessage()}, nil
+}
+
+// MuteUser is the resolver for the muteUser field.
+func (r *mutationResolver) MuteUser(ctx context.Context, userID string) (*model.ModerationActionResponse, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := r.ModerationClient.MuteUser(ctx, &socialflowpb.MuteUserRequest{
+		MuterId: principal.UserID,
+		MutedId: userID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.ModerationActionResponse{Message: res.GetMessage()}, nil
+}
+
+// UnmuteUser is the resolver for the unmuteUser field.
+func (r *mutationResolver) UnmuteUser(ctx context.Context, userID string) (*model.ModerationActionResponse, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := r.ModerationClient.UnmuteUser(ctx, &socialflowpb.MuteUserRequest{
+		MuterId: principal.UserID,
+		MutedId: userID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.ModerationActionResponse{Message: res.GetMessage()}, nil
+}
+
+// ReportContent is the resolver for the reportContent field.
+func (r *mutationResolver) ReportContent(ctx context.Context, input model.ReportContentInput) (*model.ReportContentResponse, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := r.ModerationClient.ReportContent(ctx, &socialflowpb.ReportContentRequest{
+		ReporterId: principal.UserID,
+		TargetType: reportTargetTypeToProto(input.TargetType),
+		TargetId:   input.TargetID,
+		Reason:     reportReasonToProto(input.Reason),
+		Details:    derefString(input.Details),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.ReportContentResponse{
+		Report:    toModelReport(res.GetReport()),
+		Duplicate: res.GetDuplicate(),
+	}, nil
+}
+
+// ResolveReport is the resolver for the resolveReport field.
+func (r *mutationResolver) ResolveReport(ctx context.Context, id string, status model.ReportStatus, note *string) (*model.Report, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := requireAdmin(principal); err != nil {
+		return nil, err
+	}
+
+	res, err := r.ModerationClient.ResolveReport(ctx, &socialflowpb.ResolveReportRequest{
+		ReportId:   id,
+		ReviewerId: principal.UserID,
+		Status:     reportStatusToProto(status),
+		Note:       derefString(note),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return toModelReport(res.GetReport()), nil
+}
+
 // HasLiked is the resolver for the hasLiked field.
 func (r *postResolver) HasLiked(ctx context.Context, obj *model.Post) (bool, error) {
 	return loadLikeState(ctx, obj.ID)
@@ -921,6 +1040,101 @@ func (r *queryResolver) GetUploadSignature(ctx context.Context, resourceType *st
 		UploadURL: res.GetUploadUrl(),
 		ExpiresAt: strconv.FormatInt(res.GetExpiresAt(), 10),
 	}, nil
+}
+
+// GetModerationStatus is the resolver for the getModerationStatus field.
+func (r *queryResolver) GetModerationStatus(ctx context.Context, userID string) (*model.ModerationStatus, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := r.ModerationClient.GetModerationStatus(ctx, &socialflowpb.GetModerationStatusRequest{
+		ViewerId: principal.UserID,
+		TargetId: userID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.ModerationStatus{
+		IsBlocked:        res.GetIsBlocked(),
+		HasBlockedViewer: res.GetHasBlockedViewer(),
+		IsMuted:          res.GetIsMuted(),
+	}, nil
+}
+
+// GetBlockedUsers is the resolver for the getBlockedUsers field.
+func (r *queryResolver) GetBlockedUsers(ctx context.Context) ([]string, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := r.ModerationClient.ListBlockedUsers(ctx, &socialflowpb.ListRelationshipsRequest{
+		UserId: principal.UserID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return res.GetUserIds(), nil
+}
+
+// GetMutedUsers is the resolver for the getMutedUsers field.
+func (r *queryResolver) GetMutedUsers(ctx context.Context) ([]string, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := r.ModerationClient.ListMutedUsers(ctx, &socialflowpb.ListRelationshipsRequest{
+		UserId: principal.UserID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return res.GetUserIds(), nil
+}
+
+// GetReports is the resolver for the getReports field.
+func (r *queryResolver) GetReports(ctx context.Context, status *model.ReportStatus, limit *int32, cursor *string) (*model.ReportConnection, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := requireAdmin(principal); err != nil {
+		return nil, err
+	}
+
+	var filter model.ReportStatus
+	if status != nil {
+		filter = *status
+	}
+
+	res, err := r.ModerationClient.ListReports(ctx, &socialflowpb.ListReportsRequest{
+		Status: reportStatusToProto(filter),
+		Limit:  clampPageSize(limit, defaultReportPageSize, maxReportPageSize),
+		Cursor: derefString(cursor),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	reports := make([]*model.Report, 0, len(res.GetReports()))
+	for _, report := range res.GetReports() {
+		reports = append(reports, toModelReport(report))
+	}
+
+	connection := &model.ReportConnection{
+		Reports: reports,
+		HasMore: res.GetHasMore(),
+	}
+	if next := res.GetNextCursor(); next != "" {
+		connection.NextCursor = &next
+	}
+	return connection, nil
 }
 
 // NotificationReceived is the resolver for the notificationReceived field.

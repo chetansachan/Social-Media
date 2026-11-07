@@ -42,6 +42,7 @@ const (
 	defaultFollowServiceAddr       = "localhost:50053"
 	defaultFeedServiceAddr         = "localhost:50054"
 	defaultNotificationServiceAddr = "localhost:50055"
+	defaultModerationServiceAddr   = "localhost:50056"
 	defaultRedisAddr               = "localhost:6379"
 
 	shutdownTimeout = 15 * time.Second
@@ -157,6 +158,7 @@ func run() error {
 		FollowClient:       socialflowpb.NewFollowServiceClient(connections["follow-service"]),
 		FeedClient:         socialflowpb.NewFeedServiceClient(connections["feed-service"]),
 		NotificationClient: socialflowpb.NewNotificationServiceClient(connections["notification-service"]),
+		ModerationClient:   socialflowpb.NewModerationServiceClient(connections["moderation-service"]),
 		Redis:              redisClient,
 		Revocations:        revocations,
 		NewLoaders: func() *dataloader.Loaders {
@@ -275,6 +277,7 @@ func dialServices(logger *slog.Logger) (map[string]*connPool, error) {
 		{"follow-service", envOr("FOLLOW_SERVICE_ADDR", defaultFollowServiceAddr)},
 		{"feed-service", envOr("FEED_SERVICE_ADDR", defaultFeedServiceAddr)},
 		{"notification-service", envOr("NOTIFICATION_SERVICE_ADDR", defaultNotificationServiceAddr)},
+		{"moderation-service", envOr("MODERATION_SERVICE_ADDR", defaultModerationServiceAddr)},
 	}
 
 	connections := make(map[string]*connPool, len(targets))
