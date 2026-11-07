@@ -16,6 +16,8 @@ import (
 const (
 	defaultFeedPageSize         = 20
 	maxFeedPageSize             = 50
+	defaultCommentPageSize      = 20
+	maxCommentPageSize          = 50
 	defaultNotificationPageSize = 20
 	maxNotificationPageSize     = 50
 )
@@ -48,6 +50,34 @@ func toModelPost(post *socialflowpb.Post) *model.Post {
 		LikeCount: post.GetLikeCount(),
 		CreatedAt: post.GetCreatedAt(),
 		UpdatedAt: post.GetUpdatedAt(),
+	}
+}
+
+// toModelComment maps one comment node. Author and HasLiked stay zero here and
+// are filled by their field resolvers through the request-scoped dataloaders.
+func toModelComment(comment *socialflowpb.Comment) *model.Comment {
+	if comment == nil {
+		return nil
+	}
+
+	var parentID *string
+	if comment.GetParentId() != "" {
+		id := comment.GetParentId()
+		parentID = &id
+	}
+
+	return &model.Comment{
+		ID:         comment.GetId(),
+		PostID:     comment.GetPostId(),
+		AuthorID:   comment.GetAuthorId(),
+		ParentID:   parentID,
+		Content:    comment.GetContent(),
+		LikeCount:  comment.GetLikeCount(),
+		ReplyCount: comment.GetReplyCount(),
+		Depth:      comment.GetDepth(),
+		IsDeleted:  comment.GetIsDeleted(),
+		CreatedAt:  comment.GetCreatedAt(),
+		UpdatedAt:  comment.GetUpdatedAt(),
 	}
 }
 
@@ -365,6 +395,29 @@ func loadLikeState(ctx context.Context, postID string) (bool, error) {
 	liked, err := loaders.LikeState.Load(ctx, dataloader.LikeKey{
 		ViewerID: principal.UserID,
 		PostID:   postID,
+	})()
+	if err != nil {
+		return false, err
+	}
+	return liked, nil
+}
+
+// loadCommentLikeState returns the viewer's like state for one comment.
+// Anonymous callers see false, matching post behavior.
+func loadCommentLikeState(ctx context.Context, commentID string) (bool, error) {
+	principal, ok := auth.FromContext(ctx)
+	if !ok || strings.TrimSpace(principal.UserID) == "" {
+		return false, nil
+	}
+
+	loaders := dataloader.FromContext(ctx)
+	if loaders == nil || loaders.CommentLikeState == nil {
+		return false, fmt.Errorf("dataloader middleware is not configured")
+	}
+
+	liked, err := loaders.CommentLikeState.Load(ctx, dataloader.CommentLikeKey{
+		ViewerID:  principal.UserID,
+		CommentID: commentID,
 	})()
 	if err != nil {
 		return false, err

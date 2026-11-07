@@ -183,6 +183,12 @@ models:
         resolver: true
       hasLiked:
         resolver: true
+  Comment:
+    fields:
+      author:
+        resolver: true
+      hasLiked:
+        resolver: true
 
   ID:
     model:

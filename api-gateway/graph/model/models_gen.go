@@ -9,11 +9,43 @@ import (
 	"strconv"
 )
 
+type Comment struct {
+	ID         string  `json:"id"`
+	PostID     string  `json:"postId"`
+	AuthorID   string  `json:"authorId"`
+	ParentID   *string `json:"parentId,omitempty"`
+	Content    string  `json:"content"`
+	LikeCount  int32   `json:"likeCount"`
+	ReplyCount int32   `json:"replyCount"`
+	Depth      int32   `json:"depth"`
+	IsDeleted  bool    `json:"isDeleted"`
+	HasLiked   bool    `json:"hasLiked"`
+	CreatedAt  string  `json:"createdAt"`
+	UpdatedAt  string  `json:"updatedAt"`
+	Author     *User   `json:"author"`
+}
+
+type CommentConnection struct {
+	Comments   []*Comment `json:"comments"`
+	NextCursor *string    `json:"nextCursor,omitempty"`
+	HasMore    bool       `json:"hasMore"`
+}
+
+type CreateCommentInput struct {
+	PostID   string  `json:"postId"`
+	ParentID *string `json:"parentId,omitempty"`
+	Content  string  `json:"content"`
+}
+
 type CreatePostInput struct {
 	AuthorID string `json:"authorId"`
 	Content  string `json:"content"`
 	MediaURL string `json:"mediaUrl"`
 	IsPublic *bool  `json:"isPublic,omitempty"`
+}
+
+type DeleteCommentResponse struct {
+	Message string `json:"message"`
 }
 
 type DeletePostResponse struct {
@@ -57,6 +89,15 @@ type FollowUserInput struct {
 }
 
 type FollowUserResponse struct {
+	Message string `json:"message"`
+}
+
+type LikeCommentInput struct {
+	CommentID string `json:"commentId"`
+}
+
+type LikeCommentResponse struct {
+	IsLiked bool   `json:"isLiked"`
 	Message string `json:"message"`
 }
 
@@ -178,6 +219,11 @@ type UnfollowUserInput struct {
 
 type UnfollowUserResponse struct {
 	Message string `json:"message"`
+}
+
+type UpdateCommentInput struct {
+	ID      string `json:"id"`
+	Content string `json:"content"`
 }
 
 type UpdateNotificationSettingsInput struct {

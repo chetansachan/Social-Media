@@ -10,6 +10,7 @@ import (
 type Resolver struct {
 	UserClient         socialflowpb.UserServiceClient
 	PostClient         socialflowpb.PostServiceClient
+	CommentClient      socialflowpb.CommentServiceClient
 	FollowClient       socialflowpb.FollowServiceClient
 	FeedClient         socialflowpb.FeedServiceClient
 	NotificationClient socialflowpb.NotificationServiceClient
@@ -21,7 +22,7 @@ type Resolver struct {
 	// Revocations blacklists logged-out access tokens until they expire.
 	Revocations auth.RevocationStore
 
-	// NewLoaders builds request-scoped batch loaders for author and like-state
-	// lookups. Tests can supply fakes here.
+	// NewLoaders builds request-scoped batch loaders for author, post
+	// like-state, and comment like-state lookups. Tests can supply fakes here.
 	NewLoaders func() *dataloader.Loaders
 }

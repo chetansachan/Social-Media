@@ -16,8 +16,9 @@ import (
 )
 
 const (
-	userBatchCapacity = 200
-	likeBatchCapacity = 500
+	userBatchCapacity        = 200
+	likeBatchCapacity        = 500
+	commentLikeBatchCapacity = 500
 )
 
 // LikeKey identifies one viewer/post pair. The viewer is part of the key so a
@@ -27,19 +28,32 @@ type LikeKey struct {
 	PostID   string
 }
 
+// CommentLikeKey is the comment equivalent of LikeKey. Comments use a separate
+// loader because their batch RPC lives on CommentService.
+type CommentLikeKey struct {
+	ViewerID  string
+	CommentID string
+}
+
 // Loaders is the request-scoped set of batch loaders. Each field resolver asks
 // its loader for one key; the loader coalesces every key requested during the
 // same resolution tick into one RPC.
 type Loaders struct {
-	UserByID  gopherdl.Interface[string, *socialflowpb.User]
-	LikeState gopherdl.Interface[LikeKey, bool]
+	UserByID         gopherdl.Interface[string, *socialflowpb.User]
+	LikeState        gopherdl.Interface[LikeKey, bool]
+	CommentLikeState gopherdl.Interface[CommentLikeKey, bool]
 }
 
 // New builds loaders bound to the supplied gRPC clients.
-func New(userClient socialflowpb.UserServiceClient, postClient socialflowpb.PostServiceClient) *Loaders {
+func New(
+	userClient socialflowpb.UserServiceClient,
+	postClient socialflowpb.PostServiceClient,
+	commentClient socialflowpb.CommentServiceClient,
+) *Loaders {
 	return &Loaders{
-		UserByID:  newUserLoader(userClient),
-		LikeState: newLikeLoader(postClient),
+		UserByID:         newUserLoader(userClient),
+		LikeState:        newLikeLoader(postClient),
+		CommentLikeState: newCommentLikeLoader(commentClient),
 	}
 }
 
@@ -109,6 +123,41 @@ func newLikeLoader(client socialflowpb.PostServiceClient) *gopherdl.Loader[LikeK
 	}
 
 	return gopherdl.NewBatchedLoader(batch, gopherdl.WithBatchCapacity[LikeKey, bool](likeBatchCapacity))
+}
+
+func newCommentLikeLoader(client socialflowpb.CommentServiceClient) *gopherdl.Loader[CommentLikeKey, bool] {
+	batch := func(ctx context.Context, keys []CommentLikeKey) []*gopherdl.Result[bool] {
+		results := make([]*gopherdl.Result[bool], len(keys))
+		if client == nil {
+			return fillBoolResults(results, fmt.Errorf("comment client is not configured"))
+		}
+
+		byViewer := make(map[string][]string)
+		for _, key := range keys {
+			byViewer[key.ViewerID] = append(byViewer[key.ViewerID], key.CommentID)
+		}
+
+		liked := make(map[CommentLikeKey]bool, len(keys))
+		for viewer, commentIDs := range byViewer {
+			resp, err := client.GetCommentLikeStates(ctx, &socialflowpb.GetCommentLikeStatesRequest{
+				UserId:     viewer,
+				CommentIds: commentIDs,
+			})
+			if err != nil {
+				return fillBoolResults(results, fmt.Errorf("get comment like states for %s: %w", viewer, err))
+			}
+			for commentID, isLiked := range resp.GetLiked() {
+				liked[CommentLikeKey{ViewerID: viewer, CommentID: commentID}] = isLiked
+			}
+		}
+
+		for i, key := range keys {
+			results[i] = &gopherdl.Result[bool]{Data: liked[key]}
+		}
+		return results
+	}
+
+	return gopherdl.NewBatchedLoader(batch, gopherdl.WithBatchCapacity[CommentLikeKey, bool](commentLikeBatchCapacity))
 }
 
 func fillResults(results []*gopherdl.Result[*socialflowpb.User], err error) []*gopherdl.Result[*socialflowpb.User] {

@@ -16,6 +16,16 @@ import (
 )
 
 // HasLiked is the resolver for the hasLiked field.
+func (r *commentResolver) HasLiked(ctx context.Context, obj *model.Comment) (bool, error) {
+	return loadCommentLikeState(ctx, obj.ID)
+}
+
+// Author is the resolver for the author field.
+func (r *commentResolver) Author(ctx context.Context, obj *model.Comment) (*model.User, error) {
+	return loadAuthor(ctx, obj.AuthorID)
+}
+
+// HasLiked is the resolver for the hasLiked field.
 func (r *feedPostResolver) HasLiked(ctx context.Context, obj *model.FeedPost) (bool, error) {
 	return loadLikeState(ctx, obj.ID)
 }
@@ -165,6 +175,86 @@ func (r *mutationResolver) LikePost(ctx context.Context, input model.LikePostInp
 	}
 
 	return &model.LikePostResponse{
+		IsLiked: res.GetIsLiked(),
+		Message: res.GetMessage(),
+	}, nil
+}
+
+// CreateComment is the resolver for the createComment field.
+func (r *mutationResolver) CreateComment(ctx context.Context, input model.CreateCommentInput) (*model.Comment, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := r.CommentClient.CreateComment(ctx, &socialflowpb.CreateCommentRequest{
+		PostId:   input.PostID,
+		AuthorId: principal.UserID,
+		ParentId: derefString(input.ParentID),
+		Content:  input.Content,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return toModelComment(res.GetComment()), nil
+}
+
+// UpdateComment is the resolver for the updateComment field.
+func (r *mutationResolver) UpdateComment(ctx context.Context, input model.UpdateCommentInput) (*model.Comment, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// post-service compares the author id against the stored row, so passing
+	// the verified principal here is what makes the ownership check hold.
+	res, err := r.CommentClient.UpdateComment(ctx, &socialflowpb.UpdateCommentRequest{
+		CommentId: input.ID,
+		AuthorId:  principal.UserID,
+		Content:   input.Content,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return toModelComment(res.GetComment()), nil
+}
+
+// DeleteComment is the resolver for the deleteComment field.
+func (r *mutationResolver) DeleteComment(ctx context.Context, id string) (*model.DeleteCommentResponse, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := r.CommentClient.DeleteComment(ctx, &socialflowpb.DeleteCommentRequest{
+		CommentId: id,
+		AuthorId:  principal.UserID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.DeleteCommentResponse{Message: res.GetMessage()}, nil
+}
+
+// LikeComment is the resolver for the likeComment field.
+func (r *mutationResolver) LikeComment(ctx context.Context, input model.LikeCommentInput) (*model.LikeCommentResponse, error) {
+	principal, err := requireViewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := r.CommentClient.LikeComment(ctx, &socialflowpb.LikeCommentRequest{
+		CommentId: input.CommentID,
+		UserId:    principal.UserID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.LikeCommentResponse{
 		IsLiked: res.GetIsLiked(),
 		Message: res.GetMessage(),
 	}, nil
@@ -618,6 +708,45 @@ func (r *queryResolver) GetAllLikedPosts(ctx context.Context, userID string) ([]
 	return posts, nil
 }
 
+// GetComment is the resolver for the getComment field.
+func (r *queryResolver) GetComment(ctx context.Context, id string) (*model.Comment, error) {
+	res, err := r.CommentClient.GetComment(ctx, &socialflowpb.GetCommentRequest{Id: id})
+	if err != nil {
+		return nil, err
+	}
+
+	return toModelComment(res.GetComment()), nil
+}
+
+// GetComments is the resolver for the getComments field.
+func (r *queryResolver) GetComments(ctx context.Context, postID string, parentID *string, limit *int32, cursor *string) (*model.CommentConnection, error) {
+	pageSize := clampPageSize(limit, defaultCommentPageSize, maxCommentPageSize)
+
+	res, err := r.CommentClient.ListComments(ctx, &socialflowpb.ListCommentsRequest{
+		PostId:   postID,
+		ParentId: derefString(parentID),
+		Limit:    pageSize,
+		Cursor:   derefString(cursor),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	comments := make([]*model.Comment, 0, len(res.GetComments()))
+	for _, comment := range res.GetComments() {
+		comments = append(comments, toModelComment(comment))
+	}
+
+	connection := &model.CommentConnection{
+		Comments: comments,
+		HasMore:  res.GetHasMore(),
+	}
+	if next := res.GetNextCursor(); next != "" {
+		connection.NextCursor = &next
+	}
+	return connection, nil
+}
+
 // GetFollowers is the resolver for the getFollowers field.
 func (r *queryResolver) GetFollowers(ctx context.Context, userID string) ([]string, error) {
 	res, err := r.FollowClient.GetFollowers(ctx, &socialflowpb.GetFollowersRequest{
@@ -845,6 +974,9 @@ func (r *subscriptionResolver) NotificationReceived(ctx context.Context) (<-chan
 	return items, nil
 }
 
+// Comment returns CommentResolver implementation.
+func (r *Resolver) Comment() CommentResolver { return &commentResolver{r} }
+
 // FeedPost returns FeedPostResolver implementation.
 func (r *Resolver) FeedPost() FeedPostResolver { return &feedPostResolver{r} }
 
@@ -861,6 +993,7 @@ func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 func (r *Resolver) Subscription() SubscriptionResolver { return &subscriptionResolver{r} }
 
 type (
+	commentResolver      struct{ *Resolver }
 	feedPostResolver     struct{ *Resolver }
 	mutationResolver     struct{ *Resolver }
 	postResolver         struct{ *Resolver }

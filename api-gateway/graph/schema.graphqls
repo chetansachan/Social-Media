@@ -35,6 +35,32 @@ type FeedPost {
     author: User!
 }
 
+# One node in a post's discussion tree. parentId is null for a top-level
+# comment and depth is 0; replies increment depth up to the service's cap.
+# author and hasLiked resolve through request-scoped dataloaders so a page of
+# comments costs one user lookup and one like-state lookup, not two per node.
+type Comment {
+    id: ID!
+    postId: ID!
+    authorId: String!
+    parentId: ID
+    content: String!
+    likeCount: Int!
+    replyCount: Int!
+    depth: Int!
+    isDeleted: Boolean!
+    hasLiked: Boolean!
+    createdAt: String!
+    updatedAt: String!
+    author: User!
+}
+
+type CommentConnection {
+    comments: [Comment!]!
+    nextCursor: String
+    hasMore: Boolean!
+}
+
 type FeedResponse {
     posts: [FeedPost!]!
     nextCursor: String
@@ -127,6 +153,9 @@ type Query {
     moveToArchive(id: ID!): MovePostToArchivedResponse! @auth
     getAllPostLikers(post_id: String!): [String!]!
     getAllLikedPosts(user_id: String!): [Post!]! @auth
+    getComment(id: ID!): Comment!
+    # parentId selects one comment's replies; omit it for top-level comments.
+    getComments(postId: ID!, parentId: ID, limit: Int, cursor: String): CommentConnection!
 
     getFollowers(userId: String!): [String!]!
     getFollowing(userId: String!): [String!]!
@@ -147,6 +176,10 @@ type Mutation {
     CreatePost(input: CreatePostInput!): Post! @auth
     UpdatePost(input: UpdatePostInput!): Post! @auth
     likePost(input: LikePostInput!): LikePostResponse! @auth
+    createComment(input: CreateCommentInput!): Comment! @auth
+    updateComment(input: UpdateCommentInput!): Comment! @auth
+    deleteComment(id: ID!): DeleteCommentResponse! @auth
+    likeComment(input: LikeCommentInput!): LikeCommentResponse! @auth
     followUser(input: FollowUserInput!): FollowUserResponse! @auth
     unfollowUser(input: UnfollowUserInput!): UnfollowUserResponse! @auth
     removeFollower(input: RemoveFollowerInput!): RemoveFollowerResponse! @auth
@@ -231,6 +264,32 @@ input LikePostInput {
 
 type LikePostResponse {
     isLiked: Boolean!
+    message: String!
+}
+
+# The author is taken from the verified token, never from client input.
+input CreateCommentInput {
+    postId: ID!
+    # Omit for a top-level comment; set to reply in a thread.
+    parentId: ID
+    content: String!
+}
+
+input UpdateCommentInput {
+    id: ID!
+    content: String!
+}
+
+input LikeCommentInput {
+    commentId: ID!
+}
+
+type LikeCommentResponse {
+    isLiked: Boolean!
+    message: String!
+}
+
+type DeleteCommentResponse {
     message: String!
 }
 

@@ -73,6 +73,37 @@ func (c *countingPostClient) snapshot() (int, []string) {
 	return c.calls, append([]string(nil), c.viewers...)
 }
 
+type countingCommentClient struct {
+	socialflowpb.CommentServiceClient
+
+	mu      sync.Mutex
+	calls   int
+	viewers []string
+	liked   map[string]map[string]bool
+}
+
+func (c *countingCommentClient) GetCommentLikeStates(ctx context.Context, req *socialflowpb.GetCommentLikeStatesRequest, _ ...grpc.CallOption) (*socialflowpb.GetCommentLikeStatesResponse, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.calls++
+	c.viewers = append(c.viewers, req.GetUserId())
+
+	liked := make(map[string]bool, len(req.GetCommentIds()))
+	for _, commentID := range req.GetCommentIds() {
+		if state, ok := c.liked[req.GetUserId()][commentID]; ok {
+			liked[commentID] = state
+		}
+	}
+	return &socialflowpb.GetCommentLikeStatesResponse{Liked: liked}, nil
+}
+
+func (c *countingCommentClient) snapshot() (int, []string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.calls, append([]string(nil), c.viewers...)
+}
+
 func TestUserLoaderBatchesOneCallPerTick(t *testing.T) {
 	client := &countingUserClient{
 		users: map[string]*socialflowpb.User{
@@ -82,7 +113,7 @@ func TestUserLoaderBatchesOneCallPerTick(t *testing.T) {
 		},
 	}
 
-	loaders := New(client, nil)
+	loaders := New(client, nil, nil)
 	ctx := context.Background()
 
 	thunks := []func() (*socialflowpb.User, error){
@@ -110,7 +141,7 @@ func TestUserLoaderBatchesOneCallPerTick(t *testing.T) {
 }
 
 func TestUserLoaderReturnsErrorForUnknownUser(t *testing.T) {
-	loaders := New(&countingUserClient{}, nil)
+	loaders := New(&countingUserClient{}, nil, nil)
 
 	_, err := loaders.RequireUser(context.Background(), "missing")
 	if err == nil {
@@ -125,7 +156,7 @@ func TestLikeLoaderGroupsByViewer(t *testing.T) {
 		},
 	}
 
-	loaders := New(nil, client)
+	loaders := New(nil, client, nil)
 	ctx := context.Background()
 
 	thunks := []func() (bool, error){
@@ -161,7 +192,7 @@ func TestLikeLoaderNeverMixesViewers(t *testing.T) {
 		},
 	}
 
-	loaders := New(nil, client)
+	loaders := New(nil, client, nil)
 	ctx := context.Background()
 
 	alice := loaders.LikeState.Load(ctx, LikeKey{ViewerID: "alice", PostID: "p1"})
@@ -176,5 +207,74 @@ func TestLikeLoaderNeverMixesViewers(t *testing.T) {
 
 	if calls, _ := client.snapshot(); calls != 2 {
 		t.Fatalf("GetLikeStates calls = %d, want one per viewer", calls)
+	}
+}
+
+func TestCommentLikeLoaderGroupsByViewer(t *testing.T) {
+	client := &countingCommentClient{
+		liked: map[string]map[string]bool{
+			"viewer": {"c1": true, "c2": false, "c3": true},
+		},
+	}
+
+	loaders := New(nil, nil, client)
+	ctx := context.Background()
+
+	thunks := []func() (bool, error){
+		loaders.CommentLikeState.Load(ctx, CommentLikeKey{ViewerID: "viewer", CommentID: "c1"}),
+		loaders.CommentLikeState.Load(ctx, CommentLikeKey{ViewerID: "viewer", CommentID: "c2"}),
+		loaders.CommentLikeState.Load(ctx, CommentLikeKey{ViewerID: "viewer", CommentID: "c3"}),
+	}
+	want := []bool{true, false, true}
+	for i, thunk := range thunks {
+		got, err := thunk()
+		if err != nil {
+			t.Fatalf("comment like %d: %v", i, err)
+		}
+		if got != want[i] {
+			t.Fatalf("comment like %d = %v, want %v", i, got, want[i])
+		}
+	}
+
+	calls, viewers := client.snapshot()
+	if calls != 1 {
+		t.Fatalf("GetCommentLikeStates calls = %d, want 1", calls)
+	}
+	if len(viewers) != 1 || viewers[0] != "viewer" {
+		t.Fatalf("viewers = %v", viewers)
+	}
+}
+
+func TestCommentLikeLoaderNeverMixesViewers(t *testing.T) {
+	client := &countingCommentClient{
+		liked: map[string]map[string]bool{
+			"alice": {"c1": true},
+			"bob":   {"c1": false},
+		},
+	}
+
+	loaders := New(nil, nil, client)
+	ctx := context.Background()
+
+	alice := loaders.CommentLikeState.Load(ctx, CommentLikeKey{ViewerID: "alice", CommentID: "c1"})
+	bob := loaders.CommentLikeState.Load(ctx, CommentLikeKey{ViewerID: "bob", CommentID: "c1"})
+
+	if liked, err := alice(); err != nil || !liked {
+		t.Fatalf("alice = %v, %v", liked, err)
+	}
+	if liked, err := bob(); err != nil || liked {
+		t.Fatalf("bob = %v, %v", liked, err)
+	}
+
+	if calls, _ := client.snapshot(); calls != 2 {
+		t.Fatalf("GetCommentLikeStates calls = %d, want one per viewer", calls)
+	}
+}
+
+func TestCommentLikeLoaderWithoutClientFails(t *testing.T) {
+	loaders := New(nil, nil, nil)
+
+	if _, err := loaders.CommentLikeState.Load(context.Background(), CommentLikeKey{ViewerID: "viewer", CommentID: "c1"})(); err == nil {
+		t.Fatal("expected an error when the comment client is not configured")
 	}
 }

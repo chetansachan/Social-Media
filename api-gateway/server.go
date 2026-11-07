@@ -134,10 +134,11 @@ func run() error {
 	rateGuard := ratelimit.NewGuard(
 		ratelimit.New(redisClient),
 		map[string]ratelimit.Policy{
-			"Login":      {Limit: envInt("RATE_LIMIT_LOGIN_PER_MINUTE", 5), Window: time.Minute},
-			"register":   {Limit: envInt("RATE_LIMIT_REGISTER_PER_MINUTE", 5), Window: time.Minute},
-			"CreatePost": {Limit: envInt("RATE_LIMIT_CREATE_POST_PER_MINUTE", 10), Window: time.Minute},
-			"getFeed":    {Limit: envInt("RATE_LIMIT_FEED_PER_MINUTE", 120), Window: time.Minute},
+			"Login":         {Limit: envInt("RATE_LIMIT_LOGIN_PER_MINUTE", 5), Window: time.Minute},
+			"register":      {Limit: envInt("RATE_LIMIT_REGISTER_PER_MINUTE", 5), Window: time.Minute},
+			"CreatePost":    {Limit: envInt("RATE_LIMIT_CREATE_POST_PER_MINUTE", 10), Window: time.Minute},
+			"CreateComment": {Limit: envInt("RATE_LIMIT_CREATE_COMMENT_PER_MINUTE", 30), Window: time.Minute},
+			"getFeed":       {Limit: envInt("RATE_LIMIT_FEED_PER_MINUTE", 120), Window: time.Minute},
 		},
 		ratelimit.Policy{Limit: envInt("RATE_LIMIT_AUTHENTICATED_PER_MINUTE", 600), Window: time.Minute},
 		ratelimit.Policy{Limit: envInt("RATE_LIMIT_ANONYMOUS_PER_MINUTE", 120), Window: time.Minute},
@@ -146,17 +147,20 @@ func run() error {
 
 	userClient := socialflowpb.NewUserServiceClient(connections["user-service"])
 	postClient := socialflowpb.NewPostServiceClient(connections["post-service"])
+	// Comments are served by post-service on the same connection.
+	commentClient := socialflowpb.NewCommentServiceClient(connections["post-service"])
 
 	resolver := &graph.Resolver{
 		UserClient:         userClient,
 		PostClient:         postClient,
+		CommentClient:      commentClient,
 		FollowClient:       socialflowpb.NewFollowServiceClient(connections["follow-service"]),
 		FeedClient:         socialflowpb.NewFeedServiceClient(connections["feed-service"]),
 		NotificationClient: socialflowpb.NewNotificationServiceClient(connections["notification-service"]),
 		Redis:              redisClient,
 		Revocations:        revocations,
 		NewLoaders: func() *dataloader.Loaders {
-			return dataloader.New(userClient, postClient)
+			return dataloader.New(userClient, postClient, commentClient)
 		},
 	}
 
