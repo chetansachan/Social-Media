@@ -10,11 +10,11 @@
 # database, which is why there is no separate comments directory.
 FROM migrate/migrate:v4.18.1
 
-COPY user-service/migrations /migrations/users
-COPY post-service/migrations /migrations/posts
-COPY follow-service/migrations /migrations/follows
-COPY notification-service/migrations /migrations/notifications
-COPY moderation-service/migrations /migrations/moderation
-COPY chat-service/migrations /migrations/chat
+COPY backend/user-service/migrations /migrations/users
+COPY backend/post-service/migrations /migrations/posts
+COPY backend/follow-service/migrations /migrations/follows
+COPY backend/notification-service/migrations /migrations/notifications
+COPY backend/moderation-service/migrations /migrations/moderation
+COPY backend/chat-service/migrations /migrations/chat
 
 ENTRYPOINT ["/usr/local/bin/migrate"]

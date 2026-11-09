@@ -1,14 +1,14 @@
 go 1.26.2
 
 use (
-	./api-gateway
-	./chat-service
-	./feed-service
-	./follow-service
-	./moderation-service
-	./notification-service
-	./platform/observability
-	./post-service
-	./proto
-	./user-service
+	./backend/api-gateway
+	./backend/chat-service
+	./backend/feed-service
+	./backend/follow-service
+	./backend/moderation-service
+	./backend/notification-service
+	./backend/platform/observability
+	./backend/post-service
+	./backend/proto
+	./backend/user-service
 )

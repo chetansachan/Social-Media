@@ -18,16 +18,20 @@ build-errors.log
 *.test
 
 # Service binaries (when built directly without .exe on Unix/macOS)
-/api-gateway/api-gateway
-/api-gateway/api-gateway.exe
-/user-service/server
-/user-service/server.exe
-/user-service/user-service
-/user-service/user-service.exe
-/follow-service/follow-service
-/follow-service/follow-service.exe
-/post-service/post-service
-/post-service/post-service.exe
+/backend/api-gateway/api-gateway
+/backend/api-gateway/api-gateway.exe
+/backend/user-service/server
+/backend/user-service/server.exe
+/backend/user-service/user-service
+/backend/user-service/user-service.exe
+/backend/follow-service/follow-service
+/backend/follow-service/follow-service.exe
+/backend/post-service/post-service
+/backend/post-service/post-service.exe
+
+# Frontend build output and dependencies
+/frontend/node_modules/
+/frontend/dist/
 
 # Output / Distribution directories
 bin/

@@ -1,18 +1,18 @@
-# dev.ps1 - Start every service with hot-reloading using Air.
+# dev.ps1 - Start every backend service with hot-reloading using Air.
 #
 # The service list lives in one place: add a directory here and both branches
 # below pick it up, so a new service cannot silently miss the local stack.
 $ErrorActionPreference = "Continue"
 
 $services = @(
-    @{ Name = "USER-SVC";      Dir = "user-service" },
-    @{ Name = "POST-SVC";      Dir = "post-service" },
-    @{ Name = "FOLLOW-SVC";    Dir = "follow-service" },
-    @{ Name = "FEED-SVC";      Dir = "feed-service" },
-    @{ Name = "NOTIFY-SVC";    Dir = "notification-service" },
-    @{ Name = "MODERATION-SVC"; Dir = "moderation-service" },
-    @{ Name = "CHAT-SVC";      Dir = "chat-service" },
-    @{ Name = "GATEWAY";       Dir = "api-gateway" }
+    @{ Name = "USER-SVC";       Dir = "backend\user-service" },
+    @{ Name = "POST-SVC";       Dir = "backend\post-service" },
+    @{ Name = "FOLLOW-SVC";     Dir = "backend\follow-service" },
+    @{ Name = "FEED-SVC";       Dir = "backend\feed-service" },
+    @{ Name = "NOTIFY-SVC";     Dir = "backend\notification-service" },
+    @{ Name = "MODERATION-SVC"; Dir = "backend\moderation-service" },
+    @{ Name = "CHAT-SVC";       Dir = "backend\chat-service" },
+    @{ Name = "GATEWAY";        Dir = "backend\api-gateway" }
 )
 
 Write-Host "Starting microservices with Air..." -ForegroundColor Cyan
@@ -35,7 +35,7 @@ $colors = @("Cyan", "Blue", "Yellow", "Green", "Magenta", "Red", "Gray", "White"
 
 for ($i = 0; $i -lt $services.Count; $i++) {
     $service = $services[$i]
-    $process = Start-Process -FilePath "air" -WorkingDirectory ".\$($service.Dir)" -PassThru
+    $process = Start-Process -FilePath "air" -WorkingDirectory $service.Dir -PassThru
     $script:processes += $process
 
     $color = $colors[$i % $colors.Count]

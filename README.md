@@ -6,9 +6,11 @@ SocialFlow is a high-performance, event-driven social media backend built with *
 
 ## 📚 Core Architecture & Engineering Documentation
 
-* 🚀 [**System Optimization, High-Scale Architecture & Testing Roadmap**](file:///c:/Users/Chetan/Documents/Developer/Projects/Social-Media/SYSTEM_OPTIMIZATION_SCALING_AND_TESTING_ROADMAP.md) — Comprehensive master guide covering what is left to build, scaling to millions of users, performance optimizations, database tuning, and the full test suite blueprint.
-* 📰 [**Feed Service System Design**](file:///c:/Users/Chetan/Documents/Developer/Projects/Social-Media/feed-service/SYSTEM_DESIGN.md) — Timeline architecture, fanout-on-write vs fanout-on-read, celebrity thresholds, and Redis sorted set indexing.
-* 🔔 [**Notification Service System Design**](file:///c:/Users/Chetan/Documents/Developer/Projects/Social-Media/notification-service/SYSTEM_DESIGN.md) — Multi-channel dispatch (In-App WebSockets, FCM/APNs, Email), smart aggregation ("like storms"), and unread badge synchronization.
+* 🚀 [**System Optimization, High-Scale Architecture & Testing Roadmap**](SYSTEM_OPTIMIZATION_SCALING_AND_TESTING_ROADMAP.md) — Comprehensive master guide covering what is left to build, scaling to millions of users, performance optimizations, database tuning, and the full test suite blueprint.
+* 📰 [**Feed Service System Design**](backend/feed-service/SYSTEM_DESIGN.md) — Timeline architecture, fanout-on-write vs fanout-on-read, celebrity thresholds, and Redis sorted set indexing.
+* 🔔 [**Notification Service System Design**](backend/notification-service/SYSTEM_DESIGN.md) — Multi-channel dispatch (In-App WebSockets, FCM/APNs, Email), smart aggregation ("like storms"), and unread badge synchronization.
+* ✅ [**Test inventory and known gaps**](TESTS.md) — What is covered, what is deliberately not, and what the coverage audit found.
+* 🎨 [**Home / X frontend guidelines**](frontend/design/Home-X-Guidelines.md) — Token-driven component rules, states, and accessibility acceptance criteria for `frontend/`.
 
 ---
 
