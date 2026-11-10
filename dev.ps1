@@ -1,29 +1,38 @@
-# dev.ps1 - Start every backend service with hot-reloading using Air.
+# dev.ps1 - Start every service with hot-reloading using Air.
 #
 # The service list lives in one place: add a directory here and both branches
 # below pick it up, so a new service cannot silently miss the local stack.
+param(
+    [switch]$WithFrontend,
+    [switch]$BackendOnly
+)
+
 $ErrorActionPreference = "Continue"
 
 $services = @(
-    @{ Name = "USER-SVC";       Dir = "backend\user-service" },
-    @{ Name = "POST-SVC";       Dir = "backend\post-service" },
-    @{ Name = "FOLLOW-SVC";     Dir = "backend\follow-service" },
-    @{ Name = "FEED-SVC";       Dir = "backend\feed-service" },
-    @{ Name = "NOTIFY-SVC";     Dir = "backend\notification-service" },
-    @{ Name = "MODERATION-SVC"; Dir = "backend\moderation-service" },
-    @{ Name = "CHAT-SVC";       Dir = "backend\chat-service" },
-    @{ Name = "GATEWAY";        Dir = "backend\api-gateway" }
+    @{ Name = "USER-SVC";       Dir = "backend\user-service";         Cmd = "cd backend/user-service && air" },
+    @{ Name = "POST-SVC";       Dir = "backend\post-service";         Cmd = "cd backend/post-service && air" },
+    @{ Name = "FOLLOW-SVC";     Dir = "backend\follow-service";       Cmd = "cd backend/follow-service && air" },
+    @{ Name = "FEED-SVC";       Dir = "backend\feed-service";         Cmd = "cd backend/feed-service && air" },
+    @{ Name = "NOTIFY-SVC";     Dir = "backend\notification-service"; Cmd = "cd backend/notification-service && air" },
+    @{ Name = "MODERATION-SVC"; Dir = "backend\moderation-service";   Cmd = "cd backend/moderation-service && air" },
+    @{ Name = "CHAT-SVC";       Dir = "backend\chat-service";         Cmd = "cd backend/chat-service && air" },
+    @{ Name = "GATEWAY";        Dir = "backend\api-gateway";          Cmd = "cd backend/api-gateway && air" }
 )
 
-Write-Host "Starting microservices with Air..." -ForegroundColor Cyan
+if ($WithFrontend -or (-not $BackendOnly)) {
+    $services += @{ Name = "FRONTEND"; Dir = "frontend"; Cmd = "cd frontend && npm run dev" }
+}
+
+Write-Host "Starting microservices $(if (-not $BackendOnly) {'and frontend '} else {''})with hot-reloading..." -ForegroundColor Cyan
 
 # Option A: npx concurrently gives unified, colour-coded logs in one terminal.
 if (Get-Command "npx" -ErrorAction SilentlyContinue) {
     $names = ($services | ForEach-Object { $_.Name }) -join ","
-    $commands = ($services | ForEach-Object { "cd $($_.Dir) && air" }) -join "`n`t"
+    $commands = @($services | ForEach-Object { $_.Cmd })
 
     Write-Host "Detected npx. Running via concurrently for combined logs..." -ForegroundColor Green
-    npx concurrently -n $names -c "cyan,blue,yellow,green,magenta,red,gray,white" $commands
+    npx concurrently -n $names -c "cyan,blue,yellow,green,magenta,red,gray,white,black.bgGreen" $commands
     exit
 }
 
@@ -31,11 +40,15 @@ if (Get-Command "npx" -ErrorAction SilentlyContinue) {
 Write-Host "Running services in separate Air processes..." -ForegroundColor Yellow
 
 $processes = @()
-$colors = @("Cyan", "Blue", "Yellow", "Green", "Magenta", "Red", "Gray", "White")
+$colors = @("Cyan", "Blue", "Yellow", "Green", "Magenta", "Red", "Gray", "White", "DarkCyan")
 
 for ($i = 0; $i -lt $services.Count; $i++) {
     $service = $services[$i]
-    $process = Start-Process -FilePath "air" -WorkingDirectory $service.Dir -PassThru
+    if ($service.Name -eq "FRONTEND") {
+        $process = Start-Process -FilePath "npm.cmd" -ArgumentList "run", "dev" -WorkingDirectory ".\frontend" -PassThru
+    } else {
+        $process = Start-Process -FilePath "air" -WorkingDirectory ".\$($service.Dir)" -PassThru
+    }
     $script:processes += $process
 
     $color = $colors[$i % $colors.Count]
