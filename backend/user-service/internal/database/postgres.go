@@ -104,9 +104,12 @@ func newPool(url string, opts Options) (*pgxpool.Pool, error) {
 	}
 
 	// Transaction-mode PgBouncer multiplexes sessions, so named prepared
-	// statements cannot be assumed to survive between calls. The exec mode
-	// below uses unnamed statements and is safe through a pooler.
-	cfg.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeExec
+	// statements cannot be assumed to survive between calls. DescribeExec uses
+	// an unnamed statement each call — pooler-safe — but still describes it, so
+	// pgx learns the parameter OIDs. QueryExecModeExec skips the Describe and
+	// sends OID 0, which cannot encode []uuid.UUID and encodes []byte as bytea
+	// instead of JSON text.
+	cfg.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeDescribeExec
 
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
