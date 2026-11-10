@@ -27,12 +27,11 @@ ENV CGO_ENABLED=0 \
 
 WORKDIR /src
 
-# Copy only the modules this service needs. The backend modules live under
-# backend/, and go.work is regenerated inside the image so it never references a
-# directory that was not copied into the layer.
-COPY backend/proto ./proto
-COPY backend/platform ./platform
-COPY backend/${SERVICE} ./${SERVICE}
+# Copy only the modules this service needs. go.work is regenerated inside the
+# image so it never references a directory that was not copied into the layer.
+COPY proto ./proto
+COPY platform ./platform
+COPY ${SERVICE} ./${SERVICE}
 RUN go work init ./proto ./platform/observability ./${SERVICE}
 
 WORKDIR /src/${SERVICE}
