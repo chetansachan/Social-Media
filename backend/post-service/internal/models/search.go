@@ -13,10 +13,17 @@ var hashtagPattern = regexp.MustCompile(`#([\p{L}\p{N}_]{1,50})`)
 // ExtractHashtags returns the distinct, lower-cased hashtags in content in
 // first-seen order. Storing them separately lets a hashtag search use an exact
 // array overlap instead of a substring scan.
+// ExtractHashtags returns the distinct tags in content, always as a non-nil
+// slice.
+//
+// Non-nil matters: pgx encodes a nil []string as SQL NULL, and posts.hashtags is
+// NOT NULL, so returning nil made every post without a tag fail to insert with
+// "null value in column hashtags violates not-null constraint". Callers that
+// only need the count -- search -- behave identically either way.
 func ExtractHashtags(content string) []string {
 	matches := hashtagPattern.FindAllStringSubmatch(content, -1)
 	if len(matches) == 0 {
-		return nil
+		return []string{}
 	}
 
 	seen := make(map[string]struct{}, len(matches))
