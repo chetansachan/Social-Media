@@ -91,9 +91,11 @@ func newPool(url string, opts Options) (*pgxpool.Pool, error) {
 		cfg.MinConns = opts.MinConns
 	}
 
-	// PgBouncer in transaction mode cannot preserve named prepared statements
-	// between checkouts.
-	cfg.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeExec
+	// Transaction-mode PgBouncer cannot preserve named prepared statements
+	// between checkouts. DescribeExec keeps the statement unnamed but describes
+	// it, so pgx learns each parameter's OID — required for uuid arrays and
+	// jsonb payloads, which OID-0 execution cannot encode.
+	cfg.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeDescribeExec
 
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
