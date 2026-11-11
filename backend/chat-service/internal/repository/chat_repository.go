@@ -40,6 +40,59 @@ type chatRepository struct {
 	reader *pgxpool.Pool
 }
 
+/* ---- Unread counts -------------------------------------------------------
+   Three shapes, one rule: a message the viewer wrote is never unread, because
+   sending advances no read receipt. Every query therefore filters
+   `m.sender_id <> $viewer`, reusing the viewer binding already present.
+
+   They are named so the invariant is stated once and is inspectable in a test,
+   rather than being buried in three inline strings that can drift apart. */
+
+// $1 conversation, $2 viewer.
+const queryUnreadCountForConversation = `
+	SELECT COUNT(*)::int
+	FROM messages m
+	JOIN conversation_participants p
+	  ON p.conversation_id = m.conversation_id AND p.user_id = $2
+	WHERE m.conversation_id = $1
+	  AND m.deleted_at IS NULL
+	  AND m.sender_id <> $2
+	  AND (p.last_read_at IS NULL OR m.created_at > p.last_read_at)
+`
+
+// $1 viewer, $2 conversation ids.
+const queryUnreadCountsForMany = `
+	SELECT m.conversation_id, COUNT(*)::int
+	FROM messages m
+	JOIN conversation_participants p
+	  ON p.conversation_id = m.conversation_id AND p.user_id = $1
+	WHERE m.conversation_id = ANY($2::uuid[])
+	  AND m.deleted_at IS NULL
+	  AND m.sender_id <> $1
+	  AND (p.last_read_at IS NULL OR m.created_at > p.last_read_at)
+	GROUP BY m.conversation_id
+`
+
+// $1 viewer, $2 excluded (blocked) user ids.
+const queryTotalUnread = `
+	SELECT COALESCE(SUM(counts.unread), 0)::int
+	FROM (
+	    SELECT m.conversation_id, COUNT(*) AS unread
+	    FROM messages m
+	    JOIN conversation_participants p
+	      ON p.conversation_id = m.conversation_id AND p.user_id = $1
+	    WHERE m.deleted_at IS NULL
+	      AND m.sender_id <> $1
+	      AND (p.last_read_at IS NULL OR m.created_at > p.last_read_at)
+	      AND NOT EXISTS (
+	          SELECT 1 FROM conversation_participants hidden
+	          WHERE hidden.conversation_id = m.conversation_id
+	            AND hidden.user_id = ANY($2::uuid[])
+	      )
+	    GROUP BY m.conversation_id
+	) counts
+`
+
 func NewChatRepository(db *database.DB) ChatRepository {
 	return &chatRepository{
 		writer: db.Writer(),
@@ -244,17 +297,14 @@ func (r *chatRepository) LastMessageFor(ctx context.Context, conversationID uuid
 
 // UnreadCountFor counts live messages newer than the viewer's watermark. A NULL
 // watermark means nothing has been read, so the whole thread is unread.
+//
+// A message the viewer wrote is never unread: sending advances no read receipt,
+// so without the sender filter the author's own messages would inflate their
+// own badge. `$2` is the viewer, and the joined participant row proves
+// membership of that same person.
 func (r *chatRepository) UnreadCountFor(ctx context.Context, conversationID, viewerID uuid.UUID) (int, error) {
 	var count int
-	if err := r.reader.QueryRow(ctx, `
-		SELECT COUNT(*)::int
-		FROM messages m
-		JOIN conversation_participants p
-		  ON p.conversation_id = m.conversation_id AND p.user_id = $2
-		WHERE m.conversation_id = $1
-		  AND m.deleted_at IS NULL
-		  AND (p.last_read_at IS NULL OR m.created_at > p.last_read_at)
-	`, conversationID, viewerID).Scan(&count); err != nil {
+	if err := r.reader.QueryRow(ctx, queryUnreadCountForConversation, conversationID, viewerID).Scan(&count); err != nil {
 		return 0, fmt.Errorf("failed to count unread: %w", err)
 	}
 	return count, nil
@@ -435,16 +485,7 @@ func (r *chatRepository) unreadCountsFor(
 		return counts, nil
 	}
 
-	rows, err := r.reader.Query(ctx, `
-		SELECT m.conversation_id, COUNT(*)::int
-		FROM messages m
-		JOIN conversation_participants p
-		  ON p.conversation_id = m.conversation_id AND p.user_id = $1
-		WHERE m.conversation_id = ANY($2::uuid[])
-		  AND m.deleted_at IS NULL
-		  AND (p.last_read_at IS NULL OR m.created_at > p.last_read_at)
-		GROUP BY m.conversation_id
-	`, viewerID, conversationIDs)
+	rows, err := r.reader.Query(ctx, queryUnreadCountsForMany, viewerID, conversationIDs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to batch count unread: %w", err)
 	}
@@ -467,23 +508,7 @@ func (r *chatRepository) unreadCountsFor(
 // TotalUnread sums the badge across the viewer's threads, minus hidden ones.
 func (r *chatRepository) TotalUnread(ctx context.Context, viewerID uuid.UUID, excluded []uuid.UUID) (int, error) {
 	var total int
-	if err := r.reader.QueryRow(ctx, `
-		SELECT COALESCE(SUM(counts.unread), 0)::int
-		FROM (
-		    SELECT m.conversation_id, COUNT(*) AS unread
-		    FROM messages m
-		    JOIN conversation_participants p
-		      ON p.conversation_id = m.conversation_id AND p.user_id = $1
-		    WHERE m.deleted_at IS NULL
-		      AND (p.last_read_at IS NULL OR m.created_at > p.last_read_at)
-		      AND NOT EXISTS (
-		          SELECT 1 FROM conversation_participants hidden
-		          WHERE hidden.conversation_id = m.conversation_id
-		            AND hidden.user_id = ANY($2::uuid[])
-		      )
-		    GROUP BY m.conversation_id
-		) counts
-	`, viewerID, excluded).Scan(&total); err != nil {
+	if err := r.reader.QueryRow(ctx, queryTotalUnread, viewerID, excluded).Scan(&total); err != nil {
 		return 0, fmt.Errorf("failed to count total unread: %w", err)
 	}
 	return total, nil
