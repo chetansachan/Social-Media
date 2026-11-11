@@ -46,7 +46,11 @@ func enqueueOutbox(ctx context.Context, tx pgx.Tx, eventType string, aggregateID
 		INSERT INTO outbox_events (event_type, aggregate_id, payload)
 		VALUES ($1, $2, $3)
 	`
-	if _, err := tx.Exec(ctx, query, eventType, aggregateID, encoded); err != nil {
+	// The pool uses QueryExecModeExec, which sends parameters without a
+	// Describe round-trip, so pgx has no server OID to pick a codec from. A
+	// []byte would be encoded as bytea (and rejected by a jsonb column); a
+	// string is sent as text, which Postgres parses as JSON.
+	if _, err := tx.Exec(ctx, query, eventType, aggregateID, string(encoded)); err != nil {
 		return fmt.Errorf("failed to enqueue %s event: %w", eventType, err)
 	}
 	return nil
