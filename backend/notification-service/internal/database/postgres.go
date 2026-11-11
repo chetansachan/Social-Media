@@ -96,9 +96,11 @@ func newPool(ctx context.Context, url string, opts Options) (*pgxpool.Pool, erro
 		config.MaxConnLifetime = opts.MaxConnLifetime
 	}
 
-	// PgBouncer in transaction mode cannot preserve named prepared statements
-	// between checkouts, so use unnamed statements.
-	config.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeExec
+	// Transaction-mode PgBouncer cannot preserve named prepared statements
+	// between checkouts. DescribeExec keeps the statement unnamed but describes
+	// it, so pgx learns each parameter's OID — required for uuid arrays and
+	// jsonb payloads, which OID-0 execution cannot encode.
+	config.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeDescribeExec
 
 	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
