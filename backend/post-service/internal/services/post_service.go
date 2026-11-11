@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"crypto/sha1"
+	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -573,6 +574,73 @@ func inferMimeType(ext string) string {
 	}
 }
 
+// enforceMediaSize rejects a caller-supplied blob over the configured cap.
+//
+// The cap is measured on the decoded bytes, not on the base64 length, because
+// that is what Cloudinary will actually receive -- the encoded form is a third
+// larger and would reject files the policy allows. A URL payload is skipped
+// entirely: its size is only knowable after a fetch this service never does.
+func enforceMediaSize(cfg *config.Config, payload, mimeType string) error {
+	// A URL is already hosted; its size is Cloudinary's to measure.
+	if strings.HasPrefix(payload, "http://") || strings.HasPrefix(payload, "https://") {
+		return nil
+	}
+
+	encoded := payload
+	if comma := strings.Index(payload, ","); comma != -1 && strings.HasPrefix(payload, "data:") {
+		encoded = payload[comma+1:]
+	}
+
+	// Only the payload we can measure: a well-formed data URI and raw base64 are
+	// both base64. Anything else is left for Cloudinary to reject on its own.
+	if !isBase64Encoded(encoded) {
+		return nil
+	}
+
+	decoded, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		// A body that is not decodable is not a size problem; let the upload
+		// surface it rather than reporting the wrong reason.
+		return nil
+	}
+
+	// The config is passed in rather than loaded here: `Upload` reads it once for
+	// both this check and the upload that follows, and a file read per upload is
+	// not free.
+	limit := cfg.MediaImageMaxBytes
+	if strings.HasPrefix(mimeType, "video/") {
+		limit = cfg.MediaVideoMaxBytes
+	}
+
+	if int64(len(decoded)) > limit {
+		megabytes := float64(limit) / (1024 * 1024)
+		kind := "images"
+		if strings.HasPrefix(mimeType, "video/") {
+			kind = "video"
+		}
+		return fmt.Errorf("%w: %s are limited to %g MB, this file is %g MB",
+			models.ErrInvalidInput, kind, megabytes, float64(len(decoded))/(1024*1024))
+	}
+	return nil
+}
+
+// isBase64Encoded is a cheap shape check. It only needs to be confident enough
+// to measure: the authoritative decode happens immediately after.
+func isBase64Encoded(value string) bool {
+	if len(value) < 16 {
+		return false
+	}
+	for _, r := range value {
+		switch {
+		case r >= 'A' && r <= 'Z', r >= 'a' && r <= 'z', r >= '0' && r <= '9':
+		case r == '+', r == '/', r == '=', r == '\n', r == '\r':
+		default:
+			return false
+		}
+	}
+	return true
+}
+
 func (s *postService) Upload(ctx context.Context, base64 string) (string, error) {
 	mediaData := strings.TrimSpace(base64)
 	if mediaData == "" {
@@ -643,7 +711,18 @@ func (s *postService) Upload(ctx context.Context, base64 string) (string, error)
 		payload = fmt.Sprintf("data:%s;base64,%s", mimeType, mediaData)
 	}
 
-	url, err := s.UploadFile(ctx, payload)
+	// A caller-supplied blob is capped here, before the bytes leave this process.
+	// The composer enforces the same numbers, and this is what makes a direct API
+	// caller hit the same wall rather than an unbounded one. A URL upload is not
+	// capped: its size is only knowable after Cloudinary has fetched it, which
+	// this service never does.
+	cfg := config.Load()
+
+	if err := enforceMediaSize(cfg, payload, mimeType); err != nil {
+		return "", err
+	}
+
+	url, err := s.uploadFile(ctx, cfg, payload)
 	if err != nil {
 		return "", fmt.Errorf("error uploading file: %w", err)
 	}
@@ -665,8 +744,13 @@ func (s *postService) Upload(ctx context.Context, base64 string) (string, error)
 	return url, nil
 }
 
+// UploadFile is the exported entry point for a caller that already holds a
+// payload. It loads its own config so an outside caller does not have to.
 func (s *postService) UploadFile(ctx context.Context, payload string) (string, error) {
-	cfg := config.Load()
+	return s.uploadFile(ctx, config.Load(), payload)
+}
+
+func (s *postService) uploadFile(ctx context.Context, cfg *config.Config, payload string) (string, error) {
 	if cfg.CloudinaryUrl == "" {
 		return "", fmt.Errorf("cloudinary URL is not configured")
 	}
