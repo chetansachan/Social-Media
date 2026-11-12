@@ -8,10 +8,9 @@ thought to test.
 Run everything from the repo root:
 
 ```powershell
-foreach ($m in @("backend/api-gateway","backend/user-service","backend/post-service",
-                 "backend/follow-service","backend/feed-service","backend/notification-service",
-                 "backend/moderation-service","backend/chat-service",
-                 "backend/platform/observability","backend/proto")) {
+foreach ($m in @("api-gateway","user-service","post-service","follow-service",
+                 "feed-service","notification-service","moderation-service",
+                 "chat-service","platform/observability","proto")) {
     Push-Location $m; go test ./...; Pop-Location
 }
 ```
@@ -54,9 +53,9 @@ Each is fixed in the commit that explains it:
 
 | Defect | Where |
 | :--- | :--- |
-| Panic from a nil check on a getter that panics by design, twice | `backend/api-gateway/graphql_tracing.go`, `backend/api-gateway/ratelimit/guard.go` |
-| Three user lookups returned `Unknown` instead of `NotFound` | `backend/user-service/internal/handler` |
-| A nil UUID event id on the follow outbox envelope | `backend/follow-service/internal/models/outbox.go` |
-| A nil settings payload mapped to "everything off" | `backend/notification-service/internal/handler` |
-| An empty JWT segment accepted and failing later on parse | `backend/notification-service/internal/handler` |
+| Panic from a nil check on a getter that panics by design, twice | `graphql_tracing.go`, `ratelimit/guard.go` |
+| Three user lookups returned `Unknown` instead of `NotFound` | `user-service/internal/handler` |
+| A nil UUID event id on the follow outbox envelope | `follow-service/internal/models/outbox.go` |
+| A nil settings payload mapped to "everything off" | `notification-service/internal/handler` |
+| An empty JWT segment accepted and failing later on parse | `notification-service/internal/handler` |
 | Three services missing from the local dev stack | `dev.ps1`, `.air.toml` |
