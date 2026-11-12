@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/chetansachan/socialflow/api-gateway/graph/dataloader"
 	"github.com/chetansachan/socialflow/api-gateway/graph/model"
 	socialflowpb "github.com/chetansachan/socialflow/proto"
 	"google.golang.org/grpc"
@@ -78,6 +79,21 @@ func (c *fakeChatClient) GetPresence(ctx context.Context, req *socialflowpb.GetP
 	return &socialflowpb.PresenceResponse{Presence: c.presence}, nil
 }
 
+// chatLoaderContext builds a viewer context with the request-scoped user loader
+// installed, exactly as the dataloader middleware installs it in production.
+//
+// The chat resolvers hydrate participant and sender ids through that loader
+// rather than leaving the schema's non-null `user`/`sender` fields unresolved,
+// so any test that reaches them needs loaders in the context.
+func chatLoaderContext(userIDs ...string) context.Context {
+	users := make(map[string]*socialflowpb.User, len(userIDs))
+	for _, id := range userIDs {
+		users[id] = &socialflowpb.User{Id: id, Username: id, Name: id}
+	}
+	loaders := dataloader.New(&batchUserClient{users: users}, nil, nil)
+	return dataloader.WithLoaders(viewerContext("u1"), loaders)
+}
+
 func sampleConversation() *socialflowpb.Conversation {
 	return &socialflowpb.Conversation{
 		Id:        "c1",
@@ -94,12 +110,19 @@ func sampleConversation() *socialflowpb.Conversation {
 	}
 }
 
+func sampleMessages() []*socialflowpb.Message {
+	return []*socialflowpb.Message{
+		{Id: "m1", SenderId: "u2", Content: "one"},
+		{Id: "m2", SenderId: "u1", Content: "", IsDeleted: true},
+	}
+}
+
 func TestCreateConversationScopesCreator(t *testing.T) {
 	client := &fakeChatClient{conversationMeta: sampleConversation()}
 	resolver := &mutationResolver{&Resolver{ChatClient: client}}
 
 	title := "Team"
-	res, err := resolver.CreateConversation(viewerContext("u1"), model.CreateConversationInput{
+	res, err := resolver.CreateConversation(chatLoaderContext("u1", "u2"), model.CreateConversationInput{
 		ParticipantIds: []string{"u2", "u3"},
 		Title:          &title,
 	})
@@ -124,13 +147,23 @@ func TestCreateConversationScopesCreator(t *testing.T) {
 	if res.LastMessage == nil || res.LastMessage.Content != "hi" {
 		t.Fatalf("last message = %+v", res.LastMessage)
 	}
+	// `user` and `sender` are non-null in the schema, so they must be hydrated
+	// here. Leaving them nil would serialise as a GraphQL error at runtime.
+	for i, participant := range res.Participants {
+		if participant.User == nil || participant.User.ID != participant.UserID {
+			t.Fatalf("participant %d was not hydrated: %+v", i, participant)
+		}
+	}
+	if res.LastMessage.Sender == nil || res.LastMessage.Sender.ID != "u2" {
+		t.Fatalf("last message sender was not hydrated: %+v", res.LastMessage.Sender)
+	}
 }
 
 func TestSendMessageScopesSender(t *testing.T) {
 	client := &fakeChatClient{message: &socialflowpb.Message{Id: "m1", Content: "hi"}}
 	resolver := &mutationResolver{&Resolver{ChatClient: client}}
 
-	res, err := resolver.SendMessage(viewerContext("u1"), model.SendMessageInput{
+	res, err := resolver.SendMessage(chatLoaderContext("u1"), model.SendMessageInput{
 		ConversationID: "c1",
 		Content:        "hi",
 	})
@@ -225,7 +258,7 @@ func TestMyConversationsScopesToCallerAndClamps(t *testing.T) {
 	resolver := &queryResolver{&Resolver{ChatClient: client}}
 
 	limit := int32(1000)
-	res, err := resolver.MyConversations(viewerContext("u1"), &limit, nil)
+	res, err := resolver.MyConversations(chatLoaderContext("u1", "u2"), &limit, nil)
 	if err != nil {
 		t.Fatalf("MyConversations: %v", err)
 	}
@@ -263,17 +296,14 @@ func TestGetConversationAndMessagesScopeToCaller(t *testing.T) {
 	client := &fakeChatClient{
 		conversation: &socialflowpb.ConversationResponse{Conversation: sampleConversation()},
 		messageResponse: &socialflowpb.GetMessagesResponse{
-			Messages: []*socialflowpb.Message{
-				{Id: "m1", Content: "one"},
-				{Id: "m2", Content: "", IsDeleted: true},
-			},
+			Messages:   sampleMessages(),
 			NextCursor: "next",
 			HasMore:    true,
 		},
 	}
 	resolver := &queryResolver{&Resolver{ChatClient: client}}
 
-	conversation, err := resolver.GetConversation(viewerContext("u1"), "c1")
+	conversation, err := resolver.GetConversation(chatLoaderContext("u1", "u2"), "c1")
 	if err != nil {
 		t.Fatalf("GetConversation: %v", err)
 	}
@@ -285,7 +315,7 @@ func TestGetConversationAndMessagesScopeToCaller(t *testing.T) {
 	}
 
 	limit := int32(1000)
-	page, err := resolver.GetMessages(viewerContext("u1"), "c1", &limit, nil)
+	page, err := resolver.GetMessages(chatLoaderContext("u1", "u2"), "c1", &limit, nil)
 	if err != nil {
 		t.Fatalf("GetMessages: %v", err)
 	}
