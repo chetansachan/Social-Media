@@ -203,7 +203,23 @@ func run() error {
 	srv.Use(rateGuard)
 
 	mux := http.NewServeMux()
+	trustProxy := envBool("TRUST_PROXY_HEADERS", false)
+
 	mux.Handle("/", playground.Handler("GraphQL playground", "/query"))
+
+	// The web client's realtime stream. It sits outside the GraphQL handler
+	// because EventSource cannot set an Authorization header on a POST, and the
+	// query parameter that gqlgen's WebSocket transport reads would put the
+	// access token in a URL every proxy on the path can log. The middleware
+	// below supplies the header from the httpOnly session cookie.
+	//
+	// Both the inbox and the mailbox arrive on this one connection, so the
+	// badge and the conversation rail refresh without a page reload.
+	var streamHandler http.Handler = realtimeStreamHandler(redisClient)
+	streamHandler = auth.Middleware(secret, streamHandler)
+	streamHandler = ratelimit.WithClientIP(trustProxy)(streamHandler)
+	streamHandler = metrics.HTTPMiddleware(otelhttp.NewHandler(streamHandler, "realtime-stream"))
+	mux.Handle("/stream", streamHandler)
 	// Playground stays public; the @auth directive protects individual fields.
 	// The loader middleware wraps the executing handler, not the playground.
 	// Revocations run inside the auth middleware because they need the parsed
@@ -213,7 +229,6 @@ func run() error {
 	//
 	// Metrics wrap otelhttp so the status recorder also sees upgraded
 	// connections and can skip their multi-minute durations.
-	trustProxy := envBool("TRUST_PROXY_HEADERS", false)
 	queryHandler := auth.Middleware(secret, auth.RejectRevoked(revocations, dataloader.Middleware(resolver.NewLoaders)(srv)))
 	queryHandler = ratelimit.WithClientIP(trustProxy)(queryHandler)
 	queryHandler = metrics.HTTPMiddleware(otelhttp.NewHandler(queryHandler, "graphql"))
