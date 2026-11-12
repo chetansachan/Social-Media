@@ -764,6 +764,58 @@ func toModelConversation(conversation *socialflowpb.Conversation) *model.Convers
 	}
 }
 
+// hydrateConversation resolves the participant profiles and the last message's
+// sender through the request-scoped user loader. The chat-service payload only
+// carries ids, while `ConversationParticipant.user` and `Message.sender` are
+// non-null in the schema — without this, a valid thread serialises as a GraphQL
+// error instead of a conversation.
+func hydrateConversation(ctx context.Context, conversation *model.Conversation) (*model.Conversation, error) {
+	if conversation == nil {
+		return nil, nil
+	}
+	for _, participant := range conversation.Participants {
+		if participant == nil || participant.User != nil {
+			continue
+		}
+		// A blank id is left for the field resolver to reject on its own, so one
+		// incomplete row does not fail the whole page.
+		if strings.TrimSpace(participant.UserID) == "" {
+			continue
+		}
+		user, err := loadAuthor(ctx, participant.UserID)
+		if err != nil {
+			return nil, err
+		}
+		participant.User = user
+	}
+	if conversation.LastMessage != nil {
+		hydrated, err := hydrateMessage(ctx, conversation.LastMessage)
+		if err != nil {
+			return nil, err
+		}
+		conversation.LastMessage = hydrated
+	}
+	return conversation, nil
+}
+
+func hydrateMessage(ctx context.Context, message *model.Message) (*model.Message, error) {
+	if message == nil || message.Sender != nil {
+		return message, nil
+	}
+	// Same as above: an absent sender id keeps the message and lets the `sender`
+	// field resolver report the specific failure, rather than taking the whole
+	// transcript down with it.
+	if strings.TrimSpace(message.SenderID) == "" {
+		return message, nil
+	}
+	sender, err := loadAuthor(ctx, message.SenderID)
+	if err != nil {
+		return nil, err
+	}
+	message.Sender = sender
+	return message, nil
+}
+
 // realtimeFrame mirrors the WebSocket envelope published by notification-service.
 type realtimeFrame struct {
 	Event string                   `json:"event"`
