@@ -608,7 +608,7 @@ func (r *mutationResolver) CreateConversation(ctx context.Context, input model.C
 		return nil, err
 	}
 
-	return toModelConversation(res.GetConversation()), nil
+	return hydrateConversation(ctx, toModelConversation(res.GetConversation()))
 }
 
 // SendMessage is the resolver for the sendMessage field.
@@ -627,7 +627,7 @@ func (r *mutationResolver) SendMessage(ctx context.Context, input model.SendMess
 		return nil, err
 	}
 
-	return toModelMessage(res.GetMessage()), nil
+	return hydrateMessage(ctx, toModelMessage(res.GetMessage()))
 }
 
 // MarkConversationRead is the resolver for the markConversationRead field.
@@ -1289,7 +1289,11 @@ func (r *queryResolver) MyConversations(ctx context.Context, limit *int32, curso
 
 	conversations := make([]*model.Conversation, 0, len(res.GetConversations()))
 	for _, conversation := range res.GetConversations() {
-		conversations = append(conversations, toModelConversation(conversation))
+		mapped, mapErr := hydrateConversation(ctx, toModelConversation(conversation))
+		if mapErr != nil {
+			return nil, mapErr
+		}
+		conversations = append(conversations, mapped)
 	}
 
 	connection := &model.ConversationConnection{
@@ -1318,7 +1322,7 @@ func (r *queryResolver) GetConversation(ctx context.Context, id string) (*model.
 		return nil, err
 	}
 
-	return toModelConversation(res.GetConversation()), nil
+	return hydrateConversation(ctx, toModelConversation(res.GetConversation()))
 }
 
 // GetMessages is the resolver for the getMessages field.
@@ -1340,7 +1344,11 @@ func (r *queryResolver) GetMessages(ctx context.Context, conversationID string, 
 
 	messages := make([]*model.Message, 0, len(res.GetMessages()))
 	for _, message := range res.GetMessages() {
-		messages = append(messages, toModelMessage(message))
+		mapped, mapErr := hydrateMessage(ctx, toModelMessage(message))
+		if mapErr != nil {
+			return nil, mapErr
+		}
+		messages = append(messages, mapped)
 	}
 
 	connection := &model.MessageConnection{
