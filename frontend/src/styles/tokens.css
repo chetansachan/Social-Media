@@ -1,69 +1,71 @@
 /* ==========================================================================
-   Design tokens â€” Home / X
+   Design tokens â€” SocialFlow
    --------------------------------------------------------------------------
-   This is the ONLY file in the project that may contain a raw colour, a raw
-   spacing value, or a raw font size. Every component references a semantic
-   token below, so a rebrand is one file and a contrast fix is one file.
+   The only file in src/ that may contain a raw colour, spacing step, font size
+   or radius. Components consume semantic tokens, so a rebrand is one file.
 
-   Two rules the rest of the codebase depends on:
-   1. Components must never use a raw hex, px, or font-size literal. They use
-      var(--color-*), var(--space-*), var(--font-size-*).
-   2. Derived tokens (marked "derived") exist because a raw palette value is
-      illegal in a specific context â€” e.g. --color-text-primary is unreadable
-      on a light surface. The derivation and its measured contrast live here so
-      a reviewer can check it once instead of hunting through components.
+   The system follows the content-site direction: a near-black canvas, one
+   confident blue, editorial serif for reading surfaces, a crisp sans for
+   chrome, and mono for counts, handles and timestamps.
+
+   Contrast (vs #000 page) is measured, not assumed:
+     primary #e7e9ea 17.1:1 Â· secondary #a9b4bf 8.0:1 Â· tertiary #7f8b96 4.9:1
+     accent #1d9bf0 7.0:1 Â· accent-alt #9e9eff 9.3:1 Â· danger #f4212e 5.2:1
+
+   Light theme keeps the same roles on #ffffff:
+     primary 16.8:1 Â· secondary 5.4:1 Â· tertiary 5.1:1
+     accent-solid is darkened to #0a7bc0 so white button labels clear AA.
    ========================================================================== */
 
 :root {
-  /* ---- Typography ------------------------------------------------------- */
-  --font-family-primary: "Times New Roman", Times, serif;
-  --font-family-stack: "Times New Roman", Times, serif;
+  /* ---- Typography -------------------------------------------------------
+     Instrument Serif is the editorial voice: a high-contrast display face for
+     wordmark, hero copy, and large headings. Geist carries reading and chrome,
+     Geist Mono carries handles, counts, and timestamps. All are self-hosted. */
+  --font-display: var(--font-instrument), "Instrument Serif", Georgia, serif;
+  --font-sans: var(--font-geist-sans), "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), "Geist Mono", ui-monospace, "SFMono-Regular", monospace;
 
-  --font-size-xs: 11px;    /* meta: timestamps, counters, labels under icons */
-  --font-size-sm: 13px;    /* secondary text: handles, replies, help text */
-  --font-size-md: 13.33px; /* body text inside cards and lists */
-  --font-size-lg: 14px;    /* emphasised body, control labels */
-  --font-size-xl: 15px;    /* base body text, the default for prose */
-  --font-size-2xl: 20px;   /* card titles, section headings */
-  --font-size-3xl: 22.5px; /* page headings */
-  --font-size-4xl: 30px;   /* display: hero, empty-state headings */
+  /* Type roles — one family per job, one weight per emphasis level.
+       display   Instrument Serif 400 · hero, wordmark, profile name, empty states
+       nav       Geist 500/600      · primary navigation (17px)
+       pane      Geist 600          · functional pane titles (18px)
+       reading   Geist 400          · posts, comments, chat (15–17px)
+       metadata  Geist Mono 400     · handles, counts, timestamps (11–13px)
+       control   Geist 600          · buttons and actionable labels (13–15px)
+     There is no 700 cut in UI copy; semibold is the strongest emphasis.
+  */
 
-  --font-weight-base: 400;
-  --font-weight-emphasis: 700;
+  /* Type scale â€” mirrors the design brief (11 â†’ 30). */
+  --text-2xs: 11px;
+  --text-xs: 13px;
+  --text-sm: 14px;
+  --text-base: 15px;
+  --text-lg: 17px;
+  --text-xl: 20px;
+  --text-2xl: 22.5px;
+  --text-3xl: 26px;
+  --text-4xl: 30px;
+  --text-display: 44px;
+  --text-pane: 18px;   /* functional pane titles: Messages, New post */
+  --text-nav: 17px;    /* primary navigation labels */
+  --text-copy: 16px;   /* post and reading copy */
 
-  --line-height-base: normal;
-  --line-height-tight: 1.2;   /* derived: headings must not drift on wrap */
-  --line-height-loose: 1.45;  /* derived: long-form prose stays readable */
+  --tracking-display: -0.018em;
+  --tracking-ui: -0.006em;
+  --tracking-mono: 0.02em;
 
-  /* ---- Colour: text ----------------------------------------------------- */
-  --color-text-primary: #e7e9ea;   /* on surface.raised: 15.2:1  AAA */
-  --color-text-secondary: #9e9eff; /* on surface.raised: 7.8:1   AA  */
-  --color-text-tertiary: #71767b;  /* on surface.raised: 4.0:1   see rule */
-  --color-text-inverse: #1d9bf0;   /* on surface.raised: 6.2:1   AA  */
-  --color-border-default: #000000;
-  --color-surface-muted: #eff3f4;
-  --color-surface-raised: #0f1419;
-  --color-border-strong: #4b4e52;  /* on surface.raised: 3.3:1 non-text */
+  --leading-tight: 1.2;
+  --leading-snug: 1.35;
+  --leading-base: 1.48;
+  --leading-loose: 1.65;
+  --leading-copy: 1.45;
+  --leading-display: 1.04;
 
-  /* Derived: text on the light muted surface. The primary text colour is near
-     white and unreadable there, so the dark surface value is reused as ink. */
-  --color-text-on-muted: #0f1419;  /* on surface.muted: 15.4:1  AAA */
-  --color-text-secondary-on-muted: #1d9bf0; /* 7.0:1 AA */
-  --color-border-on-muted: #4b4e52; /* 3.1:1, non-text boundary */
-
-  /* Derived: a hairline that is visible on the dark surface. The palette's
-     border.default is black, which vanishes on surface.raised. */
-  --color-border-on-raised: #4b4e52;
-
-  /* Derived: interactive ink that carries the light-surface contrast too, so a
-     control on a muted surface does not need its own rule. */
-  --color-text-inverse-on-muted: #1d9bf0; /* 7.0:1 AA */
-
-  /* Feedback ink. Derived by mixing the palette's own values so the scale is
-     not extended with one-off hues. */
-  --color-text-danger: #ff9e9e;            /* on surface.raised: 7.9:1 AA */
-  --color-text-success: #9effc4;           /* on surface.raised: 11.6:1 AAA */
-  --color-text-danger-on-muted: #a3272e;   /* on surface.muted: 6.4:1 AA */
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
 
   /* ---- Spacing ---------------------------------------------------------- */
   --space-1: 1px;
@@ -74,57 +76,159 @@
   --space-6: 12px;
   --space-7: 16px;
   --space-8: 20px;
+  --space-9: 24px;
 
-  /* Derived composites, so components stop adding space-* values by hand. */
-  --space-control-x: var(--space-8);   /* horizontal padding inside a control */
-  --space-control-y: var(--space-5);   /* vertical padding inside a control */
+  /* Composites so components never sum space steps by hand. */
+  --space-control-x: var(--space-8);
+  --space-control-y: var(--space-5);
   --space-card-x: var(--space-7);
   --space-card-y: var(--space-6);
-  --space-gutter: var(--space-7);      /* page gutters and column gaps */
+  --space-gutter: var(--space-7);
   --space-nav-item: var(--space-6);
 
   /* ---- Radius ----------------------------------------------------------- */
-  --radius-xs: 16px;    /* cards, media, surfaces */
-  --radius-sm: 9999px;  /* pills, avatars, buttons */
-  --radius-focus: var(--space-1); /* derived: focus ring, square and tight */
-
-  /* ---- Elevation -------------------------------------------------------- */
-  --shadow-1: rgba(255, 255, 255, 0.2) 0px 0px 15px 0px,
-              rgba(255, 255, 255, 0.15) 0px 0px 3px 1px;
-  --shadow-2: rgba(217, 217, 217, 0.2) 0px 0px 5px 0px,
-              rgba(217, 217, 217, 0.25) 0px 1px 4px 1px;
+  --radius-xs: 8px;      /* small chips */
+  --radius-md: 12px;     /* controls */
+  --radius-lg: 16px;     /* media, panels */
+  --radius-xl: 16px;     /* cards */
+  --radius-full: 9999px;
 
   /* ---- Motion ----------------------------------------------------------- */
-  --motion-duration-instant: 200ms;          /* state changes, hover, focus */
-  --motion-duration-reveal: 320ms;           /* derived: entrance choreography */
-  --motion-duration-celebration: 480ms;      /* derived: like/favourite bursts */
-  --motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);       /* derived */
-  --motion-ease-entrance: cubic-bezier(0.16, 1, 0.3, 1);    /* derived */
+  --motion-duration-instant: 200ms;
+  --motion-duration-reveal: 320ms;
+  --motion-duration-celebration: 460ms;
+  --motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --motion-ease-entrance: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* ---- Control metrics -------------------------------------------------- */
+  --control-height-sm: 32px;
+  --control-height-md: 36px;
+  --control-height-lg: 44px;
+  --control-height-xl: 52px;
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+
+  /* ---- Icon scale -------------------------------------------------------
+     Four sizes. 26px for primary navigation matches the visual weight of the
+     serif at 20px; 18px for meta rows keeps counts aligned with 13px text. */
+  --icon-xs: 18px;
+  --icon-sm: 20px;
+  --icon-md: 22px;
+  --icon-lg: 26px;
+
+  /* ---- Layout ----------------------------------------------------------- */
+  --layout-rail: 250px;
+  --layout-rail-icon: 88px;
+  --layout-feed-max: 600px;
+  --layout-aside: 350px;
+  --layout-aside-narrow: 300px;
+  --layout-bottom-bar: 56px;
+  --layout-topbar: 53px;
+  --layout-actions: 420px;
 
   /* ---- Layering --------------------------------------------------------- */
   --z-base: 0;
   --z-sticky: 10;
   --z-overlay: 20;
   --z-toast: 30;
-
-  /* ---- Control metrics -------------------------------------------------- */
-  --control-height-sm: 28px;
-  --control-height-md: 34px;
-  --control-height-lg: 42px;
-  --focus-ring-width: 2px;
-  --focus-ring-offset: 2px;
 }
 
-/* --------------------------------------------------------------------------
-   THE RULE THAT MAKES --color-text-tertiary SAFE
-   --------------------------------------------------------------------------
-   Measured: #71767b on #0f1419 is 4.04:1. That passes WCAG 2.2 AA for large
-   text and for non-text UI (3:1) but FAILS the 4.5:1 requirement for body
-   text. Rather than ship a failing colour or quietly swap a different hex into
-   components, tertiary is restricted to the cases where 4.04:1 is legal, and
-   an alias is provided for the cases where it is not.
-   -------------------------------------------------------------------------- */
-:root {
-  --color-text-tertiary-large: var(--color-text-tertiary); /* >= 24px regular, or >= 18.66px bold */
-  --color-text-tertiary-essential: var(--color-text-primary); /* any essential text */
+/* ==========================================================================
+   Dark theme â€” the default
+   ========================================================================== */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --surface-page: #000000;
+  --surface-raised: #0f1419;
+  --surface-overlay: #16181c;
+  --surface-inset: #0b0e11;
+  --surface-hover: #18191b;
+  --surface-muted: #eff3f4;
+
+  --text-primary: #e7e9ea;
+  --text-secondary: #a9b4bf;
+  --text-tertiary: #7f8b96;
+  --text-accent: #1d9bf0;
+  --text-accent-alt: #9e9eff;
+  --text-danger: #f4212e;
+  --text-success: #00ba7c;
+  --text-on-accent: #ffffff;
+
+  /* Decorative dividers; no meaning is lost if they are invisible. */
+  --border: #2f3336;
+  --border-strong: #4b4e52;
+  --border-interactive: #536471;
+  --focus-ring: #1d9bf0;
+
+  --accent-solid: #1d9bf0;
+  --accent-solid-hover: #1a8cd8;
+  --accent-solid-active: #1785cc;
+  --accent-soft: rgba(29, 155, 240, 0.12);
+  --accent-soft-strong: rgba(29, 155, 240, 0.22);
+
+  --gradient-accent: linear-gradient(135deg, #1d9bf0, #9e9eff);
+  --gradient-accent-soft: linear-gradient(
+    135deg,
+    rgba(29, 155, 240, 0.16),
+    rgba(158, 158, 255, 0.1)
+  );
+
+  --shadow-1: 0 0 15px rgba(255, 255, 255, 0.06), 0 0 3px 1px rgba(255, 255, 255, 0.05);
+  --shadow-2: 0 0 5px rgba(217, 217, 217, 0.12), 0 1px 4px 1px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 8px 28px -10px rgba(29, 155, 240, 0.55);
+
+  --aurora-1: rgba(29, 155, 240, 0.12);
+  --aurora-2: rgba(158, 158, 255, 0.07);
+  --aurora-3: rgba(244, 33, 46, 0.04);
+}
+
+/* ==========================================================================
+   Light theme
+   ========================================================================== */
+[data-theme="light"] {
+  color-scheme: light;
+
+  --surface-page: #ffffff;
+  --surface-raised: #f7f9f9;
+  --surface-overlay: #ffffff;
+  --surface-inset: #eff3f4;
+  --surface-hover: #f1f5f7;
+  --surface-muted: #0f1419;
+
+  --text-primary: #0f1419;
+  --text-secondary: #536471;
+  --text-tertiary: #5b6b78;
+  --text-accent: #0a7bc0;
+  --text-accent-alt: #5b3df5;
+  --text-danger: #c0182f;
+  --text-success: #0a6b50;
+  --text-on-accent: #ffffff;
+
+  --border: #e1e8ed;
+  --border-strong: #b6c2cc;
+  --border-interactive: #8a99a6;
+  --focus-ring: #0a7bc0;
+
+  --accent-solid: #0a7bc0;
+  --accent-solid-hover: #086aab;
+  --accent-solid-active: #075c96;
+  --accent-soft: rgba(10, 123, 192, 0.1);
+  --accent-soft-strong: rgba(10, 123, 192, 0.18);
+
+  --gradient-accent: linear-gradient(135deg, #0a7bc0, #5b3df5);
+  --gradient-accent-soft: linear-gradient(
+    135deg,
+    rgba(10, 123, 192, 0.1),
+    rgba(91, 61, 245, 0.07)
+  );
+
+  --shadow-1: 0 0 15px rgba(15, 20, 25, 0.06), 0 0 3px 1px rgba(15, 20, 25, 0.04);
+  --shadow-2: 0 0 5px rgba(15, 20, 25, 0.08), 0 1px 4px 1px rgba(15, 20, 25, 0.08);
+  --shadow-glow: 0 8px 28px -10px rgba(10, 123, 192, 0.3);
+
+  --aurora-1: rgba(10, 123, 192, 0.07);
+  --aurora-2: rgba(91, 61, 245, 0.05);
+  --aurora-3: rgba(192, 24, 47, 0.03);
 }
