@@ -1,0 +1,373 @@
+@import "tailwindcss";
+@import "../styles/tokens.css";
+
+/* ==========================================================================
+   Tailwind v4 theme bridge.
+   --------------------------------------------------------------------------
+   Utilities are generated from the tokens, so `bg-surface` and `text-secondary`
+   resolve to CSS custom properties. No component smuggles in a literal.
+   ========================================================================== */
+@theme inline {
+  --font-display: var(--font-display);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  --text-2xs: var(--text-2xs);
+  --text-xs: var(--text-xs);
+  --text-sm: var(--text-sm);
+  --text-base: var(--text-base);
+  --text-lg: var(--text-lg);
+  --text-xl: var(--text-xl);
+  --text-2xl: var(--text-2xl);
+  --text-3xl: var(--text-3xl);
+  --text-4xl: var(--text-4xl);
+  --text-display: var(--text-display);
+  --text-pane: var(--text-pane);
+  --text-nav: var(--text-nav);
+  --text-copy: var(--text-copy);
+
+  --tracking-display: var(--tracking-display);
+  --leading-display: var(--leading-display);
+  --leading-copy: var(--leading-copy);
+  --tracking-ui: var(--tracking-ui);
+  --tracking-mono: var(--tracking-mono);
+
+  --color-page: var(--surface-page);
+  --color-surface: var(--surface-raised);
+  --color-overlay: var(--surface-overlay);
+  --color-inset: var(--surface-inset);
+  --color-hover: var(--surface-hover);
+  --color-muted: var(--surface-muted);
+
+  --color-primary: var(--text-primary);
+  --color-secondary: var(--text-secondary);
+  --color-tertiary: var(--text-tertiary);
+  --color-accent: var(--text-accent);
+  --color-accent-alt: var(--text-accent-alt);
+  --color-danger: var(--text-danger);
+  --color-success: var(--text-success);
+  --color-on-accent: var(--text-on-accent);
+
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-line-interactive: var(--border-interactive);
+  --color-ring: var(--focus-ring);
+
+  --color-accent-solid: var(--accent-solid);
+  --color-accent-solid-hover: var(--accent-solid-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-soft-strong: var(--accent-soft-strong);
+
+  --radius-xs: var(--radius-xs);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+
+  --shadow-1: var(--shadow-1);
+  --shadow-2: var(--shadow-2);
+  --shadow-glow: var(--shadow-glow);
+
+  --ease-standard: var(--motion-ease-standard);
+  --ease-entrance: var(--motion-ease-entrance);
+
+  /* Tailwind's numeric spacing scale stays on its 4px base, so p-4 means
+     16px everywhere and h-9 means 36px. The bespoke --space-* scale above is
+     reserved for composites and one-off token-driven CSS. */
+  --spacing: 0.25rem;
+
+  --spacing-icon-xs: var(--icon-xs);
+  --spacing-icon-sm: var(--icon-sm);
+  --spacing-icon-md: var(--icon-md);
+  --spacing-icon-lg: var(--icon-lg);
+
+  --breakpoint-xs: 30rem;
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    scrollbar-gutter: stable;
+  }
+
+  body {
+    background-color: var(--surface-page);
+    font-weight: var(--weight-regular);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: var(--leading-base);
+    letter-spacing: var(--tracking-ui);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    overflow-x: clip;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: var(--tracking-display);
+    line-height: var(--leading-tight);
+    font-weight: var(--weight-regular);
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* One focus treatment, everywhere. Never removed, only redirected. */
+  :focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+    outline-offset: var(--focus-ring-offset);
+    border-radius: var(--radius-xs);
+  }
+
+  ::selection {
+    background-color: var(--accent-soft-strong);
+    color: var(--text-primary);
+  }
+
+  /* Native buttons do not get a hand cursor from Preflight. Interactive
+     controls should read as interactive at a glance; text fields keep the
+     caret and disabled controls keep the blocked cursor. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"]:not([aria-disabled="true"]),
+  [role="menuitem"]:not([aria-disabled="true"]),
+  [role="option"]:not([aria-disabled="true"]),
+  [role="switch"]:not(:disabled),
+  label[for],
+  select:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+
+  /* Under a coarse pointer the :active residue is suppressed. */
+  @media (pointer: coarse) {
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
+  }
+
+  /* Theme switching must not animate under reduced motion. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* ==========================================================================
+   Utilities
+   ========================================================================== */
+@utility text-balance-tight {
+  text-wrap: balance;
+  letter-spacing: var(--tracking-display);
+}
+
+@utility bg-accent-gradient {
+  background-image: var(--gradient-accent);
+}
+
+@utility bg-accent-gradient-soft {
+  background-image: var(--gradient-accent-soft);
+}
+
+/* Ambient colour wash for auth and empty states. Never behind long body text. */
+@utility bg-aurora {
+  background-image:
+    radial-gradient(46rem 30rem at 8% -10%, var(--accent-soft), transparent 65%),
+    radial-gradient(40rem 26rem at 100% 0%, var(--accent-soft), transparent 60%);
+}
+
+@utility clamp-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+@utility clamp-3 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+@utility clamp-4 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+}
+
+@utility safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Off-screen rows skip layout and paint. */
+@utility defer-render {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 96px;
+}
+
+/* A hairline that never doubles up with the neighbouring border. */
+@utility hairline-b {
+  box-shadow: inset 0 -1px 0 var(--border);
+}
+
+@utility hairline-t {
+  box-shadow: inset 0 1px 0 var(--border);
+}
+
+/* ==========================================================================
+   Scrollbars — thin, token-coloured, invisible until hovered
+   ========================================================================== */
+@layer base {
+  @supports (scrollbar-width: thin) {
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: var(--border-strong) transparent;
+    }
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--border-strong);
+    border-radius: var(--radius-full);
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--border-interactive);
+  }
+}
+
+/* ==========================================================================
+   Shimmer for skeletons. Preserves final height so nothing jumps (CLS).
+   ========================================================================== */
+@keyframes sf-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.sf-skeleton {
+  background-image: linear-gradient(
+    90deg,
+    var(--surface-inset) 0%,
+    var(--surface-hover) 50%,
+    var(--surface-inset) 100%
+  );
+  background-size: 200% 100%;
+  animation: sf-shimmer 1.6s var(--motion-ease-standard) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sf-skeleton {
+    animation: none;
+    background-image: none;
+    background-color: var(--surface-inset);
+  }
+}
+
+/* ==========================================================================
+   Sticky header elevation — driven by a data attribute, not React state
+   ========================================================================== */
+[data-elevated="true"] {
+  box-shadow: var(--shadow-1);
+  border-bottom-color: transparent;
+}
+
+/* ==========================================================================
+   Radix pop-in. Self-contained so no animation library is needed for it.
+   ========================================================================== */
+@keyframes sf-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.sf-pop[data-state="open"],
+.sf-pop[data-state="delayed-open"] {
+  animation: sf-pop-in var(--motion-duration-instant) var(--motion-ease-entrance);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sf-pop[data-state="open"],
+  .sf-pop[data-state="delayed-open"] {
+    animation: none;
+  }
+}
+
+/* ==========================================================================
+   Dialog / sheet motion
+   ========================================================================== */
+@keyframes sf-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.sf-dialog[data-state="open"] {
+  animation: sf-dialog-in var(--motion-duration-instant) var(--motion-ease-entrance);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sf-dialog[data-state="open"] {
+    animation: none;
+  }
+}
+
+/* ==========================================================================
+   Wordmark — the serif needs no synthetic bold at display size
+   ========================================================================== */
+.sf-wordmark {
+  font-family: var(--font-display);
+  letter-spacing: -0.03em;
+  font-weight: 400;
+}
