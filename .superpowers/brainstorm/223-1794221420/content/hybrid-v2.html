@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A sidebar + B feed</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..600&family=Inter:wght@300..700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0b1017;color:#e7e9ea;font-family:Inter,system-ui,sans-serif;padding:26px 18px 50px}
+.wrap{max-width:920px;margin:0 auto}
+h1{font-family:Newsreader,Georgia,serif;font-size:28px;font-weight:500;letter-spacing:-.01em}
+.sub{color:#8b98a5;font-size:13.5px;margin:6px 0 20px;line-height:1.55}
+.lbl{font:500 10px/1 JetBrains Mono,monospace;letter-spacing:.18em;color:#6f8598;margin:0 0 10px}
+.cards{display:flex;flex-direction:column;gap:24px}
+.card{border:1px solid #22303f;border-radius:18px;overflow:hidden;cursor:pointer;background:#0a0e14}
+.card.selected{border-color:#7c5cff;box-shadow:0 0 0 3px rgba(124,92,255,.28)}
+.head{padding:13px 17px;border-bottom:1px solid #1b2530;display:flex;align-items:center;gap:12px}
+.letter{width:25px;height:25px;border-radius:8px;background:#16202b;color:#9fb2c4;display:grid;place-items:center;font:500 12px/1 JetBrains Mono,monospace}
+.head h3{font-size:14.5px;font-weight:600}
+.head p{color:#8b98a5;font-size:12px;margin-top:2px}
+.pick{margin-left:auto;font:500 10px/1 JetBrains Mono,monospace;letter-spacing:.12em;color:#7c5cff}
+
+/* ---- the hybrid ---- */
+.app{background:#08080d;display:flex;min-height:330px;font-family:Inter,sans-serif}
+.rail{width:218px;flex:none;border-right:1px solid #1a1a26;padding:20px 14px}
+.logo{font-family:Newsreader,Georgia,serif;font-size:20px;font-weight:600;letter-spacing:-.01em;margin-bottom:20px;display:flex;align-items:center;gap:9px}
+.dot{width:9px;height:9px;border-radius:999px;background:linear-gradient(135deg,#7c5cff,#3fd0e0);flex:none}
+.nav{display:flex;align-items:center;gap:13px;padding:10px 12px;border-radius:999px;color:#a9a9bd;font-size:14.5px;margin-bottom:2px}
+.nav.on{color:#fff;background:rgba(124,92,255,.14);font-weight:500}
+.nav .ic{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.7;flex:none}
+.nav .b{margin-left:auto;font:500 10px/1 JetBrains Mono,monospace;background:linear-gradient(135deg,#7c5cff,#3fd0e0);color:#fff;padding:4px 7px;border-radius:999px}
+.feed{flex:1;min-width:0;border-right:1px solid #1a1a26;padding:18px 16px}
+.side{width:224px;flex:none;padding:18px 14px}
+.composer{border:1px solid #26263a;border-radius:16px;padding:13px 14px;display:flex;gap:11px;align-items:center;margin-bottom:16px;background:#0e0e16}
+.composer span{color:#7b7b93;font-size:13.5px;flex:1}
+.btn{font:600 12px/1 Inter;padding:9px 16px;border-radius:999px;background:linear-gradient(135deg,#7c5cff,#3fd0e0);color:#fff;flex:none}
+.card2{background:#0e0e16;border:1px solid #26263a;border-radius:18px;overflow:hidden;margin-bottom:14px}
+.media{height:104px;background:linear-gradient(135deg,#7c5cff 0%,#3fd0e0 100%);position:relative}
+.media::after{content:"";position:absolute;inset:0;background:radial-gradient(120px 70px at 28% 38%,rgba(255,255,255,.3),transparent)}
+.media2{height:104px;background:linear-gradient(160deg,#1c3d5a 0%,#0d2033 100%);position:relative}
+.media2::after{content:"";position:absolute;inset:0;background:radial-gradient(120px 70px at 70% 60%,rgba(63,208,224,.28),transparent)}
+.in{padding:14px 16px}
+.who{display:flex;align-items:center;gap:9px;font-size:13px;color:#8b8ba3;margin-bottom:8px}
+.ava{width:32px;height:32px;border-radius:999px;background:linear-gradient(135deg,#241a4d,#0d2033);display:grid;place-items:center;font:600 11.5px/1 Inter;color:#c9b8ff;flex:none}
+.who b{color:#e7e9ea;font-weight:600;font-size:13.5px}
+.title{font-family:Newsreader,Georgia,serif;font-size:19px;line-height:1.36;letter-spacing:-.008em;color:#f2f2f7}
+.body{font-size:13.5px;line-height:1.55;color:#9b9bb0;margin-top:7px}
+.tags{display:flex;gap:5px;margin-top:9px}
+.tag{font:500 10px/1 JetBrains Mono,monospace;color:#b9a6ff;background:rgba(124,92,255,.13);border:1px solid rgba(124,92,255,.28);padding:4px 8px;border-radius:6px}
+.acts{display:flex;gap:22px;color:#8b8ba3;font-size:12.5px;margin-top:12px;align-items:center}
+.acts .l{color:#f4576b;display:flex;align-items:center;gap:5px}
+.hg{width:12px;height:12px;stroke:#e05a72;fill:#e05a72;stroke-width:2.2}
+.tr h4{font:500 9.5px/1 JetBrains Mono,monospace;letter-spacing:.18em;color:#6f6f88;margin:0 0 9px}
+.tr li{list-style:none;font-size:13px;color:#a9a9bd;padding:4px 0}
+.tr li b{color:#d5d5e2;font-weight:500}
+.tr{margin-bottom:16px}
+
+/* small variants */
+.two{display:flex;gap:14px}
+.two>.card{flex:1;min-width:0}
+.mini{background:#08080d;padding:14px;display:flex;flex-direction:column;gap:10px;min-height:180px}
+.m-card{background:#0e0e16;border:1px solid #26263a;border-radius:14px;overflow:hidden}
+.m-in{padding:11px 13px}
+.m-t{font-family:Newsreader,Georgia,serif;font-size:15px;line-height:1.3;letter-spacing:-.008em}
+.m-a{display:flex;gap:18px;color:#8b8ba3;font-size:11.5px;margin-top:8px}
+.m-tag{font:500 9px/1 JetBrains Mono,monospace;color:#b9a6ff;background:rgba(124,92,255,.13);border:1px solid rgba(124,92,255,.28);padding:3px 6px;border-radius:5px;display:inline-block;margin-top:7px}
+.foot{padding:14px 0 0;color:#5a6a78;font-size:11.5px;text-align:center;line-height:1.65}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>A's sidebar, B's newsfeed — combined</h1>
+<p class="sub">Three columns from A: labelled nav rail, centre feed, trending rail. Card design from B: Newsreader display titles, gradient media band, tags, gradient accent on the like state. Click a panel to select, then tell me in the terminal.</p>
+<p class="lbl">THE COMBINED DIRECTION</p>
+<div class="cards">
+<div class="card" data-choice="hybrid" onclick="toggleSelect(this)">
+<div class="head"><div class="letter">H</div><div><h3>A + B — the hybrid</h3><p>This is the one I'd build. Say so, or tell me what to change.</p></div><span class="pick">SELECT?</span></div>
+<div class="app">
+  <div class="rail">
+    <div class="logo"><span class="dot"></span>SocialFlow</div>
+    <div class="nav on"><svg class="ic" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Home</div>
+    <div class="nav"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>Explore</div>
+    <div class="nav"><svg class="ic" viewBox="0 0 24 24"><path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/></svg>Notifications<span class="b">3</span></div>
+    <div class="nav"><svg class="ic" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 8l10 6 10-6"/></svg>Messages<span class="b">2</span></div>
+    <div class="nav"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Profile</div>
+    <div style="margin:18px 0 8px;font:500 9.5px/1 JetBrains Mono,monospace;letter-spacing:.18em;color:#6f6f88">YOUR INTERESTS</div>
+    <div class="nav" style="font-size:13px;padding:8px 12px">#systemdesign</div>
+    <div class="nav" style="font-size:13px;padding:8px 12px">#golang</div>
+    <div class="nav" style="font-size:13px;padding:8px 12px">#accessibility</div>
+  </div>
+  <div class="feed">
+    <div class="composer"><span>What are you building?</span><span class="btn">Post</span></div>
+    <div class="card2">
+      <div class="media"></div>
+      <div class="in">
+        <div class="who"><span class="ava">SD</span><b>System Design Weekly</b><span>@systemdesign · 1h</span></div>
+        <div class="title">Backpressure is a feature, not a failure.</div>
+        <div class="body">If your queue is always empty, you have a spare machine. The second it fills, you have a system under load and no evidence of it.</div>
+        <div class="tags"><span class="tag">#systemdesign</span><span class="tag">#queues</span></div>
+        <div class="acts"><span class="l"><svg class="hg" viewBox="0 0 24 24"><path d="M12 21C7 17 3 13.5 3 9.5A4.5 4.5 0 0112 7a4.5 4.5 0 019 2.5C21 13.5 17 17 12 21z"/></svg>1.3K</span><span>♺ 214</span><span>↗ Share</span></div>
+      </div>
+    </div>
+    <div class="card2">
+      <div class="media2"></div>
+      <div class="in">
+        <div class="who"><span class="ava">A11Y</span><b>Accessibility Notes</b><span>@a11y · 26h</span></div>
+        <div class="title">Focus order should match reading order.</div>
+        <div class="body">If your skip link lands third in the tab order, the problem is the DOM, not the CSS.</div>
+        <div class="tags"><span class="tag">#accessibility</span></div>
+        <div class="acts"><span>♡ 89</span><span>♺ 12</span><span>↗ Share</span></div>
+      </div>
+    </div>
+    <div class="card2">
+      <div class="in">
+        <div class="who"><span class="ava">GO</span><b>The Gopher Post</b><span>@gophers · 5h</span></div>
+        <div class="title">Go tip: name your error variables err.</div>
+        <div class="body">And stop shadowing them in closures. Three names, three meanings, one bug hunt.</div>
+        <div class="tags"><span class="tag">#golang</span></div>
+        <div class="acts"><span>♡ 342</span><span>♺ 41</span><span>↗ Share</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="side">
+    <div class="tr"><h4>TRENDING IN SYSTEM DESIGN</h4><li><b>#outbox</b> · commit the event with the row</li><li><b>#fanout</b> · read vs write</li><li><b>#backpressure</b> · a feature</li></div>
+    <div class="tr"><h4>WHO TO FOLLOW</h4><li><b>Postgres Weekly</b> · tsvector</li><li><b>Observable Notes</b> · tracing</li></div>
+    <div class="tr"><h4>TRENDING IN GOLANG</h4><li><b>#errors</b></li><li><b>#slog</b></li></div>
+  </div>
+</div>
+</div>
+
+<p class="lbl" style="margin-top:26px">THE ONE DECISION THE HYBRID FORCES</p>
+<p class="sub" style="margin:0 0 14px">Most real posts in the gateway fixture have <code>mediaUrl: ""</code>. So: does a card keep its media band when there is no image?</p>
+<div class="two">
+<div class="card" data-choice="always" onclick="toggleSelect(this)">
+<div class="head"><div class="letter">1</div><div><h3>Media band always</h3><p>Generated gradient placeholder every time</p></div><span class="pick">SELECT?</span></div>
+<div class="mini">
+<div class="m-card"><div class="media" style="height:56px"></div><div class="m-in"><div class="m-t">Backpressure is a feature, not a failure.</div><div class="m-a"><span>♥ 1.3K</span><span>♺ 214</span></div></div></div>
+<div class="m-card"><div class="media" style="height:56px"></div><div class="m-in"><div class="m-t">Go tip: name your error variables err.</div><div class="m-a"><span>♡ 342</span><span>♺ 41</span></div></div></div>
+</div>
+</div>
+<div class="card" data-choice="only-when" onclick="toggleSelect(this)">
+<div class="head"><div class="letter">2</div><div><h3>Media band only when real</h3><p>Text stands alone, honest about media</p></div><span class="pick">SELECT?</span></div>
+<div class="mini">
+<div class="m-card"><div class="media2" style="height:56px"></div><div class="m-in"><div class="m-t">Backpressure is a feature, not a failure.</div><div class="m-a"><span>♥ 1.3K</span><span>♺ 214</span></div></div></div>
+<div class="m-card"><div class="m-in"><div class="m-t">Go tip: name your error variables err.</div><span class="m-tag">#golang</span><div class="m-a"><span>♡ 342</span><span>♺ 41</span></div></div></div>
+</div>
+</div>
+</div>
+<p class="foot">Mockups only — no production code written yet. Fonts, spacing, and colour here are approximations.<br>Tell me in the terminal: "hybrid + only when real", or whatever combination you want.</p>
+</div>
+</body>
+</html>
