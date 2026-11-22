@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Feed direction</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..600&family=Inter:wght@300..700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0b1017;color:#e7e9ea;font-family:Inter,system-ui,sans-serif;padding:28px 20px 60px}
+.wrap{max-width:900px;margin:0 auto}
+h1{font-family:Newsreader,Georgia,serif;font-size:30px;font-weight:400;letter-spacing:-.01em}
+.sub{color:#8b98a5;font-size:14px;margin:6px 0 22px;line-height:1.5}
+.cards{display:flex;flex-direction:column;gap:26px}
+.card{border:1px solid #22303f;border-radius:18px;overflow:hidden;cursor:pointer;background:#0f1419}
+.card.selected{border-color:#4a9eff;box-shadow:0 0 0 3px rgba(74,158,255,.25)}
+.head{padding:14px 18px;border-bottom:1px solid #1b2530;display:flex;align-items:center;gap:12px}
+.letter{width:26px;height:26px;border-radius:8px;background:#16202b;color:#9fb2c4;display:grid;place-items:center;font:500 13px/1 JetBrains Mono,monospace}
+.head h3{font-size:15px;font-weight:600}
+.head p{color:#8b98a5;font-size:12.5px;margin-top:2px}
+.frame{display:flex;min-height:300px}
+.status{font:400 11px/1 JetBrains Mono,monospace;color:#4a9eff;margin-left:auto}
+
+/* A — editorial */
+.dir-a{background:#0f1419;font-family:Inter,sans-serif}
+.a-rail{width:64px;flex:none;border-right:1px solid #1f2a36;padding:18px 0;display:flex;flex-direction:column;align-items:center;gap:22px}
+.a-nav{width:236px;flex:none;border-right:1px solid #1f2a36;padding:16px 14px}
+.a-main{flex:1;min-width:0;border-right:1px solid #1f2a36}
+.a-side{width:250px;flex:none;padding:16px 14px}
+.a-brand{font:500 13px/1 JetBrains Mono,monospace;color:#4a9eff;letter-spacing:.14em;padding:12px 10px 18px}
+.a-item{display:flex;align-items:center;gap:14px;padding:9px 10px;border-radius:999px;color:#c7d3de;font-size:14.5px}
+.a-item.on{font-weight:600;color:#fff}
+.a-post{padding:16px 18px;border-bottom:1px solid #1f2a36}
+.a-meta{display:flex;align-items:center;gap:8px;font-size:13px;color:#8b98a5;margin-bottom:6px}
+.a-name{font-weight:600;color:#e7e9ea;font-size:14px}
+.a-body{font-size:14.5px;line-height:1.5;color:#e0e6ec}
+.a-txt{font-family:Newsreader,Georgia,serif;font-size:19px;line-height:1.35;letter-spacing:-.005em}
+.a-actions{display:flex;gap:26px;margin-top:12px;color:#8b98a5;font-size:12.5px}
+.a-comp{padding:14px 18px;border-bottom:1px solid #1f2a36;color:#8b98a5;font-size:14px}
+.a-tr{padding:14px 16px;border-bottom:1px solid #1f2a36}
+.a-tr h4{font:500 10.5px/1 JetBrains Mono,monospace;letter-spacing:.16em;color:#8b98a5;margin-bottom:10px}
+.a-tr li{list-style:none;font-size:13.5px;color:#c7d3de;padding:4px 0}
+.a-ava{width:36px;height:36px;border-radius:999px;background:linear-gradient(135deg,#1f3a5f,#0f2033);display:grid;place-items:center;font:600 13px/1 Inter;color:#9fc4f0;flex:none}
+
+/* B — cinematic */
+.dir-b{background:#08080d;font-family:Inter,sans-serif;position:relative}
+.b-bar{height:52px;border-bottom:1px solid #1d1d2b;display:flex;align-items:center;padding:0 18px;gap:18px;flex:none}
+.b-logo{font-family:Newsreader,serif;font-size:19px;font-weight:600;letter-spacing:-.01em}
+.b-pill{font-size:12.5px;color:#a5a5bd;padding:6px 14px;border-radius:999px}
+.b-pill.on{color:#fff;background:linear-gradient(90deg,#7c5cff,#3fd0e0)}
+.b-main{flex:1;min-width:0;padding:20px 18px;display:flex;flex-direction:column;gap:18px}
+.b-side{width:206px;flex:none;border-left:1px solid #1d1d2b;padding:16px 14px}
+.b-card{background:#101018;border:1px solid #232331;border-radius:18px;overflow:hidden}
+.b-media{height:112px;background:linear-gradient(135deg,#7c5cff 0%,#3fd0e0 100%);position:relative}
+.b-media::after{content:"";position:absolute;inset:0;background:radial-gradient(120px 60px at 30% 40%,rgba(255,255,255,.28),transparent)}
+.b-in{padding:14px 16px}
+.b-title{font-family:Newsreader,Georgia,serif;font-size:20px;line-height:1.35;letter-spacing:-.01em}
+.b-sub{font-size:13.5px;color:#9b9bb0;margin-top:6px;line-height:1.5}
+.b-row{display:flex;gap:20px;color:#9b9bb0;font-size:12.5px;margin-top:12px}
+.b-tags{display:flex;gap:6px;margin-top:10px}
+.b-tag{font:500 10.5px/1 JetBrains Mono,monospace;color:#b9a6ff;background:rgba(124,92,255,.14);border:1px solid rgba(124,92,255,.3);padding:4px 8px;border-radius:6px}
+
+/* C — monochrome */
+.dir-c{background:#faf9f7;color:#101010;font-family:Inter,sans-serif}
+.c-bar{height:44px;border-bottom:2px solid #101010;display:flex;align-items:center;padding:0 16px;gap:16px;flex:none}
+.c-word{font:700 13px/1 Inter;letter-spacing:.02em;text-transform:uppercase}
+.c-item{font:500 10.5px/1 JetBrains Mono,monospace;letter-spacing:.14em;text-transform:uppercase;color:#5a5a5a;padding:8px 2px}
+.c-item.on{color:#101010;border-bottom:2px solid #101010}
+.c-main{flex:1;min-width:0;padding:0}
+.c-post{padding:16px 18px;border-bottom:1px solid #d8d5d0}
+.c-label{font:500 9.5px/1 JetBrains Mono,monospace;letter-spacing:.16em;color:#6b6b6b;margin-bottom:8px}
+.c-body{font-size:15px;line-height:1.55;color:#101010;font-weight:400}
+.c-big{font-size:19px;font-weight:600;letter-spacing:-.01em;line-height:1.35}
+.c-foot{display:flex;gap:22px;margin-top:12px;font:500 10.5px/1 JetBrains Mono,monospace;letter-spacing:.1em;color:#5a5a5a}
+.c-heart{width:13px;height:13px;stroke:#101010;stroke-width:2.4;fill:none;vertical-align:-2px}
+.foot{padding:14px 0 0;color:#5a6a78;font-size:12px;text-align:center;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Which feed direction feels right?</h1>
+<p class="sub">All three render the same three real posts in the same type pairing (Newsreader + Inter + JetBrains Mono). Click a panel to select it, then tell me in the terminal. The one you pick becomes the look of the production app.</p>
+
+<div class="cards">
+
+<div class="card" data-choice="a" onclick="toggleSelect(this)">
+<div class="head"><div class="letter">A</div><div><h3>Editorial</h3><p>Three columns, hairline rules, serif headlines, generous reading space</p></div><div class="status">SELECTED?</div></div>
+<div class="frame dir-a">
+  <div class="a-nav">
+    <div class="a-brand">SOCIALFLOW</div>
+    <div class="a-item on">◇ Home</div>
+    <div class="a-item">⌕ Explore</div>
+    <div class="a-item">◈ Notifications</div>
+    <div class="a-item">✉ Messages</div>
+    <div class="a-item">○ Profile</div>
+  </div>
+  <div class="a-main">
+    <div class="a-comp">What are you building?</div>
+    <div class="a-post">
+      <div class="a-meta"><span class="ava a-ava">SD</span><span class="a-name">System Design Weekly</span><span>@systemdesign · 1h</span></div>
+      <div class="a-body a-txt">Backpressure is a feature, not a failure. If your queue is always empty, you have a spare machine.</div>
+      <div class="a-actions"><span>♺ 214</span><span style="color:#f4576b">♥ 1.3K</span><span>↗ Share</span></div>
+    </div>
+    <div class="a-post">
+      <div class="a-meta"><span class="ava a-ava">GO</span><span class="a-name">The Gopher Post</span><span>@gophers · 5h</span></div>
+      <div class="a-body a-txt">Go tip: name your error variables <code>err</code> and stop shadowing them in closures.</div>
+      <div class="a-actions"><span>♺ 41</span><span>♡ 342</span><span>↗ Share</span></div>
+    </div>
+    <div class="a-post">
+      <div class="a-meta"><span class="ava a-ava">A11Y</span><span class="a-name">Accessibility Notes</span><span>@a11y · 26h</span></div>
+      <div class="a-body a-txt">Focus order should match reading order. If your skip link lands third, the problem is the DOM, not the CSS.</div>
+      <div class="a-actions"><span>♺ 12</span><span>♡ 89</span><span>↗ Share</span></div>
+    </div>
+  </div>
+  <div class="a-side">
+    <div class="a-tr"><h4>TRENDING IN SYSTEM DESIGN</h4><li>#outbox</li><li>#backpressure</li><li>#fanout</li></div>
+    <div class="a-tr" style="border:0"><h4>WHO TO FOLLOW</h4><li>Postgres Weekly</li><li>Observable Notes</li></div>
+  </div>
+</div>
+</div>
+
+<div class="card" data-choice="b" onclick="toggleSelect(this)">
+<div class="head"><div class="letter">B</div><div><h3>Cinematic</h3><p>Media-forward cards, gradient accent, elevated surfaces, dark and electric</p></div><div class="status">SELECTED?</div></div>
+<div class="frame dir-b">
+  <div class="b-bar">
+    <span class="b-logo">SocialFlow</span>
+    <span class="b-pill on">Home</span><span class="b-pill">Explore</span><span class="b-pill">Notifications</span><span class="b-pill">Messages</span>
+  </div>
+  <div class="b-main">
+    <div class="b-card">
+      <div class="b-media"></div>
+      <div class="b-in">
+        <div class="b-title">Backpressure is a feature, not a failure.</div>
+        <div class="b-sub">System Design Weekly · @systemdesign · 1h</div>
+        <div class="b-tags"><span class="b-tag">#systemdesign</span><span class="b-tag">#queues</span></div>
+        <div class="b-row"><span style="color:#ff6b8a">♥ 1.3K</span><span>♺ 214</span><span>↗ Share</span></div>
+      </div>
+    </div>
+    <div class="b-card">
+      <div class="b-in">
+        <div class="b-title">Go tip: name your error variables err.</div>
+        <div class="b-sub">The Gopher Post · @gophers · 5h</div>
+        <div class="b-row"><span>♡ 342</span><span>♺ 41</span><span>↗ Share</span></div>
+      </div>
+    </div>
+    <div class="b-card">
+      <div class="b-in">
+        <div class="b-title">Focus order should match reading order.</div>
+        <div class="b-sub">Accessibility Notes · @a11y · 26h</div>
+        <div class="b-row"><span>♡ 89</span><span>♺ 12</span><span>↗ Share</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="b-side">
+    <div class="a-tr"><h4>TRENDING</h4><li>#outbox</li><li>#fanout</li></div>
+  </div>
+</div>
+</div>
+
+<div class="card" data-choice="c" onclick="toggleSelect(this)">
+<div class="head"><div class="letter">C</div><div><h3>Monochrome</h3><p>Single column, strict hairline grid, no accent colour, broadsheet calm</p></div><div class="status">SELECTED?</div></div>
+<div class="frame dir-c">
+  <div class="c-bar">
+    <span class="c-word">SocialFlow</span>
+    <span class="c-item on">Home</span><span class="c-item">Explore</span><span class="c-item">Notes</span><span class="c-item">Messages</span>
+  </div>
+  <div class="c-main">
+    <div class="c-post" style="border-top:1px solid #d8d5d0">
+      <div class="c-label">SYSTEM DESIGN WEEKLY · @systemdesign · 1H AGO</div>
+      <div class="c-body c-big">Backpressure is a feature, not a failure. If your queue is always empty, you have a spare machine.</div>
+      <div class="c-foot"><span>1.3K LIKES</span><span>214 REPLIES</span><span>SHARE</span></div>
+    </div>
+    <div class="c-post">
+      <div class="c-label">THE GOPHER POST · @gophers · 5H AGO</div>
+      <div class="c-body c-big">Go tip: name your error variables err and stop shadowing them in closures.</div>
+      <div class="c-foot"><span>342 LIKES</span><span>41 REPLIES</span><span>SHARE</span></div>
+    </div>
+    <div class="c-post">
+      <div class="c-label">ACCESSIBILITY NOTES · @a11y · 26H AGO</div>
+      <div class="c-body c-big">Focus order should match reading order. If your skip link lands third, the problem is the DOM, not the CSS.</div>
+      <div class="c-foot"><span>89 LIKES</span><span>12 REPLIES</span><span>SHARE</span></div>
+    </div>
+  </div>
+</div>
+</div>
+
+</div>
+<p class="foot">Mockups only — no production code written yet. Fonts, spacing, and colour here are approximations.<br>You are viewing the visual companion. Tell me in the terminal: "A", "B", "C", or "A but with…".</p>
+</div>
+</body>
+</html>
