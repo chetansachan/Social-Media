@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Responsive ladder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,300..700&family=Inter:wght@300..700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0b1017;color:#e7e9ea;font-family:Inter,system-ui,sans-serif;padding:26px 18px 60px}
+.wrap{max-width:1180px;margin:0 auto}
+h1{font-family:Newsreader,Georgia,serif;font-size:28px;font-weight:500;letter-spacing:-.01em}
+.sub{color:#8b98a5;font-size:13.5px;margin:6px 0 22px;line-height:1.55}
+.lbl{font:500 10px/1 JetBrains Mono,monospace;letter-spacing:.18em;color:#6f8598;margin:0 0 12px}
+.row{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
+.frame{background:#08080d;border:1px solid #22303f;border-radius:12px;overflow:hidden;flex:none}
+.top{font:500 9.5px/1 JetBrains Mono,monospace;letter-spacing:.14em;color:#7f95ab;padding:9px 12px;border-bottom:1px solid #1b2530;background:#0a0e14}
+.app{display:flex;font-family:Inter,sans-serif;background:#08080d}
+.rail{width:218px;flex:none;border-right:1px solid #1a1a26;padding:16px 12px;font-size:13.5px}
+.rail .nav{display:flex;align-items:center;gap:12px;padding:9px 11px;border-radius:999px;color:#a9a9bd;margin-bottom:2px}
+.rail .nav.on{color:#fff;background:rgba(124,92,255,.14);font-weight:500}
+.badge{margin-left:auto;font:500 9px/1 JetBrains Mono,monospace;background:linear-gradient(135deg,#7c5cff,#3fd0e0);color:#fff;padding:3px 6px;border-radius:999px}
+.ic{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.7;flex:none}
+.icons{width:64px;flex:none;border-right:1px solid #1a1a26;padding:16px 0;display:flex;flex-direction:column;align-items:center;gap:16px}
+.icons .nav{padding:8px;border-radius:12px;color:#a9a9bd;position:relative}
+.icons .nav.on{background:rgba(124,92,255,.14);color:#fff}
+.feed{flex:1;min-width:0;border-right:1px solid #1a1a26;padding:16px 14px}
+.side{width:224px;flex:none;padding:16px 12px;font-size:12.5px}
+.logo{font-family:Newsreader,serif;font-size:18px;font-weight:600;letter-spacing:-.01em;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.dot{width:8px;height:8px;border-radius:999px;background:linear-gradient(135deg,#7c5cff,#3fd0e0)}
+.card2{background:#0e0e16;border:1px solid #26263a;border-radius:16px;overflow:hidden;margin-bottom:12px}
+.media{height:78px;background:linear-gradient(135deg,#7c5cff 0%,#3fd0e0 100%);position:relative}
+.media::after{content:"";position:absolute;inset:0;background:radial-gradient(90px 50px at 28% 38%,rgba(255,255,255,.3),transparent)}
+.in{padding:12px 13px}
+.who{display:flex;align-items:center;gap:8px;font-size:12px;color:#8b8ba3;margin-bottom:6px}
+.ava{width:26px;height:26px;border-radius:999px;background:linear-gradient(135deg,#241a4d,#0d2033);display:grid;place-items:center;font:600 10px/1 Inter;color:#c9b8ff;flex:none}
+.who b{color:#e7e9ea;font-weight:600;font-size:12.5px}
+.title{font-family:Newsreader,serif;font-size:16.5px;line-height:1.34;letter-spacing:-.008em;color:#f2f2f7}
+.body{font-size:12.5px;line-height:1.5;color:#9b9bb0;margin-top:5px}
+.clamp{overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.tag{font:500 9px/1 JetBrains Mono,monospace;color:#b9a6ff;background:rgba(124,92,255,.13);border:1px solid rgba(124,92,255,.28);padding:3px 6px;border-radius:5px;display:inline-block;margin:7px 4px 0 0}
+.acts{display:flex;gap:18px;color:#8b8ba3;font-size:11.5px;margin-top:9px}
+.comp{border:1px solid #26263a;border-radius:14px;padding:10px 11px;display:flex;gap:9px;align-items:center;margin-bottom:12px;background:#0e0e16}
+.comp span{color:#7b7b93;font-size:12.5px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btn{font:600 11px/1 Inter;padding:8px 13px;border-radius:999px;background:linear-gradient(135deg,#7c5cff,#3fd0e0);color:#fff;flex:none}
+.tr h4{font:500 9px/1 JetBrains Mono,monospace;letter-spacing:.16em;color:#6f6f88;margin:0 0 8px}
+.tr li{list-style:none;font-size:12px;color:#a9a9bd;padding:4px 0}
+.tr{margin-bottom:14px}
+.topbar{height:50px;border-bottom:1px solid #1a1a26;display:flex;align-items:center;gap:10px;padding:0 14px}
+.tabs{display:flex;gap:16px;border-bottom:1px solid #1a1a26;padding:0 14px}
+.tab{font-size:12.5px;color:#7b7b93;padding:10px 2px}
+.tab.on{color:#fff;font-weight:600;border-bottom:2px solid;border-image:linear-gradient(90deg,#7c5cff,#3fd0e0) 1}
+.bnav{height:56px;border-top:1px solid #1a1a26;display:flex;align-items:center;justify-content:space-around;padding:0 4px}
+.bnav .b{display:flex;flex-direction:column;align-items:center;gap:3px;color:#7b7b93;font-size:9.5px}
+.bnav .b.on{color:#fff}
+.note{color:#5a6a78;font-size:11.5px;margin-top:10px;line-height:1.6}
+.q{margin-top:30px;padding:18px;border:1px solid #22303f;border-radius:16px;background:#0a0e14}
+.q h2{font-family:Newsreader,serif;font-size:20px;font-weight:500;margin-bottom:8px}
+.q p{color:#8b98a5;font-size:13px;line-height:1.6;margin-bottom:14px}
+.opts{display:flex;gap:12px;flex-wrap:wrap}
+.opt{flex:1;min-width:200px;border:1px solid #22303f;border-radius:12px;padding:13px 15px;cursor:pointer;background:#0b1017}
+.opt{border-color:#22303f}
+.opt.selected{border-color:#7c5cff;box-shadow:0 0 0 3px rgba(124,92,255,.25)}
+.opt h3{font-size:14px;font-weight:600;margin-bottom:4px}
+.opt p{color:#8b98a5;font-size:12px;margin:0;line-height:1.55}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>How the hybrid collapses</h1>
+<p class="sub">Same design, four widths. The right rail is the first thing to go (it is decorative), then the nav rail shrinks to icons, and on phones it becomes a bottom bar. Large frames are shown scaled down.</p>
+
+<div class="row" style="zoom:1">
+<div style="flex:none">
+<p class="lbl">1600 · DESKTOP</p>
+<div class="frame" style="width:840px;zoom:.525"><div class="top">1600 × 900</div><div class="app" style="min-height:300px">
+<div class="rail" style="width:170px"><div class="logo"><span class="dot"></span>SocialFlow</div>
+<div class="nav on"><svg class="ic" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Home</div>
+<div class="nav"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>Explore</div>
+<div class="nav"><svg class="ic" viewBox="0 0 24 24"><path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/></svg>Notes<span class="badge">3</span></div>
+<div class="nav"><svg class="ic" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 8l10 6 10-6"/></svg>Messages</div>
+<div style="margin:16px 0 8px;font:500 9px/1 JetBrains Mono,monospace;letter-spacing:.16em;color:#6f6f88">INTERESTS</div>
+<div class="nav" style="font-size:12px;padding:7px 11px">#systemdesign</div><div class="nav" style="font-size:12px;padding:7px 11px">#golang</div></div>
+<div class="feed"><div class="comp"><span>What are you building?</span><span class="btn">Post</span></div>
+<div class="card2"><div class="media"></div><div class="in"><div class="who"><span class="ava">SD</span><b>System Design Weekly</b>@systemdesign · 1h</div><div class="title">Backpressure is a feature, not a failure.</div><div class="body">If your queue is always empty, you have a spare machine.</div><span class="tag">#systemdesign</span><div class="acts"><span>♥ 1.3K</span><span>♺ 214</span><span>↗</span></div></div></div>
+<div class="card2"><div class="in"><div class="who"><span class="ava">GO</span><b>The Gopher Post</b>@gophers · 5h</div><div class="title">Go tip: name your error variables err.</div><div class="body">And stop shadowing them in closures. <span style="color:#7c5cff">Show more</span></div><span class="tag">#golang</span><div class="acts"><span>♡ 342</span><span>♺ 41</span><span>↗</span></div></div></div></div>
+<div class="side" style="width:186px"><div class="tr"><h4>TRENDING</h4><li><b style="color:#d5d5e2">#outbox</b><li><b style="color:#d5d5e2">#fanout</b></div><div class="tr"><h4>WHO TO FOLLOW</h4><li>Postgres Weekly</li></div></div>
+</div></div></div>
+
+<div style="flex:none">
+<p class="lbl">1024 · LAPTOP</p>
+<div class="frame" style="width:640px;zoom:.82"><div class="top">1024 × 768</div><div class="app" style="min-height:300px">
+<div class="icons"><span class="nav on"><svg class="ic" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg></span><span class="nav"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></span><span class="nav"><svg class="ic" viewBox="0 0 24 24"><path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/></svg></span><span class="nav"><svg class="ic" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 8l10 6 10-6"/></svg></span></div>
+<div class="feed"><div class="comp"><span>What are you building?</span><span class="btn">Post</span></div>
+<div class="card2"><div class="media"></div><div class="in"><div class="who"><span class="ava">SD</span><b>System Design Weekly</b>@systemdesign · 1h</div><div class="title">Backpressure is a feature, not a failure.</div><span class="tag">#systemdesign</span><div class="acts"><span>♥ 1.3K</span><span>♺ 214</span></div></div></div>
+<div class="card2"><div class="in"><div class="who"><span class="ava">GO</span><b>The Gopher Post</b>@gophers · 5h</div><div class="title clamp">Go tip: name your error variables err and stop shadowing them in closures.</div><div class="acts"><span>♡ 342</span><span>♺ 41</span></div></div></div></div>
+<div class="side" style="width:170px"><div class="tr"><h4>TRENDING</h4><li><b style="color:#d5d5e2">#outbox</b></div></div>
+</div></div></div>
+
+<div style="flex:none">
+<p class="lbl">768 · TABLET</p>
+<div class="frame" style="width:420px;zoom:1"><div class="top">768 × 1024</div><div class="app" style="min-height:280px">
+<div class="icons"><span class="nav on"><svg class="ic" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg></span><span class="nav"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></span><span class="nav"><svg class="ic" viewBox="0 0 24 24"><path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/></svg></span></div>
+<div class="feed"><div class="comp"><span>What are you building?</span><span class="btn">Post</span></div>
+<div class="card2"><div class="media"></div><div class="in"><div class="who"><span class="ava">SD</span><b>System Design Weekly</b>@systemdesign · 1h</div><div class="title">Backpressure is a feature, not a failure.</div><div class="acts"><span>♥ 1.3K</span><span>♺ 214</span></div></div></div>
+<div class="card2"><div class="in"><div class="who"><span class="ava">GO</span><b>The Gopher Post</b>@gophers · 5h</div><div class="title clamp">Go tip: name your error variables err and stop shadowing them in closures.</div><div class="acts"><span>♡ 342</span></div></div></div></div>
+</div></div></div>
+
+<div style="flex:none">
+<p class="lbl">360 · PHONE</p>
+<div class="frame" style="width:300px;zoom:1.2"><div class="top">360 × 800</div>
+<div class="topbar"><span class="ava" style="width:24px;height:24px;font-size:9.5px">YO</span><span class="logo" style="margin:0;font-size:16px">SocialFlow</span></div>
+<div class="tabs"><span class="tab on">For you</span><span class="tab">Following</span></div>
+<div class="feed" style="border:0"><div class="comp"><span class="ava" style="width:24px;height:24px;font-size:9.5px">YO</span><span>What are you building?</span></div>
+<div class="card2"><div class="media"></div><div class="in"><div class="who"><span class="ava">SD</span><b>System Design Weekly</b>@systemdesign · 1h</div><div class="title">Backpressure is a feature, not a failure.</div><span class="tag">#systemdesign</span><div class="acts"><span>♥ 1.3K</span><span>♺ 214</span><span>↗</span></div></div></div>
+<div class="card2"><div class="in"><div class="who"><span class="ava">GO</span><b>The Gopher Post</b>@gophers · 5h</div><div class="title clamp">Go tip: name your error variables err and stop shadowing them in closures.</div><div class="acts"><span>♡ 342</span></div></div></div></div>
+<div class="bnav"><span class="b on">◇<span>Home</span></span><span class="b">⌕<span>Explore</span></span><span class="b">◈<span>Notes</span></span><span class="b">✉<span>Messages</span></span><span class="b">○<span>Me</span></span></div>
+</div></div>
+</div>
+
+<p class="note">Phone: For you / Following tabs replace the rail, avatar-composer replaces the inline text area, bottom nav is the persistent navigation, trending rail is dropped. Tablet: icon rail, right rail gone at 768 and returns at 1024.</p>
+
+<div class="q">
+<h2>One thing to decide about phones</h2>
+<p>The contract bans information that only exists on hover, and wants no clipped control. On a 360px phone, do I keep the For you / Following tabs, or drop them?</p>
+<div class="options">
+<div class="opt" data-choice="keep-tabs" onclick="toggleSelect(this)"><h3>Keep the tabs</h3><p>Two feeds, both reachable. Digests the app's main job. Costs ~48px of vertical space on a small screen.</p></div>
+<div class="opt" data-choice="drop-tabs" onclick="toggleSelect(this)"><h3>Drop them, infinite scroll only</h3><p>Maximum vertical room for cards. Loses the chronological vs algorithmic split the backend actually supports.</p></div>
+</div>
+</div>
+<p class="note" style="text-align:center;margin-top:18px">Tell me in the terminal: "keep the tabs" or "drop the tabs" — plus anything about the breakpoints you want changed.</p>
+</div>
+</body>
+</html>
