@@ -6,11 +6,9 @@ SocialFlow is a high-performance, event-driven social media backend built with *
 
 ## 📚 Core Architecture & Engineering Documentation
 
-* 🚀 [**System Optimization, High-Scale Architecture & Testing Roadmap**](SYSTEM_OPTIMIZATION_SCALING_AND_TESTING_ROADMAP.md) — Comprehensive master guide covering what is left to build, scaling to millions of users, performance optimizations, database tuning, and the full test suite blueprint.
-* 📰 [**Feed Service System Design**](backend/feed-service/SYSTEM_DESIGN.md) — Timeline architecture, fanout-on-write vs fanout-on-read, celebrity thresholds, and Redis sorted set indexing.
-* 🔔 [**Notification Service System Design**](backend/notification-service/SYSTEM_DESIGN.md) — Multi-channel dispatch (In-App WebSockets, FCM/APNs, Email), smart aggregation ("like storms"), and unread badge synchronization.
-* ✅ [**Test inventory and known gaps**](TESTS.md) — What is covered, what is deliberately not, and what the coverage audit found.
-* 🎨 [**Home / X frontend guidelines**](frontend/design/Home-X-Guidelines.md) — Token-driven component rules, states, and accessibility acceptance criteria for `frontend/`.
+* 🚀 [**System Optimization, High-Scale Architecture & Testing Roadmap**](file:///c:/Users/Chetan/Documents/Developer/Projects/Social-Media/SYSTEM_OPTIMIZATION_SCALING_AND_TESTING_ROADMAP.md) — Comprehensive master guide covering what is left to build, scaling to millions of users, performance optimizations, database tuning, and the full test suite blueprint.
+* 📰 [**Feed Service System Design**](file:///c:/Users/Chetan/Documents/Developer/Projects/Social-Media/feed-service/SYSTEM_DESIGN.md) — Timeline architecture, fanout-on-write vs fanout-on-read, celebrity thresholds, and Redis sorted set indexing.
+* 🔔 [**Notification Service System Design**](file:///c:/Users/Chetan/Documents/Developer/Projects/Social-Media/notification-service/SYSTEM_DESIGN.md) — Multi-channel dispatch (In-App WebSockets, FCM/APNs, Email), smart aggregation ("like storms"), and unread badge synchronization.
 
 ---
 
@@ -60,19 +58,44 @@ SocialFlow is a high-performance, event-driven social media backend built with *
 
 ---
 
-## 📦 Microservices Directory
+## 📦 Repository Structure
 
-| Service | Port | Description | Primary Datastore |
-| :--- | :--- | :--- | :--- |
-| **`api-gateway`** | `:8080` | Public GraphQL API gateway (gqlgen), auth middleware, dataloaders. | In-Memory Query Cache |
-| **`user-service`** | `:50051` | User registration, authentication, JWT tokens, profile management. | PostgreSQL |
-| **`post-service`** | `:50052` | Post creation, editing, deletion, archiving, media uploads, likes, threaded comments, full-text and hashtag search. | PostgreSQL + Cloudinary |
-| **`follow-service`** | `:50053` | Social graph, follow/unfollow relationships, follower counts. | PostgreSQL |
-| **`feed-service`** | `:50054` | Chronological activity streams, hybrid fanout, Redis timeline cache. | Redis (Sorted Sets) |
-| **`notification-service`** | `:50055`, `:8085` | In-app real-time alerts, mobile push (APNs/FCM), email, roll-ups. | PostgreSQL + Redis Pub/Sub |
-| **`moderation-service`** | `:50056` | Block/mute graph, content reporting, reviewer queue. | PostgreSQL |
-| **`chat-service`** | `:50057` | Direct and group messaging, read watermarks, presence and typing. | PostgreSQL + Redis |
-| **`proto`** | N/A | Shared Protocol Buffer definitions and compiled gRPC code stubs. | N/A |
+```
+Social-Media/
+├── backend/
+│   ├── api-gateway/            # Public GraphQL gateway (:8080)
+│   ├── user-service/           # Auth, profiles, and JWT (:50051)
+│   ├── post-service/           # Posts, comments, likes, search (:50052)
+│   ├── follow-service/         # Social graph & follow counts (:50053)
+│   ├── feed-service/           # Hybrid fanout & Redis timelines (:50054)
+│   ├── notification-service/   # Realtime WS (:8085) & push alerts (:50055)
+│   ├── moderation-service/     # Block/mute graph & content safety (:50056)
+│   ├── chat-service/           # Messaging, conversations, presence (:50057)
+│   ├── platform/observability/ # Shared OpenTelemetry & metrics
+│   ├── proto/                  # Shared Protocol Buffers & gRPC stubs
+│   └── tests/                  # Integration and k6 load tests
+├── frontend/                   # Next.js 15 App Router web client (:3000)
+├── deploy/                     # Docker & deployment configs
+├── nginx/                      # Nginx reverse proxy configurations
+├── scripts/                    # Database seeding and smoke test scripts
+├── dev.ps1                     # Dev orchestrator script (backend + frontend)
+├── go.work                     # Go multi-module workspace
+└── README.md
+```
+
+### Backend Microservices Directory
+
+| Service | Directory | Port | Description | Primary Datastore |
+| :--- | :--- | :--- | :--- | :--- |
+| **`api-gateway`** | `backend/api-gateway` | `:8080` | Public GraphQL API gateway (gqlgen), auth middleware, dataloaders. | In-Memory Query Cache |
+| **`user-service`** | `backend/user-service` | `:50051` | User registration, authentication, JWT tokens, profile management. | PostgreSQL |
+| **`post-service`** | `backend/post-service` | `:50052` | Post creation, editing, deletion, archiving, media uploads, likes, threaded comments, full-text and hashtag search. | PostgreSQL + Cloudinary |
+| **`follow-service`** | `backend/follow-service` | `:50053` | Social graph, follow/unfollow relationships, follower counts. | PostgreSQL |
+| **`feed-service`** | `backend/feed-service` | `:50054` | Chronological activity streams, hybrid fanout, Redis timeline cache. | Redis (Sorted Sets) |
+| **`notification-service`** | `backend/notification-service` | `:50055`, `:8085` | In-app real-time alerts, mobile push (APNs/FCM), email, roll-ups. | PostgreSQL + Redis Pub/Sub |
+| **`moderation-service`** | `backend/moderation-service` | `:50056` | Block/mute graph, content reporting, reviewer queue. | PostgreSQL |
+| **`chat-service`** | `backend/chat-service` | `:50057` | Direct and group messaging, read watermarks, presence and typing. | PostgreSQL + Redis |
+| **`proto`** | `backend/proto` | N/A | Shared Protocol Buffer definitions and compiled gRPC code stubs. | N/A |
 
 ---
 
@@ -105,4 +128,34 @@ SocialFlow is a high-performance, event-driven social media backend built with *
    ```
 4. **Open GraphQL Playground**:
    Navigate to [http://localhost:8080/](http://localhost:8080/) in your browser.
+
+### Frontend
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000). The Next.js app talks to the
+gateway through a same-origin proxy (`/api/graphql`), keeps both tokens in
+httpOnly cookies, and refreshes the access token transparently. See
+[`frontend/README.md`](frontend/README.md) for the route map, auth flow, and
+design system.
+
+### Demo data
+
+With PostgreSQL, Redis, and the services up:
+
+```powershell
+node scripts/seed.mjs
+```
+
+This creates six accounts, follow edges, twelve posts (some with media), five
+comments, likes, and a direct conversation. It is idempotent by account and by
+post. Sign in with **chetan@example.com / password123**.
+
+`node scripts/smoke.mjs` runs the API paths the frontend depends on and prints a
+pass/fail line for each.
+
 
