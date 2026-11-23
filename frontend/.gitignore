@@ -1,16 +1,30 @@
-# dependencies
+# Dependencies
 node_modules/
 
-# build output
+# Next.js
+.next/
+out/
+next-env.d.ts
+
+# Build output
 dist/
+build/
+
+# TypeScript
 *.tsbuildinfo
 
-# local env
+# Environment
 .env
 .env.local
 .env.*.local
 
-# editor / OS
+# OS / Editor
 .DS_Store
-.idea/
-.vscode/
+Thumbs.db
+*.log
+
+# Local QA artifacts
+tmp/
+
+# Isolated verification build
+.next-verify/
